@@ -1,4 +1,4 @@
-C-ImageCopy_bw
+C-ImageCopy
 This program will now move towards using flags to enhance the functionality.
 
 Compile: gcc -o imagecopy main.c

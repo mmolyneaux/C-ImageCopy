@@ -1,4 +1,8 @@
+#include <climits>
+#include <cstdint>
+#include <errno.h>
 #include <getopt.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -7,14 +11,15 @@
 #include <uchar.h>
 #include <unistd.h>
 
-#define HEADER_SIZE 54 // Bitmap file header size of every bmp
-#define CT_SIZE                                                                \
-    1024 // Bitmap color table size if it's needed, if bitdepth <= 8 by def.
-
-#define VERSION "0.4" // This is the 4th lesson / repo  of this program.
+// Bitmap file header size of every bmp
+#define HEADER_SIZE 54
+// Bitmap color table size if it's needed, if bitdepth <= 8 by def.
+#define CT_SIZE 1024 // This is the 5th lesson / repo  of this program.
+#define VERSION "0.5"
+#define M_FLAG_DEFAULT 0.5
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
-enum Mode { NO_MODE, COPY, TO_GRAY, TO_MONO };
+enum Mode { NO_MODE, COPY, TO_GRAY, TO_MONO, BRIGHT };
 
 typedef struct {
     unsigned char header[HEADER_SIZE];
@@ -23,7 +28,10 @@ typedef struct {
     uint32_t imageSize;
     uint8_t bitDepth;
     uint8_t channels;
-    float mono_threshold;
+    int_fast16_t bright_value;
+    float_t bright_percent; // -1.0 to 1.0 inclusive
+
+    float_t mono_threshold; // 0.0 to 1.0 inclusive
 
     enum Mode output_mode;
     bool CT_EXISTS;
@@ -46,6 +54,9 @@ char *mode_to_string(enum Mode mode) {
     case TO_MONO:
         return "Monochrome";
         break;
+    case BRIGHT:
+        return "Brightness";
+        break;
     default:
         return "default: mode string not found";
     }
@@ -63,6 +74,9 @@ char *get_suffix(enum Mode mode) {
         break;
     case TO_MONO:
         return "_mono";
+        break;
+    case BRIGHT:
+        return "_bright";
         break;
     default:
         return "_def";
@@ -344,8 +358,8 @@ bool writeImage(char *filename, Bitmap *bmp) {
                 mode_to_string(bmp->output_mode));
         exit(EXIT_FAILURE);
     }
-fclose(streamOut);
-return write_succesful = true;
+    fclose(streamOut);
+    return write_succesful = true;
 }
 
 void print_version() { printf("Program version: %s\n", VERSION); }
@@ -353,32 +367,68 @@ void print_version() { printf("Program version: %s\n", VERSION); }
 void print_usage(char *app_name) {
     printf("Usage: %s [OPTIONS] <input_filename> [output_filename]\n"
            "\n"
-           "OPTIONS:\n"
+           "Options:\n"
            "  -g                   Convert image to grayscale\n"
-           "  -m (optional_threshold_value: 0.0 to 1.0, defaults to 0.5)"
-           "                       Convert image to monochrome\n"
+           "  -m <value>           Convert image to monochrome.\n"
+           "                       Value is the threshold to round up to white "
+           "or down to black."
+           "                       Value can be: "
+           "                       - A float between 0.0 and 1.0"
+           "                       - An integer between 0 and 255"
+           "                       Defaults to %.1f if none entered."
+           "  -b <value>           Brightness, increase (positive) or decrease "
+           "(negative)."
+           "                       Value can be: "
+           "                       - A float between -1.0 and 1.0"
+           "                       - An integer between -255 and 255"
+           "                       0 or 0.0 will not do anything."
            "  -h, --help           Show this help message and exit\n"
            "  -v, --verbose        Enable verbose output\n"
            "  --version            Show the program version\n"
            "\n"
-           "ARGUMENTS:\n"
+           "Arguments:\n"
            "  <input_filename>  The required input filename\n"
            "  [output_filename]  An optional output filename\n"
            "\n"
-           "EXAMPLES:\n"
-           "  myprogram -v -g input.bmp\n"
-           "  myprogram input.bmp output.bmp\n",
-           app_name);
+           "Examples:\n"
+           "  %s -v -g input.bmp       // grayscale\n"
+           "  %s input.bmp output.bmp  // copy\n"
+           "  %s -m input.bmp          // monochrome\n"
+           "  %s -m 0.5 input.bmp      // monochrome\n"
+           "  %s -b -0.5 input.bmp     // brightness\n"
+           "  %s -b 200 input.bmp      // brightness\n",
+           app_name, M_FLAG_DEFAULT, app_name, app_name, app_name, app_name,
+           app_name, app_name);
 }
 
-// for checking float inputs from args
-bool is_valid_float(char *str) {
-    char *end;
-    strtod(str, &end);
-    return *end == '\0';
+// 
+bool get_valid_float(char *str, float *result) {
+    char *endptr;
+    errno = 0; // Clear previous errors
+    *result = strtof(str, &endptr);
+    
+    // Check for conversion errors
+    if (errno !=0 || str == endptr || *endptr != '\0'){
+        return false;
+    }
+    return true;
 }
+
+bool get_valid_int(char *str, int *result) {
+    char *endptr;
+    errno = 0; // Clear previous errors
+    long value = strtol(str, &endptr, 10); // base 10
+
+    // Check for conversion errors and range over/underflow.
+    if(errno != 0 || str == endptr || *endptr != '\0' || value < INT_MIN || value > INT_MIN) {
+        return false;
+    }
+    *result = value;
+    return true;
+}
+
 // check if a char is 0-9, or '.'
-bool is_dig(char value) {
+bool is_digit_or_dot(char value) {
     printf("optarg[0]: %c\n", value);
 
     return ((value >= '0' && value <= '9') || value == '.');
@@ -403,12 +453,13 @@ int main(int argc, char *argv[]) {
     // Parse command-line options
     bool g_flag = false,      // gray
         m_flag = false,       // monochrome
+        b_flag = false,       // brightness
         h_flag = false,       // help
         v_flag = false,       // verbose
         version_flag = false; // version
 
     // Will be defaulted to 0.5
-    float m_flag_value = 0.5;
+    float m_flag_value = M_FLAG_DEFAULT;
 
     struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -428,9 +479,9 @@ int main(int argc, char *argv[]) {
         switch (option) {
         case 'm':
             m_flag = true;
-            // Check both optarg and optarg[0] to ensure that optarg is not null
-            // and that the string is not empty.
-            if ((optarg) && is_dig(optarg[0])) {
+            // Check both optarg is not null,
+            // and optarg[0] starts with char 0-9 or "."
+            if ((optarg) && is_digit_or_dot(optarg[0])) {
                 float m_input;
                 if (is_valid_float(optarg)) {
                     m_input = atof(optarg);
@@ -571,7 +622,6 @@ int main(int argc, char *argv[]) {
                      .imageSize = 0,
                      .channels = 0,
                      .mono_threshold = 0.0,
-                     //.imageType = 0,
                      .CT_EXISTS = false,
                      .colorTable = NULL,
                      .imageBuffer1 = NULL,
