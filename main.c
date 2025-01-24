@@ -1,7 +1,6 @@
-#include <climits>
-#include <cstdint>
 #include <errno.h>
 #include <getopt.h>
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -30,9 +29,7 @@ typedef struct {
     uint8_t channels;
     int_fast16_t bright_value;
     float_t bright_percent; // -1.0 to 1.0 inclusive
-
     float_t mono_threshold; // 0.0 to 1.0 inclusive
-
     enum Mode output_mode;
     bool CT_EXISTS;
     unsigned char *colorTable;
@@ -401,14 +398,14 @@ void print_usage(char *app_name) {
            app_name, app_name);
 }
 
-// 
+//
 bool get_valid_float(char *str, float *result) {
     char *endptr;
     errno = 0; // Clear previous errors
     *result = strtof(str, &endptr);
-    
+
     // Check for conversion errors
-    if (errno !=0 || str == endptr || *endptr != '\0'){
+    if (errno != 0 || str == endptr || *endptr != '\0') {
         return false;
     }
     return true;
@@ -416,11 +413,12 @@ bool get_valid_float(char *str, float *result) {
 
 bool get_valid_int(char *str, int *result) {
     char *endptr;
-    errno = 0; // Clear previous errors
+    errno = 0;                             // Clear previous errors
     long value = strtol(str, &endptr, 10); // base 10
 
     // Check for conversion errors and range over/underflow.
-    if(errno != 0 || str == endptr || *endptr != '\0' || value < INT_MIN || value > INT_MIN) {
+    if ((errno != 0 || str == endptr || *endptr != '\0') &&
+        (value >= INT_MIN && value <= INT_MIN)) {
         return false;
     }
     *result = value;
@@ -429,10 +427,11 @@ bool get_valid_int(char *str, int *result) {
 
 // check if a char is 0-9, or '.'
 bool is_digit_or_dot(char value) {
-    printf("optarg[0]: %c\n", value);
-
     return ((value >= '0' && value <= '9') || value == '.');
 }
+
+// check if a char is 0-9
+bool is_digit(char value) { return ((value >= '0' && value <= '9')); }
 
 int main(int argc, char *argv[]) {
     enum Mode mode = NO_MODE; // default
@@ -458,8 +457,10 @@ int main(int argc, char *argv[]) {
         v_flag = false,       // verbose
         version_flag = false; // version
 
-    // Will be defaulted to 0.5
+    // Monochrome value with default
     float m_flag_value = M_FLAG_DEFAULT;
+    float b_flag_float = 0.0;
+    int b_flag_int = 0;
 
     struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -474,7 +475,7 @@ int main(int argc, char *argv[]) {
           // in getopt.h
     };
 
-    while ((option = getopt(argc, argv, "m:ghv")) != -1) {
+    while ((option = getopt(argc, argv, "m:b:ghv")) != -1) {
         printf("Optind: %d\n", optind);
         switch (option) {
         case 'm':
@@ -482,9 +483,8 @@ int main(int argc, char *argv[]) {
             // Check both optarg is not null,
             // and optarg[0] starts with char 0-9 or "."
             if ((optarg) && is_digit_or_dot(optarg[0])) {
-                float m_input;
-                if (is_valid_float(optarg)) {
-                    m_input = atof(optarg);
+                float m_input = 0.0;
+                if (get_valid_float(optarg, &m_input)) {
                     if ((m_input >= 0.0) && (m_input <= 1.0)) {
                         m_flag_value = m_input;
                     } else {
@@ -497,6 +497,51 @@ int main(int argc, char *argv[]) {
                 // Adjust optind to reconsider the current argument as a
                 // non-option argument
                 optind--;
+            }
+            break;
+        case 'b':
+            b_flag = true;
+            bool valid_b_value = false;
+            // Check both optarg is not null,
+            // and optarg[0] starts with char 0-9 or "."
+            if (optarg) {
+                // Negative check.
+                uint_fast8_t check_digit = 0;
+                if (optarg[check_digit] == '-') {
+                ++check_digit;
+                }
+                
+                if (is_digit_or_dot(optarg[check_digit]) && strrchr(optarg, '.')) {
+                    float b_float_input = 0.0;
+                    if (get_valid_float(optarg, &b_float_input)) {
+                        if ((b_float_input != 0.0) && (b_float_input >= -1.0) &&
+                            (b_float_input <= 1.0)) {
+                            b_flag_float = b_float_input;
+                            printf("-b float value: %.2f\n", b_flag_float);
+                           valid_b_value = true; 
+                        }
+                    }
+                } else if (is_digit(optarg[check_digit])) {
+                    printf("is_digit\n");
+                    int b_int_input = 0;
+                    printf("get_valid_int: %s\n",
+                           get_valid_int(optarg, &b_int_input) ? "true"
+                                                               : "false");
+                    if (get_valid_int(optarg, &b_int_input)) {
+                        printf("get_valid_int\n");
+                        if ((b_int_input != 0) && (b_int_input >= -255) &&
+                            (b_int_input <= 255)) {
+                            b_flag_int = b_int_input;
+                            printf("-b int value: %d\n", b_flag_int);
+                            valid_b_value = true;
+                        }
+                    }
+                }
+            } 
+            if (!valid_b_value) {
+                
+                fprintf(stderr, "-b value error: \"%s\"\n", optarg);
+                exit(EXIT_FAILURE);
             }
             break;
         case 'g': // mode: TO_GRAY, to grayscale image
@@ -522,19 +567,26 @@ int main(int argc, char *argv[]) {
 
     // set the mode
     if (g_flag) {
-        if (m_flag) {
+        if (m_flag || b_flag) {
             fprintf(stderr,
-                    "Error: Can only select one -m or -g flag at a time.");
+                    "Error: Can only select one -m,-g,-b flag at a time.");
             exit(EXIT_FAILURE);
         }
         mode = TO_GRAY;
     } else if (m_flag) {
-        if (g_flag) {
+        if (g_flag || b_flag) {
             fprintf(stderr,
-                    "Error: Can only select one -m or -g flag at a time.");
+                    "Error: Can only select one -m,-g,-b flag at a time.");
             exit(EXIT_FAILURE);
         }
         mode = TO_MONO;
+    } else if (b_flag) {
+        if (m_flag || g_flag) {
+            fprintf(stderr,
+                    "Error: Can only select one -m,-g,-b flag at a time.");
+            exit(EXIT_FAILURE);
+        }
+        mode = BRIGHT;
     } else {
         mode = COPY;
     }
@@ -622,12 +674,13 @@ int main(int argc, char *argv[]) {
                      .imageSize = 0,
                      .channels = 0,
                      .mono_threshold = 0.0,
+                     .bright_value = 0,
+                     .bright_percent = 0.0,
                      .CT_EXISTS = false,
                      .colorTable = NULL,
                      .imageBuffer1 = NULL,
                      .imageBuffer3 = NULL,
                      .output_mode = NO_MODE};
-
     Bitmap *bitmapPtr = &bitmap;
 
     bool imageRead = readImage(filename1, bitmapPtr);
@@ -650,6 +703,14 @@ int main(int argc, char *argv[]) {
     case TO_MONO:
         bitmapPtr->output_mode = TO_MONO;
         bitmapPtr->mono_threshold = m_flag_value;
+        break;
+    case BRIGHT:
+        bitmapPtr->output_mode = BRIGHT;
+        bitmapPtr->bright_percent = b_flag_float;
+        bitmapPtr->bright_value = b_flag_int;
+        printf("bitmapPtr->bright_percent = %.2f\n", bitmapPtr->bright_percent);
+        printf("bitmapPtr->bright_value = %d\n", bitmapPtr->bright_value);
+
         break;
     default:
         fprintf(stderr, "No output mode matched.\n");
