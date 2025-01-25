@@ -295,6 +295,43 @@ void to_mono3(Bitmap *bmp, FILE *streamOut) {
     }
 }
 
+void bright1(Bitmap *bmp, FILE *streamOut) {
+    const uint_fast8_t WHITE = (1 << bmp->bitDepth) - 1;
+
+    if (bmp->bright_value) {
+        int value = 0;
+        for (int i = 0; i < bmp->imageSize; i++) {
+            // Adds the positive or negative value with black and white
+            // bounds.
+
+            value = bmp->imageBuffer1[i] + bmp->bright_value;
+
+            if (value <= BLACK) {
+                bmp->imageBuffer1[i] = BLACK;
+            } else if (value >= WHITE) {
+                bmp->imageBuffer1[i] = WHITE;
+            } else {
+                bmp->imageBuffer1[i] = value;
+            }
+        }
+    } else { // bmp->bright_percent
+        if (bmp->bright_percent) {
+            int value = 0;
+            for (int i = 0; i < bmp->imageSize; i++) {
+                // Adds the positive or negative value with black and white
+                // bounds.
+                value = bmp->imageBuffer1[i] +
+                        bmp->bright_percent * bmp->imageBuffer1[i];
+                if (value >= WHITE) {
+                    bmp->imageBuffer1[i] = WHITE;
+                } else {
+                    bmp->imageBuffer1[i] = value;
+                }
+            }
+        }
+    }
+}
+
 bool writeImage(char *filename, Bitmap *bmp) {
     bool write_succesful = false;
     FILE *streamOut = fopen(filename, "wb");
@@ -338,39 +375,7 @@ bool writeImage(char *filename, Bitmap *bmp) {
                 }
             }
         } else if (bmp->output_mode == BRIGHT) {
-            const uint_fast8_t WHITE = (1 << bmp->bitDepth) - 1;
-            // if (bmp->bright_percent != 0.0 )
-            printf("White: %d\n", WHITE);
-            if (bmp->bright_value) {
-                int value = 0;
-                for (int i = 0; i < bmp->imageSize; i++) {
-                    // Adds the positive or negative value with black and white
-                    // bounds.
-
-                    value = bmp->imageBuffer1[i] + bmp->bright_value;
-
-                    if (value <= BLACK) {
-                        bmp->imageBuffer1[i] = BLACK;
-                    } else if (value >= WHITE) {
-                        bmp->imageBuffer1[i] = WHITE;
-                    } else {
-                        bmp->imageBuffer1[i] = value;
-                    }
-
-                }
-                // } else if (threshold <= BLACK) {
-                //     for (int i = 0; i < bmp->imageSize; i++) {
-                //         bmp->imageBuffer1[i] = BLACK;
-                //     }
-                // } else {
-                //     // Black and White converter
-                //     for (int i = 0; i < bmp->imageSize; i++) {
-                //         bmp->imageBuffer1[i] =
-                //             (bmp->imageBuffer1[i] >= threshold) ? WHITE :
-                //             BLACK;
-                //     }
-                // }
-            }
+            bright1(bmp, streamOut);
         }
         fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
 
