@@ -212,6 +212,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 }
 
 void copy3(Bitmap *bmp, FILE *streamOut) {
+    printf("Copy3\n");
     for (int i = 0; i < bmp->imageSize; i++) {
         // Write equally for each channel.
         putc(bmp->imageBuffer3[i][0], streamOut); // red
@@ -221,6 +222,7 @@ void copy3(Bitmap *bmp, FILE *streamOut) {
 }
 
 void to_gray3(Bitmap *bmp, FILE *streamOut) {
+    printf("Gray3\n");
     // the values for mixing RGB to gray.
     // amount of rgb to keep, from 0.0 to 1.0.
     float r = 0.30;
@@ -238,7 +240,9 @@ void to_gray3(Bitmap *bmp, FILE *streamOut) {
     }
 }
 
+// converts to grayscale and then mono
 void to_mono3(Bitmap *bmp, FILE *streamOut) {
+    printf("Mono3\n");
     // the values for mixing RGB to gray.
     // amount of rgb to keep, from 0.0 to 1.0.
     float r = 0.30;
@@ -295,479 +299,574 @@ void to_mono3(Bitmap *bmp, FILE *streamOut) {
     }
 }
 
-void bright1(Bitmap *bmp, FILE *streamOut) {
-    const uint_fast8_t WHITE = (1 << bmp->bitDepth) - 1;
+void bright3(Bitmap *bmp, FILE *streamOut) {
+    printf("Bright3\n");
 
+    const uint8_t WHITE = (1 << (bmp->bitDepth / bmp->channels)) - 1;
+    printf("White: %d\n", WHITE);
     if (bmp->bright_value) {
         int value = 0;
-        for (int i = 0; i < bmp->imageSize; i++) {
+        int j = 0;
+        for (int i = 0; i < bmp->imageSize; ++i) {
             // Adds the positive or negative value with black and white
             // bounds.
 
-            value = bmp->imageBuffer1[i] + bmp->bright_value;
+            for (j = 0; j < 3; ++j) {
 
-            if (value <= BLACK) {
-                bmp->imageBuffer1[i] = BLACK;
-            } else if (value >= WHITE) {
-                bmp->imageBuffer1[i] = WHITE;
-            } else {
-                bmp->imageBuffer1[i] = value;
+                value = bmp->imageBuffer3[i][j] + bmp->bright_value;
+
+                if (value <= BLACK) {
+                    bmp->imageBuffer3[i][j] = BLACK;
+                } else if (value >= WHITE) {
+                    bmp->imageBuffer3[i][j] = WHITE;
+                } else {
+                    bmp->imageBuffer3[i][j] = value;
+                }
             }
         }
+
     } else { // bmp->bright_percent
-        if (bmp->bright_percent) {
+        // if (bmp->bright_percent) {
+        printf("Bright3 - Percent\n");
+        int value = 0;
+        int j = 0;
+
+        for (int i = 0; i < bmp->imageSize; ++i) {
+            // Adds the positive or negative value only white
+            // upper bounds neccessary.
+            // if (i < 10) {
+            // printf("i: %d\n", i);
+            // }
+            for (j = 0; j < 3; ++j) {
+                // if (i < 10) {
+                // printf("j: %d\n", j);
+                // }
+                // if (i < 10) {
+                //     printf("Before: %d\n", bmp->imageBuffer3[i][j]);
+                // }
+
+                // if (i < 10) {
+                //     printf("      : %d\n", (int)(bmp->bright_percent *
+                //                                bmp->imageBuffer3[i][j]));
+                // }
+
+                value = bmp->imageBuffer3[i][j] +
+                        (int)(bmp->bright_percent * bmp->imageBuffer3[i][j]);
+                if (value >= WHITE) {
+                    bmp->imageBuffer3[i][j] = WHITE;
+                } else {
+                    bmp->imageBuffer3[i][j] = value;
+                }
+
+                // if (i < 10) {
+                //     printf("After : %d\n", bmp->imageBuffer3[i][j]);
+                // }
+            }
+        }
+        // }
+    }
+    for (int i = 0; i < bmp->imageSize; i++) {
+        // Write equally for each channel.
+        putc(bmp->imageBuffer3[i][0], streamOut); // red
+        putc(bmp->imageBuffer3[i][1], streamOut); // green
+        putc(bmp->imageBuffer3[i][2], streamOut); // blue
+    }
+
+}
+
+    void bright1(Bitmap * bmp, FILE * streamOut) {
+        printf("Bright1\n");
+        const uint_fast8_t WHITE = (1 << bmp->bitDepth) - 1;
+
+        if (bmp->bright_value) {
+            int value = 0;
+            for (int i = 0; i < bmp->imageSize; i++) {
+                // Adds the positive or negative value with black and white
+                // bounds.
+
+                value = bmp->imageBuffer1[i] + bmp->bright_value;
+
+                if (value <= BLACK) {
+                    bmp->imageBuffer1[i] = BLACK;
+                } else if (value >= WHITE) {
+                    bmp->imageBuffer1[i] = WHITE;
+                } else {
+                    bmp->imageBuffer1[i] = value;
+                }
+            }
+        } else { // bmp->bright_percent
+                 // if (bmp->bright_percent) {
             int value = 0;
             for (int i = 0; i < bmp->imageSize; i++) {
                 // Adds the positive or negative value with black and white
                 // bounds.
                 value = bmp->imageBuffer1[i] +
-                        bmp->bright_percent * bmp->imageBuffer1[i];
+                        (int)(bmp->bright_percent * bmp->imageBuffer1[i]);
                 if (value >= WHITE) {
                     bmp->imageBuffer1[i] = WHITE;
                 } else {
                     bmp->imageBuffer1[i] = value;
                 }
             }
+            //}
         }
     }
-}
 
-bool writeImage(char *filename, Bitmap *bmp) {
-    bool write_succesful = false;
-    FILE *streamOut = fopen(filename, "wb");
-    if (streamOut == NULL) {
-        fprintf(stderr, "Error: failed to open output file %s\n", filename);
-        exit(EXIT_FAILURE);
-    }
-    fwrite(bmp->header, sizeof(char), HEADER_SIZE, streamOut);
-
-    printf("Output mode: %s\n", mode_to_string(bmp->output_mode));
-    // aka if (bmp->bitDepth <= 8), checked earlier
-    if (bmp->channels == ONE_CHANNEL) {
-        if (bmp->CT_EXISTS) {
-            fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
+    bool writeImage(char *filename, Bitmap *bmp) {
+        bool write_succesful = false;
+        FILE *streamOut = fopen(filename, "wb");
+        if (streamOut == NULL) {
+            fprintf(stderr, "Error: failed to open output file %s\n", filename);
+            exit(EXIT_FAILURE);
         }
-        if (bmp->output_mode == COPY) {
+        fwrite(bmp->header, sizeof(char), HEADER_SIZE, streamOut);
+
+        printf("Output mode: %s\n", mode_to_string(bmp->output_mode));
+        // aka if (bmp->bitDepth <= 8), checked earlier
+        if (bmp->channels == ONE_CHANNEL) {
+            printf("ONE_CHANNEL\n");
+            if (bmp->CT_EXISTS) {
+                fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
+            }
+            if (bmp->output_mode == COPY) {
+                fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize,
+                       streamOut);
+
+            } else if (bmp->output_mode == TO_MONO) {
+                printf("Mono1\n");
+
+                // left shift bitdepth - 1 = bitdepth:white, 1:1, 2:3, 4:15,
+                // 8:255 same as: WHITE = POW(2, bmp-bitDepth) - 1, POW from
+                // math.h
+                const uint8_t WHITE = (1 << bmp->bitDepth) - 1;
+
+                uint8_t threshold = WHITE * bmp->mono_threshold;
+
+                if (threshold >= WHITE) {
+                    for (int i = 0; i < bmp->imageSize; i++) {
+                        bmp->imageBuffer1[i] = WHITE;
+                    }
+                } else if (threshold <= BLACK) {
+                    for (int i = 0; i < bmp->imageSize; i++) {
+                        bmp->imageBuffer1[i] = BLACK;
+                    }
+                } else {
+                    // Black and White converter
+                    for (int i = 0; i < bmp->imageSize; i++) {
+                        bmp->imageBuffer1[i] =
+                            (bmp->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
+                    }
+                }
+            } else if (bmp->output_mode == BRIGHT) {
+                bright1(bmp, streamOut);
+            }
             fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
 
-        } else if (bmp->output_mode == TO_MONO) {
+        } else if (bmp->channels == RGB) {
+            printf("RGB_CHANNEL\n");
+            if (bmp->output_mode == COPY) {
+                printf("C3\n");
+                copy3(bmp, streamOut);
 
-            // left shift bitdepth - 1 = bitdepth:white, 1:1, 2:3, 4:15,
-            // 8:255 same as: WHITE = POW(2, bmp-bitDepth) - 1, POW from
-            // math.h
-            const uint8_t WHITE = (1 << bmp->bitDepth) - 1;
+            } else if (bmp->output_mode == TO_GRAY) {
+                printf("G3\n");
+                to_gray3(bmp, streamOut);
 
-            uint8_t threshold = WHITE * bmp->mono_threshold;
-
-            if (threshold >= WHITE) {
-                for (int i = 0; i < bmp->imageSize; i++) {
-                    bmp->imageBuffer1[i] = WHITE;
-                }
-            } else if (threshold <= BLACK) {
-                for (int i = 0; i < bmp->imageSize; i++) {
-                    bmp->imageBuffer1[i] = BLACK;
-                }
-            } else {
-                // Black and White converter
-                for (int i = 0; i < bmp->imageSize; i++) {
-                    bmp->imageBuffer1[i] =
-                        (bmp->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
-                }
+            } else if (bmp->output_mode == TO_MONO) {
+                printf("M3\n");
+                to_mono3(bmp, streamOut);
             }
-        } else if (bmp->output_mode == BRIGHT) {
-            bright1(bmp, streamOut);
-        }
-        fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
 
-    } else if (bmp->channels == RGB) {
-        if (bmp->output_mode == COPY) {
-            copy3(bmp, streamOut);
-
-        } else if (bmp->output_mode == TO_GRAY) {
-            to_gray3(bmp, streamOut);
-
-        } else if (bmp->output_mode == TO_MONO) {
-            to_mono3(bmp, streamOut);
-        }
-    } else {
-        fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
-                mode_to_string(bmp->output_mode));
-        exit(EXIT_FAILURE);
-    }
-    fclose(streamOut);
-    return write_succesful = true;
-}
-
-void print_version() { printf("Program version: %s\n", VERSION); }
-
-void print_usage(char *app_name) {
-    printf("Usage: %s [OPTIONS] <input_filename> [output_filename]\n"
-           "\n"
-           "Options:\n"
-           "  -g                   Convert image to grayscale\n"
-           "  -m <value>           Convert image to monochrome.\n"
-           "                       Value is the threshold to round up to "
-           "white "
-           "or down to black."
-           "                       Value can be: "
-           "                       - A float between 0.0 and 1.0"
-           "                       - An integer between 0 and 255"
-           "                       Defaults to %.1f if none entered."
-           "  -b <value>           Brightness, increase (positive) or "
-           "decrease "
-           "(negative)."
-           "                       Value can be: "
-           "                       - A float between -1.0 and 1.0"
-           "                       - An integer between -255 and 255"
-           "                       0 or 0.0 will not do anything."
-           "  -h, --help           Show this help message and exit\n"
-           "  -v, --verbose        Enable verbose output\n"
-           "  --version            Show the program version\n"
-           "\n"
-           "Arguments:\n"
-           "  <input_filename>  The required input filename\n"
-           "  [output_filename]  An optional output filename\n"
-           "\n"
-           "Examples:\n"
-           "  %s -v -g input.bmp       // grayscale\n"
-           "  %s input.bmp output.bmp  // copy\n"
-           "  %s -m input.bmp          // monochrome\n"
-           "  %s -m 0.5 input.bmp      // monochrome\n"
-           "  %s -b -0.5 input.bmp     // brightness\n"
-           "  %s -b 200 input.bmp      // brightness\n",
-           app_name, M_FLAG_DEFAULT, app_name, app_name, app_name, app_name,
-           app_name, app_name);
-}
-
-//
-bool get_valid_float(char *str, float *result) {
-    char *endptr;
-    errno = 0; // Clear previous errors
-    *result = strtof(str, &endptr);
-
-    // Check for conversion errors
-    if (errno != 0 || str == endptr || *endptr != '\0') {
-        return false;
-    }
-    return true;
-}
-
-bool get_valid_int(char *str, int *result) {
-    char *endptr;
-    errno = 0;                             // Clear previous errors
-    long value = strtol(str, &endptr, 10); // base 10
-
-    // Check for conversion errors and range over/underflow.
-    if ((errno != 0 || str == endptr || *endptr != '\0') &&
-        (value >= INT_MIN && value <= INT_MIN)) {
-        return false;
-    }
-    *result = value;
-    return true;
-}
-
-// check if a char is 0-9, or '.'
-bool is_digit_or_dot(char value) {
-    return ((value >= '0' && value <= '9') || value == '.');
-}
-
-// check if a char is 0-9
-bool is_digit(char value) { return ((value >= '0' && value <= '9')); }
-
-int main(int argc, char *argv[]) {
-    enum Mode mode = NO_MODE; // default
-    int option = 0;
-
-    char *filename1 = NULL;
-    char *filename2 = NULL;
-    bool filename2_allocated = false;
-    char *suffix = "_suffix"; // default
-    char *extension = ".bmp";
-
-    // if only the program name is called, print usage and exit.
-    if (argc == 1) {
-        print_usage(argv[0]);
-        exit(EXIT_SUCCESS);
-    }
-
-    // Parse command-line options
-    bool g_flag = false,      // gray
-        m_flag = false,       // monochrome
-        b_flag = false,       // brightness
-        h_flag = false,       // help
-        v_flag = false,       // verbose
-        version_flag = false; // version
-
-    // Monochrome value with default
-    float m_flag_value = M_FLAG_DEFAULT;
-    float b_flag_float = 0.0;
-    int b_flag_int = 0;
-
-    struct option long_options[] = {
-        {"help", no_argument, 0, 'h'},
-        {"verbose", no_argument, 0, 'v'},
-        {"version", no_argument, 0, 0},
-        {
-            0,
-            0,
-            0,
-            0,
-        } // sentinal value indicating the end of the array, for getopt_long
-          // in getopt.h
-    };
-
-    while ((option = getopt(argc, argv, "m:b:ghv")) != -1) {
-        printf("Optind: %d\n", optind);
-        switch (option) {
-        case 'm':
-            m_flag = true;
-            // Check both optarg is not null,
-            // and optarg[0] starts with char 0-9 or "."
-            if ((optarg) && is_digit_or_dot(optarg[0])) {
-                float m_input = 0.0;
-                if (get_valid_float(optarg, &m_input)) {
-                    if ((m_input >= 0.0) && (m_input <= 1.0)) {
-                        m_flag_value = m_input;
-                    } else {
-                        fprintf(stderr,
-                                "-m value error \"%s\", defaulting to %.1f\n",
-                                optarg, m_flag_value);
-                    }
-                }
-            } else {
-                // Adjust optind to reconsider the current argument as a
-                // non-option argument
-                optind--;
+            //
+            else if (bmp->output_mode == BRIGHT) {
+                printf("B3\n");
+                bright3(bmp, streamOut);
             }
-            break;
-        case 'b':
-            b_flag = true;
-            bool valid_b_value = false;
-            // Check both optarg is not null,
-            // and optarg[0] starts with char 0-9 or "."
-            if (optarg) {
-                // Negative check.
-                uint_fast8_t check_digit = 0;
-                if (optarg[check_digit] == '-') {
-                    ++check_digit;
-                }
+            //
 
-                if (is_digit_or_dot(optarg[check_digit]) &&
-                    strrchr(optarg, '.')) {
-                    float b_float_input = 0.0;
-                    if (get_valid_float(optarg, &b_float_input)) {
-                        if ((b_float_input != 0.0) && (b_float_input >= -1.0) &&
-                            (b_float_input <= 1.0)) {
-                            b_flag_float = b_float_input;
-                            printf("-b float value: %.2f\n", b_flag_float);
-                            valid_b_value = true;
-                        }
-                    }
-                } else if (is_digit(optarg[check_digit])) {
-                    printf("is_digit\n");
-                    int b_int_input = 0;
-                    printf("get_valid_int: %s\n",
-                           get_valid_int(optarg, &b_int_input) ? "true"
-                                                               : "false");
-                    if (get_valid_int(optarg, &b_int_input)) {
-                        printf("get_valid_int\n");
-                        if ((b_int_input != 0) && (b_int_input >= -255) &&
-                            (b_int_input <= 255)) {
-                            b_flag_int = b_int_input;
-                            printf("-b int value: %d\n", b_flag_int);
-                            valid_b_value = true;
-                        }
-                    }
-                }
-            }
-            if (!valid_b_value) {
-
-                fprintf(stderr, "-b value error: \"%s\"\n", optarg);
+            else {
+                printf("CHANNEL FAIL\n");
+                fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
+                        mode_to_string(bmp->output_mode));
                 exit(EXIT_FAILURE);
             }
-            break;
-        case 'g': // mode: TO_GRAY, to grayscale image
-            g_flag = true;
-            break;
-        case 'h': // help
+        }
+        fclose(streamOut);
+        return write_succesful = true;
+    }
+
+    void print_version() { printf("Program version: %s\n", VERSION); }
+
+    void print_usage(char *app_name) {
+        printf("Usage: %s [OPTIONS] <input_filename> [output_filename]\n"
+               "\n"
+               "Options:\n"
+               "  -g                   Convert image to grayscale\n"
+               "  -m <value>           Convert image to monochrome.\n"
+               "                       Value is the threshold to round up to "
+               "white "
+               "or down to black."
+               "                       Value can be: "
+               "                       - A float between 0.0 and 1.0"
+               "                       - An integer between 0 and 255"
+               "                       Defaults to %.1f if none entered."
+               "  -b <value>           Brightness, increase (positive) or "
+               "decrease "
+               "(negative)."
+               "                       Value can be: "
+               "                       - A float between -1.0 and 1.0"
+               "                       - An integer between -255 and 255"
+               "                       0 or 0.0 will not do anything."
+               "  -h, --help           Show this help message and exit\n"
+               "  -v, --verbose        Enable verbose output\n"
+               "  --version            Show the program version\n"
+               "\n"
+               "Arguments:\n"
+               "  <input_filename>  The required input filename\n"
+               "  [output_filename]  An optional output filename\n"
+               "\n"
+               "Examples:\n"
+               "  %s -v -g input.bmp       // grayscale\n"
+               "  %s input.bmp output.bmp  // copy\n"
+               "  %s -m input.bmp          // monochrome\n"
+               "  %s -m 0.5 input.bmp      // monochrome\n"
+               "  %s -b -0.5 input.bmp     // brightness\n"
+               "  %s -b 200 input.bmp      // brightness\n",
+               app_name, M_FLAG_DEFAULT, app_name, app_name, app_name, app_name,
+               app_name, app_name);
+    }
+
+    //
+    bool get_valid_float(char *str, float *result) {
+        char *endptr;
+        errno = 0; // Clear previous errors
+        *result = strtof(str, &endptr);
+
+        // Check for conversion errors
+        if (errno != 0 || str == endptr || *endptr != '\0') {
+            return false;
+        }
+        return true;
+    }
+
+    bool get_valid_int(char *str, int *result) {
+        char *endptr;
+        errno = 0;                             // Clear previous errors
+        long value = strtol(str, &endptr, 10); // base 10
+
+        // Check for conversion errors and range over/underflow.
+        if ((errno != 0 || str == endptr || *endptr != '\0') &&
+            (value >= INT_MIN && value <= INT_MIN)) {
+            return false;
+        }
+        *result = value;
+        return true;
+    }
+
+    // check if a char is 0-9, or '.'
+    bool is_digit_or_dot(char value) {
+        return ((value >= '0' && value <= '9') || value == '.');
+    }
+
+    // check if a char is 0-9
+    bool is_digit(char value) { return ((value >= '0' && value <= '9')); }
+
+    int main(int argc, char *argv[]) {
+        enum Mode mode = NO_MODE; // default
+        int option = 0;
+
+        char *filename1 = NULL;
+        char *filename2 = NULL;
+        bool filename2_allocated = false;
+        char *suffix = "_suffix"; // default
+        char *extension = ".bmp";
+
+        // if only the program name is called, print usage and exit.
+        if (argc == 1) {
             print_usage(argv[0]);
             exit(EXIT_SUCCESS);
-        case 'v': // verbose
-            v_flag = true;
-            break;
-        case 0: // checks for long options not tied to a short option
-            if (strcmp("version", long_options[optind].name) == 0) {
-                print_version();
+        }
+
+        // Parse command-line options
+        bool g_flag = false,      // gray
+            m_flag = false,       // monochrome
+            b_flag = false,       // brightness
+            h_flag = false,       // help
+            v_flag = false,       // verbose
+            version_flag = false; // version
+
+        // Monochrome value with default
+        float m_flag_value = M_FLAG_DEFAULT;
+        float b_flag_float = 0.0;
+        int b_flag_int = 0;
+
+        struct option long_options[] = {
+            {"help", no_argument, 0, 'h'},
+            {"verbose", no_argument, 0, 'v'},
+            {"version", no_argument, 0, 0},
+            {
+                0,
+                0,
+                0,
+                0,
+            } // sentinal value indicating the end of the array, for getopt_long
+              // in getopt.h
+        };
+
+        while ((option = getopt(argc, argv, "m:b:ghv")) != -1) {
+            printf("Optind: %d\n", optind);
+            switch (option) {
+            case 'm':
+                m_flag = true;
+                // Check both optarg is not null,
+                // and optarg[0] starts with char 0-9 or "."
+                if ((optarg) && is_digit_or_dot(optarg[0])) {
+                    float m_input = 0.0;
+                    if (get_valid_float(optarg, &m_input)) {
+                        if ((m_input >= 0.0) && (m_input <= 1.0)) {
+                            m_flag_value = m_input;
+                        } else {
+                            fprintf(
+                                stderr,
+                                "-m value error \"%s\", defaulting to %.1f\n",
+                                optarg, m_flag_value);
+                        }
+                    }
+                } else {
+                    // Adjust optind to reconsider the current argument as a
+                    // non-option argument
+                    optind--;
+                }
+                break;
+            case 'b':
+                b_flag = true;
+                bool valid_b_value = false;
+                // Check both optarg is not null,
+                // and optarg[0] starts with char 0-9 or "."
+                if (optarg) {
+                    // Negative check.
+                    uint_fast8_t check_digit = 0;
+                    if (optarg[check_digit] == '-') {
+                        ++check_digit;
+                    }
+
+                    if (is_digit_or_dot(optarg[check_digit]) &&
+                        strrchr(optarg, '.')) {
+                        float b_float_input = 0.0;
+                        if (get_valid_float(optarg, &b_float_input)) {
+                            if ((b_float_input != 0.0) &&
+                                (b_float_input >= -1.0) &&
+                                (b_float_input <= 1.0)) {
+                                b_flag_float = b_float_input;
+                                printf("-b float value: %.2f\n", b_flag_float);
+                                valid_b_value = true;
+                            }
+                        }
+                    } else if (is_digit(optarg[check_digit])) {
+                        printf("is_digit\n");
+                        int b_int_input = 0;
+                        printf("get_valid_int: %s\n",
+                               get_valid_int(optarg, &b_int_input) ? "true"
+                                                                   : "false");
+                        if (get_valid_int(optarg, &b_int_input)) {
+                            printf("get_valid_int\n");
+                            if ((b_int_input != 0) && (b_int_input >= -255) &&
+                                (b_int_input <= 255)) {
+                                b_flag_int = b_int_input;
+                                printf("-b int value: %d\n", b_flag_int);
+                                valid_b_value = true;
+                            }
+                        }
+                    }
+                }
+                if (!valid_b_value) {
+
+                    fprintf(stderr, "-b value error: \"%s\"\n", optarg);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'g': // mode: TO_GRAY, to grayscale image
+                g_flag = true;
+                break;
+            case 'h': // help
+                print_usage(argv[0]);
                 exit(EXIT_SUCCESS);
+            case 'v': // verbose
+                v_flag = true;
+                break;
+            case 0: // checks for long options not tied to a short option
+                if (strcmp("version", long_options[optind].name) == 0) {
+                    print_version();
+                    exit(EXIT_SUCCESS);
+                }
+                break;
+            default:
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
             }
-            break;
-        default:
+        }
+
+        // set the mode
+        if (g_flag) {
+            if (m_flag || b_flag) {
+                fprintf(stderr,
+                        "Error: Can only select one -m,-g,-b flag at a time.");
+                exit(EXIT_FAILURE);
+            }
+            mode = TO_GRAY;
+        } else if (m_flag) {
+            if (g_flag || b_flag) {
+                fprintf(stderr,
+                        "Error: Can only select one -m,-g,-b flag at a time.");
+                exit(EXIT_FAILURE);
+            }
+            mode = TO_MONO;
+        } else if (b_flag) {
+            if (m_flag || g_flag) {
+                fprintf(stderr,
+                        "Error: Can only select one -m,-g,-b flag at a time.");
+                exit(EXIT_FAILURE);
+            }
+            mode = BRIGHT;
+        } else {
+            mode = COPY;
+        }
+
+        // Check for required filename argument
+        if (optind < argc) {
+            filename1 = argv[optind];
+            optind++;
+        } else {
             print_usage(argv[0]);
             exit(EXIT_FAILURE);
         }
-    }
 
-    // set the mode
-    if (g_flag) {
-        if (m_flag || b_flag) {
-            fprintf(stderr,
-                    "Error: Can only select one -m,-g,-b flag at a time.");
+        // Check for optional filename argument
+        if (optind < argc) {
+            filename2 = argv[optind];
+        }
+
+        // confirm filename1 ends with extension
+        if (!endsWith(filename1, extension)) {
+            fprintf(stderr, "Error: Input file %s does not end with %s\n",
+                    filename1, extension);
             exit(EXIT_FAILURE);
         }
-        mode = TO_GRAY;
-    } else if (m_flag) {
-        if (g_flag || b_flag) {
-            fprintf(stderr,
-                    "Error: Can only select one -m,-g,-b flag at a time.");
+        // confirm filename2 ends with extension
+        if (filename2) {
+            if (!endsWith(filename2, extension)) {
+                printf("Error: Input file %s does not end with %s\n", filename2,
+                       extension);
+                exit(EXIT_FAILURE);
+            }
+        } else { // create filename2 with proper suffix from mode
+            // Find the last position of the  '.' in the filename
+            char *dot_pos = strrchr(filename1, '.');
+            if (dot_pos == NULL) {
+                fprintf(stderr, "\".\" not found in filename: %s\n", filename1);
+                exit(EXIT_FAILURE);
+            }
+
+            suffix = get_suffix(mode);
+
+            // Calculate the length of the parts to create filename2
+            size_t base_len = dot_pos - filename1;
+            size_t suffix_len = strlen(suffix);
+            size_t extention_len = strlen(extension);
+
+            filename2 = (char *)malloc(
+                sizeof(char) * (base_len + suffix_len + extention_len + 1));
+            if (filename2 == NULL) {
+                printf("Memory allocation for output filename has failed.\n");
+                exit(EXIT_FAILURE);
+            }
+            filename2_allocated = true;
+            // Copy the base part of filename1 and append the suffix and
+            // extension. strncpy copies the first base_len number of chars from
+            // filename1 into filename2
+            strncpy(filename2, filename1, base_len);
+            // use ptr math to copy suffix to filename2ptr's + position + (can't
+            // use strcat because strncpy doesn't null terminate.)
+            strcpy(filename2 + base_len, suffix);
+            strcpy(filename2 + base_len + suffix_len, extension);
+        }
+
+        if (v_flag) {
+            printf("-g (to gray):       %s\n", g_flag ? "true" : "false");
+            if (m_flag) {
+                printf("-m (to monochrome): %s, value: %.2f\n",
+                       m_flag ? "true" : "false", m_flag_value);
+            } else {
+                printf("-m (to monochrome): %s\n", m_flag ? "true" : "false");
+            }
+            printf("-h (help):          %s\n", h_flag ? "true" : "false");
+            printf("-v (verbose):       %s\n", v_flag ? "true" : "false");
+            printf("--version:          %s\n", version_flag ? "true" : "false");
+            printf("filename1: %s\n", filename1);
+            if (filename2)
+                printf("filename2: %s\n", filename2);
+            printf("mode: %s\n", mode_to_string(mode));
+        }
+
+        Bitmap bitmap = {.header = {0},
+                         .width = 0,
+                         .height = 0,
+                         .bitDepth = 0,
+                         .imageSize = 0,
+                         .channels = 0,
+                         .mono_threshold = 0.0,
+                         .bright_value = 0,
+                         .bright_percent = 0.0,
+                         .CT_EXISTS = false,
+                         .colorTable = NULL,
+                         .imageBuffer1 = NULL,
+                         .imageBuffer3 = NULL,
+                         .output_mode = NO_MODE};
+        Bitmap *bitmapPtr = &bitmap;
+
+        bool imageRead = readImage(filename1, bitmapPtr);
+        if (!imageRead) {
+            fprintf(stderr, "Image read failed.\n");
             exit(EXIT_FAILURE);
         }
-        mode = TO_MONO;
-    } else if (b_flag) {
-        if (m_flag || g_flag) {
-            fprintf(stderr,
-                    "Error: Can only select one -m,-g,-b flag at a time.");
+
+        printf("width: %d\n", bitmapPtr->width);
+        printf("height: %d\n", bitmapPtr->height);
+        printf("bitDepth: %d\n", bitmapPtr->bitDepth);
+
+        switch (mode) {
+        case COPY:
+            bitmapPtr->output_mode = COPY;
+            break;
+        case TO_GRAY:
+            bitmapPtr->output_mode = TO_GRAY;
+            break;
+        case TO_MONO:
+            bitmapPtr->output_mode = TO_MONO;
+            bitmapPtr->mono_threshold = m_flag_value;
+            break;
+        case BRIGHT:
+            bitmapPtr->output_mode = BRIGHT;
+            bitmapPtr->bright_percent = b_flag_float;
+            bitmapPtr->bright_value = b_flag_int;
+            printf("bitmapPtr->bright_percent = %.2f\n",
+                   bitmapPtr->bright_percent);
+            printf("bitmapPtr->bright_value = %d\n", bitmapPtr->bright_value);
+            break;
+        default:
+            fprintf(stderr, "No output mode matched.\n");
             exit(EXIT_FAILURE);
         }
-        mode = BRIGHT;
-    } else {
-        mode = COPY;
-    }
+        writeImage(filename2, bitmapPtr);
 
-    // Check for required filename argument
-    if (optind < argc) {
-        filename1 = argv[optind];
-        optind++;
-    } else {
-        print_usage(argv[0]);
-        exit(EXIT_FAILURE);
-    }
-
-    // Check for optional filename argument
-    if (optind < argc) {
-        filename2 = argv[optind];
-    }
-
-    // confirm filename1 ends with extension
-    if (!endsWith(filename1, extension)) {
-        fprintf(stderr, "Error: Input file %s does not end with %s\n",
-                filename1, extension);
-        exit(EXIT_FAILURE);
-    }
-    // confirm filename2 ends with extension
-    if (filename2) {
-        if (!endsWith(filename2, extension)) {
-            printf("Error: Input file %s does not end with %s\n", filename2,
-                   extension);
-            exit(EXIT_FAILURE);
-        }
-    } else { // create filename2 with proper suffix from mode
-        // Find the last position of the  '.' in the filename
-        char *dot_pos = strrchr(filename1, '.');
-        if (dot_pos == NULL) {
-            fprintf(stderr, "\".\" not found in filename: %s\n", filename1);
-            exit(EXIT_FAILURE);
+        // free filename2 memory if it was allocated
+        if (filename2_allocated && filename2 != NULL) {
+            free(filename2);
+            filename2 = NULL;
+            filename2_allocated = false;
         }
 
-        suffix = get_suffix(mode);
+        freeImage(bitmapPtr);
 
-        // Calculate the length of the parts
-        size_t base_len = dot_pos - filename1;
-        size_t suffix_len = strlen(suffix);
-        size_t extention_len = strlen(extension);
-
-        filename2 = (char *)malloc(sizeof(char) *
-                                   (base_len + suffix_len + extention_len + 1));
-        if (filename2 == NULL) {
-            printf("Memory allocation for output filename has failed.\n");
-            exit(EXIT_FAILURE);
-        }
-        filename2_allocated = true;
-        // Copy the base part of filename1 and append the suffix and
-        // extension. strncpy copies the first base_len number of chars from
-        // filename1 into filename2
-        strncpy(filename2, filename1, base_len);
-        // use ptr math to copy suffix to filename2ptr's + position + (can't
-        // use strcat because strncpy doesn't null terminate.)
-        strcpy(filename2 + base_len, suffix);
-        strcpy(filename2 + base_len + suffix_len, extension);
+        return 0;
     }
-
-    if (v_flag) {
-        printf("-g (to gray):       %s\n", g_flag ? "true" : "false");
-        if (m_flag) {
-            printf("-m (to monochrome): %s, value: %.2f\n",
-                   m_flag ? "true" : "false", m_flag_value);
-        } else {
-            printf("-m (to monochrome): %s\n", m_flag ? "true" : "false");
-        }
-        printf("-h (help):          %s\n", h_flag ? "true" : "false");
-        printf("-v (verbose):       %s\n", v_flag ? "true" : "false");
-        printf("--version:          %s\n", version_flag ? "true" : "false");
-        printf("filename1: %s\n", filename1);
-        if (filename2)
-            printf("filename2: %s\n", filename2);
-        printf("mode: %s\n", mode_to_string(mode));
-    }
-
-    Bitmap bitmap = {.header = {0},
-                     .width = 0,
-                     .height = 0,
-                     .bitDepth = 0,
-                     .imageSize = 0,
-                     .channels = 0,
-                     .mono_threshold = 0.0,
-                     .bright_value = 0,
-                     .bright_percent = 0.0,
-                     .CT_EXISTS = false,
-                     .colorTable = NULL,
-                     .imageBuffer1 = NULL,
-                     .imageBuffer3 = NULL,
-                     .output_mode = NO_MODE};
-    Bitmap *bitmapPtr = &bitmap;
-
-    bool imageRead = readImage(filename1, bitmapPtr);
-    if (!imageRead) {
-        fprintf(stderr, "Image read failed.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("width: %d\n", bitmapPtr->width);
-    printf("height: %d\n", bitmapPtr->height);
-    printf("bitDepth: %d\n", bitmapPtr->bitDepth);
-
-    switch (mode) {
-    case COPY:
-        bitmapPtr->output_mode = COPY;
-        break;
-    case TO_GRAY:
-        bitmapPtr->output_mode = TO_GRAY;
-        break;
-    case TO_MONO:
-        bitmapPtr->output_mode = TO_MONO;
-        bitmapPtr->mono_threshold = m_flag_value;
-        break;
-    case BRIGHT:
-        bitmapPtr->output_mode = BRIGHT;
-        bitmapPtr->bright_percent = b_flag_float;
-        bitmapPtr->bright_value = b_flag_int;
-        printf("bitmapPtr->bright_percent = %.2f\n", bitmapPtr->bright_percent);
-        printf("bitmapPtr->bright_value = %d\n", bitmapPtr->bright_value);
-
-        break;
-    default:
-        fprintf(stderr, "No output mode matched.\n");
-        exit(EXIT_FAILURE);
-    }
-    writeImage(filename2, bitmapPtr);
-
-    // free filename2 memory if it was allocated
-    if (filename2_allocated && filename2 != NULL) {
-        free(filename2);
-        filename2 = NULL;
-        filename2_allocated = false;
-    }
-
-    freeImage(bitmapPtr);
-
-    return 0;
-}
