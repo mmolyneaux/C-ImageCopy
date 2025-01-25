@@ -16,6 +16,7 @@
 #define CT_SIZE 1024 // This is the 5th lesson / repo  of this program.
 #define VERSION "0.5"
 #define M_FLAG_DEFAULT 0.5
+#define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
 enum Mode { NO_MODE, COPY, TO_GRAY, TO_MONO, BRIGHT };
@@ -259,7 +260,7 @@ void to_mono3(Bitmap *bmp, FILE *streamOut) {
     // math.h
     const uint8_t WHITE = (1 << (bmp->bitDepth / bmp->channels)) - 1;
     printf("White is %d\n", WHITE);
-    const uint8_t BLACK = 0;
+
     uint8_t threshold = WHITE * bmp->mono_threshold;
 
     if (threshold >= WHITE) {
@@ -318,7 +319,7 @@ bool writeImage(char *filename, Bitmap *bmp) {
             // 8:255 same as: WHITE = POW(2, bmp-bitDepth) - 1, POW from
             // math.h
             const uint8_t WHITE = (1 << bmp->bitDepth) - 1;
-            const uint8_t BLACK = 0;
+
             uint8_t threshold = WHITE * bmp->mono_threshold;
 
             if (threshold >= WHITE) {
@@ -336,8 +337,41 @@ bool writeImage(char *filename, Bitmap *bmp) {
                         (bmp->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
                 }
             }
-        }
+        } else if (bmp->output_mode == BRIGHT) {
+            const uint_fast8_t WHITE = (1 << bmp->bitDepth) - 1;
+            // if (bmp->bright_percent != 0.0 )
+            printf("White: %d\n", WHITE);
+            if (bmp->bright_value) {
+                int value = 0;
+                for (int i = 0; i < bmp->imageSize; i++) {
+                    // Adds the positive or negative value with black and white
+                    // bounds.
 
+                    value = bmp->imageBuffer1[i] + bmp->bright_value;
+
+                    if (value <= BLACK) {
+                        bmp->imageBuffer1[i] = BLACK;
+                    } else if (value >= WHITE) {
+                        bmp->imageBuffer1[i] = WHITE;
+                    } else {
+                        bmp->imageBuffer1[i] = value;
+                    }
+
+                }
+                // } else if (threshold <= BLACK) {
+                //     for (int i = 0; i < bmp->imageSize; i++) {
+                //         bmp->imageBuffer1[i] = BLACK;
+                //     }
+                // } else {
+                //     // Black and White converter
+                //     for (int i = 0; i < bmp->imageSize; i++) {
+                //         bmp->imageBuffer1[i] =
+                //             (bmp->imageBuffer1[i] >= threshold) ? WHITE :
+                //             BLACK;
+                //     }
+                // }
+            }
+        }
         fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
 
     } else if (bmp->channels == RGB) {
@@ -367,13 +401,15 @@ void print_usage(char *app_name) {
            "Options:\n"
            "  -g                   Convert image to grayscale\n"
            "  -m <value>           Convert image to monochrome.\n"
-           "                       Value is the threshold to round up to white "
+           "                       Value is the threshold to round up to "
+           "white "
            "or down to black."
            "                       Value can be: "
            "                       - A float between 0.0 and 1.0"
            "                       - An integer between 0 and 255"
            "                       Defaults to %.1f if none entered."
-           "  -b <value>           Brightness, increase (positive) or decrease "
+           "  -b <value>           Brightness, increase (positive) or "
+           "decrease "
            "(negative)."
            "                       Value can be: "
            "                       - A float between -1.0 and 1.0"
@@ -508,17 +544,18 @@ int main(int argc, char *argv[]) {
                 // Negative check.
                 uint_fast8_t check_digit = 0;
                 if (optarg[check_digit] == '-') {
-                ++check_digit;
+                    ++check_digit;
                 }
-                
-                if (is_digit_or_dot(optarg[check_digit]) && strrchr(optarg, '.')) {
+
+                if (is_digit_or_dot(optarg[check_digit]) &&
+                    strrchr(optarg, '.')) {
                     float b_float_input = 0.0;
                     if (get_valid_float(optarg, &b_float_input)) {
                         if ((b_float_input != 0.0) && (b_float_input >= -1.0) &&
                             (b_float_input <= 1.0)) {
                             b_flag_float = b_float_input;
                             printf("-b float value: %.2f\n", b_flag_float);
-                           valid_b_value = true; 
+                            valid_b_value = true;
                         }
                     }
                 } else if (is_digit(optarg[check_digit])) {
@@ -537,9 +574,9 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-            } 
+            }
             if (!valid_b_value) {
-                
+
                 fprintf(stderr, "-b value error: \"%s\"\n", optarg);
                 exit(EXIT_FAILURE);
             }
