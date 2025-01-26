@@ -380,7 +380,7 @@ void bright1(Bitmap *bmp) {
 
 
 
-bool writeImage(char *filename, Bitmap *bmp) {
+bool write_image(Bitmap *bmp, char *filename) {
     bool write_succesful = false;
     FILE *streamOut = fopen(filename, "wb");
     if (streamOut == NULL) {
@@ -798,7 +798,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "No output mode matched.\n");
         exit(EXIT_FAILURE);
     }
-    writeImage(filename2, bitmapPtr);
+    write_image(bitmapPtr, filename2);
 
     // free filename2 memory if it was allocated
     if (filename2_allocated && filename2 != NULL) {
