@@ -310,9 +310,36 @@ void bright3(Bitmap *bmp) {
     }
 }
 
-void copy1(Bitmap *bmp){ 
-    printf("Copy1\n");
+void copy1(Bitmap *bmp) { printf("Copy1\n"); }
+
+
+void mono1(Bitmap *bmp) {
+    printf("Mono1\n");
+
+    // left shift bitdepth - 1 = bitdepth:white, 1:1, 2:3, 4:15,
+    // 8:255 same as: WHITE = POW(2, bmp-bitDepth) - 1, POW from
+    // math.h
+    const uint8_t WHITE = (1 << bmp->bitDepth) - 1;
+
+    uint8_t threshold = WHITE * bmp->mono_threshold;
+
+    if (threshold >= WHITE) {
+        for (int i = 0; i < bmp->imageSize; i++) {
+            bmp->imageBuffer1[i] = WHITE;
+        }
+    } else if (threshold <= BLACK) {
+        for (int i = 0; i < bmp->imageSize; i++) {
+            bmp->imageBuffer1[i] = BLACK;
+        }
+    } else {
+        // Black and White converter
+        for (int i = 0; i < bmp->imageSize; i++) {
+            bmp->imageBuffer1[i] =
+                (bmp->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
+        }
+    }
 }
+
 
 void bright1(Bitmap *bmp) {
     printf("Bright1\n");
@@ -351,6 +378,8 @@ void bright1(Bitmap *bmp) {
     }
 }
 
+
+
 bool writeImage(char *filename, Bitmap *bmp) {
     bool write_succesful = false;
     FILE *streamOut = fopen(filename, "wb");
@@ -371,30 +400,8 @@ bool writeImage(char *filename, Bitmap *bmp) {
             copy1(bmp);
 
         } else if (bmp->output_mode == TO_MONO) {
-            printf("Mono1\n");
+            mono1(bmp);
 
-            // left shift bitdepth - 1 = bitdepth:white, 1:1, 2:3, 4:15,
-            // 8:255 same as: WHITE = POW(2, bmp-bitDepth) - 1, POW from
-            // math.h
-            const uint8_t WHITE = (1 << bmp->bitDepth) - 1;
-
-            uint8_t threshold = WHITE * bmp->mono_threshold;
-
-            if (threshold >= WHITE) {
-                for (int i = 0; i < bmp->imageSize; i++) {
-                    bmp->imageBuffer1[i] = WHITE;
-                }
-            } else if (threshold <= BLACK) {
-                for (int i = 0; i < bmp->imageSize; i++) {
-                    bmp->imageBuffer1[i] = BLACK;
-                }
-            } else {
-                // Black and White converter
-                for (int i = 0; i < bmp->imageSize; i++) {
-                    bmp->imageBuffer1[i] =
-                        (bmp->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
-                }
-            }
         } else if (bmp->output_mode == BRIGHT) {
             bright1(bmp);
         }
