@@ -312,7 +312,6 @@ void bright3(Bitmap *bmp) {
 
 void copy1(Bitmap *bmp) { printf("Copy1\n"); }
 
-
 void mono1(Bitmap *bmp) {
     printf("Mono1\n");
 
@@ -339,7 +338,6 @@ void mono1(Bitmap *bmp) {
         }
     }
 }
-
 
 void bright1(Bitmap *bmp) {
     printf("Bright1\n");
@@ -378,24 +376,15 @@ void bright1(Bitmap *bmp) {
     }
 }
 
-
-
 bool write_image(Bitmap *bmp, char *filename) {
-    bool write_succesful = false;
-    FILE *streamOut = fopen(filename, "wb");
-    if (streamOut == NULL) {
-        fprintf(stderr, "Error: failed to open output file %s\n", filename);
-        exit(EXIT_FAILURE);
-    }
-    fwrite(bmp->header, sizeof(char), HEADER_SIZE, streamOut);
+
+    // Process image
 
     printf("Output mode: %s\n", mode_to_string(bmp->output_mode));
     // aka if (bmp->bitDepth <= 8), checked earlier
     if (bmp->channels == ONE_CHANNEL) {
         printf("ONE_CHANNEL\n");
-        if (bmp->CT_EXISTS) {
-            fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
-        }
+
         if (bmp->output_mode == COPY) {
             copy1(bmp);
 
@@ -405,7 +394,6 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == BRIGHT) {
             bright1(bmp);
         }
-        fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
 
     } else if (bmp->channels == RGB) {
         printf("RGB_CHANNEL\n");
@@ -427,7 +415,28 @@ bool write_image(Bitmap *bmp, char *filename) {
                     mode_to_string(bmp->output_mode));
             exit(EXIT_FAILURE);
         }
-        for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
+    }
+
+    // Write image
+
+    bool write_succesful = false;
+    FILE *streamOut = fopen(filename, "wb");
+    if (streamOut == NULL) {
+        fprintf(stderr, "Error: failed to open output file %s\n", filename);
+        exit(EXIT_FAILURE);
+    }
+    fwrite(bmp->header, sizeof(char), HEADER_SIZE, streamOut);
+
+    if (bmp->channels == ONE_CHANNEL) {
+        printf("ONE_CHANNEL\n");
+        if (bmp->CT_EXISTS) {
+            fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
+        }
+        fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
+    }
+    
+    else if (bmp->channels == RGB) {
+         for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
             // Write equally for each channel.
             // j: red is 0, g is 1, b is 2
             for (j = 0; j < 3; ++j) {
@@ -435,6 +444,7 @@ bool write_image(Bitmap *bmp, char *filename) {
             }
         }
     }
+
     fclose(streamOut);
     return write_succesful = true;
 }
