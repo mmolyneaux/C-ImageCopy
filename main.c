@@ -13,13 +13,14 @@
 // Bitmap file header size of every bmp
 #define HEADER_SIZE 54
 // Bitmap color table size if it's needed, if bitdepth <= 8 by def.
-#define CT_SIZE 1024 // This is the 5th lesson / repo  of this program.
-#define VERSION "0.5"
+#define CT_SIZE 1024 
+// This is the 5th lesson / repo  of this program.
+#define VERSION "0.6" // Histogram
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
-enum Mode { NO_MODE, COPY, TO_GRAY, TO_MONO, BRIGHT };
+enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT };
 
 typedef struct {
     unsigned char header[HEADER_SIZE];
@@ -28,14 +29,14 @@ typedef struct {
     uint32_t imageSize;
     uint8_t bitDepth;
     uint8_t channels;
+    float_t mono_threshold; // 0.0 to 1.0 inclusive
     int_fast16_t bright_value;
     float_t bright_percent; // -1.0 to 1.0 inclusive
-    float_t mono_threshold; // 0.0 to 1.0 inclusive
-    enum Mode output_mode;
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
+    enum Mode output_mode;
 } Bitmap;
 
 char *mode_to_string(enum Mode mode) {
@@ -46,10 +47,10 @@ char *mode_to_string(enum Mode mode) {
     case COPY:
         return "Copy";
         break;
-    case TO_GRAY:
+    case GRAY:
         return "Grayscale";
         break;
-    case TO_MONO:
+    case MONO:
         return "Monochrome";
         break;
     case BRIGHT:
@@ -67,10 +68,10 @@ char *get_suffix(enum Mode mode) {
     case COPY:
         return "_copy";
         break;
-    case TO_GRAY:
+    case GRAY:
         return "_gray";
         break;
-    case TO_MONO:
+    case MONO:
         return "_mono";
         break;
     case BRIGHT:
@@ -213,7 +214,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 // No need to change image buffer for direct copy.
 void copy3(Bitmap *bmp) { printf("Copy3\n"); }
 
-void to_gray3(Bitmap *bmp) {
+void gray3(Bitmap *bmp) {
     printf("Gray3\n");
     // the values for mixing RGB to gray.
     // amount of rgb to keep, from 0.0 to 1.0.
@@ -233,9 +234,9 @@ void to_gray3(Bitmap *bmp) {
 }
 
 // converts to grayscale and then mono
-void to_mono3(Bitmap *bmp) {
+void MONO3(Bitmap *bmp) {
     printf("Mono3\n");
-    to_gray3(bmp);
+    gray3(bmp);
 
     // left shift bitdepth - 1 = bitdepth:white, 1:1, 2:3, 4:15, 8:255, rgb =
     // 8,8,8:255,255,255 same as: WHITE = POW(2, bmp-bitDepth) - 1, POW from
@@ -388,7 +389,7 @@ bool write_image(Bitmap *bmp, char *filename) {
         if (bmp->output_mode == COPY) {
             copy1(bmp);
 
-        } else if (bmp->output_mode == TO_MONO) {
+        } else if (bmp->output_mode == MONO) {
             mono1(bmp);
 
         } else if (bmp->output_mode == BRIGHT) {
@@ -400,12 +401,12 @@ bool write_image(Bitmap *bmp, char *filename) {
         if (bmp->output_mode == COPY) {
             printf("C3\n");
             copy3(bmp);
-        } else if (bmp->output_mode == TO_GRAY) {
+        } else if (bmp->output_mode == GRAY) {
             printf("G3\n");
-            to_gray3(bmp);
-        } else if (bmp->output_mode == TO_MONO) {
+            gray3(bmp);
+        } else if (bmp->output_mode == MONO) {
             printf("M3\n");
-            to_mono3(bmp);
+            MONO3(bmp);
         } else if (bmp->output_mode == BRIGHT) {
             printf("B3\n");
             bright3(bmp);
@@ -637,7 +638,7 @@ int main(int argc, char *argv[]) {
                 exit(EXIT_FAILURE);
             }
             break;
-        case 'g': // mode: TO_GRAY, to grayscale image
+        case 'g': // mode: GRAY, to grayscale image
             g_flag = true;
             break;
         case 'h': // help
@@ -665,14 +666,14 @@ int main(int argc, char *argv[]) {
                     "Error: Can only select one -m,-g,-b flag at a time.");
             exit(EXIT_FAILURE);
         }
-        mode = TO_GRAY;
+        mode = GRAY;
     } else if (m_flag) {
         if (g_flag || b_flag) {
             fprintf(stderr,
                     "Error: Can only select one -m,-g,-b flag at a time.");
             exit(EXIT_FAILURE);
         }
-        mode = TO_MONO;
+        mode = MONO;
     } else if (b_flag) {
         if (m_flag || g_flag) {
             fprintf(stderr,
@@ -763,8 +764,8 @@ int main(int argc, char *argv[]) {
     Bitmap bitmap = {.header = {0},
                      .width = 0,
                      .height = 0,
-                     .bitDepth = 0,
                      .imageSize = 0,
+                     .bitDepth = 0,
                      .channels = 0,
                      .mono_threshold = 0.0,
                      .bright_value = 0,
@@ -790,11 +791,11 @@ int main(int argc, char *argv[]) {
     case COPY:
         bitmapPtr->output_mode = COPY;
         break;
-    case TO_GRAY:
-        bitmapPtr->output_mode = TO_GRAY;
+    case GRAY:
+        bitmapPtr->output_mode = GRAY;
         break;
-    case TO_MONO:
-        bitmapPtr->output_mode = TO_MONO;
+    case MONO:
+        bitmapPtr->output_mode = MONO;
         bitmapPtr->mono_threshold = m_flag_value;
         break;
     case BRIGHT:
