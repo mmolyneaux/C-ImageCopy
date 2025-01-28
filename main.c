@@ -13,14 +13,14 @@
 // Bitmap file header size of every bmp
 #define HEADER_SIZE 54
 // Bitmap color table size if it's needed, if bitdepth <= 8 by def.
-#define CT_SIZE 1024 
+#define CT_SIZE 1024
 // This is the 5th lesson / repo  of this program.
 #define VERSION "0.6" // Histogram
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
-enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT };
+enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST };
 
 typedef struct {
     unsigned char header[HEADER_SIZE];
@@ -30,12 +30,13 @@ typedef struct {
     uint8_t bitDepth;
     uint8_t channels;
     float_t mono_threshold; // 0.0 to 1.0 inclusive
-    int_fast16_t bright_value;
+    int_fast16_t bright_value; // -255 to 255 inclusive
     float_t bright_percent; // -1.0 to 1.0 inclusive
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
+    uint64_t *histogram;
     enum Mode output_mode;
 } Bitmap;
 
@@ -55,6 +56,9 @@ char *mode_to_string(enum Mode mode) {
         break;
     case BRIGHT:
         return "Brightness";
+        break;
+    case HIST:
+        return "Histogram";
         break;
     default:
         return "default: mode string not found";
@@ -77,12 +81,15 @@ char *get_suffix(enum Mode mode) {
     case BRIGHT:
         return "_bright";
         break;
+    case HIST:
+        return "_hist";
+        break;
     default:
         return "_def";
     }
 }
 
-// helper function, verify a filename ends with extension.
+// helper function, verify a filename ends with dot_bmp.
 // returns true if str ends with the correct ext,
 // returns false otherwise.
 bool endsWith(char *str, const char *ext) {
@@ -377,6 +384,23 @@ void bright1(Bitmap *bmp) {
     }
 }
 
+
+void hist1(Bitmap *bmp) {
+    const uint8_t HIST_MAX = (1 << bmp->bitDepth) - 1;
+    bmp->histogram = (uint_fast64_t*)calloc( HIST_MAX, sizeof(uint_fast64_t));
+    if (bmp->histogram == NULL) {
+            fprintf(stderr,
+                    "Error: Failed to allocate memory for histogram.\n");
+            exit(EXIT_FAILURE);
+        }
+
+
+
+
+        
+}
+
+
 bool write_image(Bitmap *bmp, char *filename) {
 
     // Process image
@@ -394,6 +418,8 @@ bool write_image(Bitmap *bmp, char *filename) {
 
         } else if (bmp->output_mode == BRIGHT) {
             bright1(bmp);
+        } else if (bmp->output_mode == HIST) {
+            hist1(bmp);
         }
 
     } else if (bmp->channels == RGB) {
@@ -435,9 +461,9 @@ bool write_image(Bitmap *bmp, char *filename) {
         }
         fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
     }
-    
+
     else if (bmp->channels == RGB) {
-         for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
+        for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
             // Write equally for each channel.
             // j: red is 0, g is 1, b is 2
             for (j = 0; j < 3; ++j) {
@@ -455,23 +481,23 @@ void print_version() { printf("Program version: %s\n", VERSION); }
 void print_usage(char *app_name) {
     printf("Usage: %s [OPTIONS] <input_filename> [output_filename]\n"
            "\n"
-           "Options:\n"
+           "Processing Modes:\n"
            "  -g                   Convert image to grayscale\n"
            "  -m <value>           Convert image to monochrome.\n"
            "                       Value is the threshold to round up to "
-           "white "
-           "or down to black."
+           "                       white or down to black."
            "                       Value can be: "
            "                       - A float between 0.0 and 1.0"
            "                       - An integer between 0 and 255"
            "                       Defaults to %.1f if none entered."
            "  -b <value>           Brightness, increase (positive) or "
-           "decrease "
-           "(negative)."
+           "                       decrease (negative)."
            "                       Value can be: "
            "                       - A float between -1.0 and 1.0"
            "                       - An integer between -255 and 255"
            "                       0 or 0.0 will not do anything."
+           "  -H                   Calculate histogram and write to .txt file."
+           "Information modes:\n"
            "  -h, --help           Show this help message and exit\n"
            "  -v, --verbose        Enable verbose output\n"
            "  --version            Show the program version\n"
@@ -534,7 +560,9 @@ int main(int argc, char *argv[]) {
     char *filename2 = NULL;
     bool filename2_allocated = false;
     char *suffix = "_suffix"; // default
-    char *extension = ".bmp";
+    char *dot_bmp = ".bmp";
+    char *dot_txt = ".txt";
+    char *dot_dat = ".dat";
 
     // if only the program name is called, print usage and exit.
     if (argc == 1) {
@@ -546,6 +574,7 @@ int main(int argc, char *argv[]) {
     bool g_flag = false,      // gray
         m_flag = false,       // monochrome
         b_flag = false,       // brightness
+        H_flag = false,       // histogram
         h_flag = false,       // help
         v_flag = false,       // verbose
         version_flag = false; // version
@@ -568,7 +597,7 @@ int main(int argc, char *argv[]) {
           // in getopt.h
     };
 
-    while ((option = getopt(argc, argv, "m:b:ghv")) != -1) {
+    while ((option = getopt(argc, argv, "m:b:gHhv")) != -1) {
         printf("Optind: %d\n", optind);
         switch (option) {
         case 'm':
@@ -641,6 +670,8 @@ int main(int argc, char *argv[]) {
         case 'g': // mode: GRAY, to grayscale image
             g_flag = true;
             break;
+        case 'H': // help
+            H_flag = true;
         case 'h': // help
             print_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -659,28 +690,21 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // set the mode
+    // set the mode and make sure only one mode is true.
+    char *multiple_mode_error_message =
+        "Error: Only one processing mode permitted at a time.\n";
+    if (g_flag + b_flag + m_flag + H_flag > 1) {
+        fprintf(stderr, "%s", multiple_mode_error_message);
+        exit(EXIT_FAILURE);
+    }
     if (g_flag) {
-        if (m_flag || b_flag) {
-            fprintf(stderr,
-                    "Error: Can only select one -m,-g,-b flag at a time.");
-            exit(EXIT_FAILURE);
-        }
         mode = GRAY;
     } else if (m_flag) {
-        if (g_flag || b_flag) {
-            fprintf(stderr,
-                    "Error: Can only select one -m,-g,-b flag at a time.");
-            exit(EXIT_FAILURE);
-        }
         mode = MONO;
     } else if (b_flag) {
-        if (m_flag || g_flag) {
-            fprintf(stderr,
-                    "Error: Can only select one -m,-g,-b flag at a time.");
-            exit(EXIT_FAILURE);
-        }
         mode = BRIGHT;
+    } else if (H_flag) {
+        mode = HIST;
     } else {
         mode = COPY;
     }
@@ -699,18 +723,33 @@ int main(int argc, char *argv[]) {
         filename2 = argv[optind];
     }
 
-    // confirm filename1 ends with extension
-    if (!endsWith(filename1, extension)) {
+    // confirm filename1 ends with dot_bmp
+    if (!endsWith(filename1, dot_bmp)) {
         fprintf(stderr, "Error: Input file %s does not end with %s\n",
-                filename1, extension);
+                filename1, dot_bmp);
         exit(EXIT_FAILURE);
     }
-    // confirm filename2 ends with extension
+    // if there is a filename2 we have to confirm the extension.
+    char *ext2 = NULL;
+
     if (filename2) {
-        if (!endsWith(filename2, extension)) {
-            printf("Error: Input file %s does not end with %s\n", filename2,
-                   extension);
-            exit(EXIT_FAILURE);
+
+        if (mode != HIST) {
+            if (endsWith(filename2, dot_bmp)) {
+                ext2 = dot_bmp;
+            } else {
+                printf("Error: Output file %s does not end with %s\n", filename2,
+                       dot_bmp);
+                exit(EXIT_FAILURE);
+            }
+        } else { // mode = HIST
+            if (endsWith(filename2, dot_txt) || endsWith(filename2, dot_dat)) {
+                ext2 = dot_txt;
+            } else {
+                printf("Error: Output file %s does not end with %s or %s\n", filename2,
+                       dot_txt, dot_dat);
+                exit(EXIT_FAILURE);
+            }
         }
     } else { // create filename2 with proper suffix from mode
         // Find the last position of the  '.' in the filename
@@ -725,7 +764,7 @@ int main(int argc, char *argv[]) {
         // Calculate the length of the parts to create filename2
         size_t base_len = dot_pos - filename1;
         size_t suffix_len = strlen(suffix);
-        size_t extention_len = strlen(extension);
+        size_t extention_len = strlen(ext2);
 
         filename2 = (char *)malloc(sizeof(char) *
                                    (base_len + suffix_len + extention_len + 1));
@@ -735,13 +774,13 @@ int main(int argc, char *argv[]) {
         }
         filename2_allocated = true;
         // Copy the base part of filename1 and append the suffix and
-        // extension. strncpy copies the first base_len number of chars from
+        // dot_bmp. strncpy copies the first base_len number of chars from
         // filename1 into filename2
         strncpy(filename2, filename1, base_len);
         // use ptr math to copy suffix to filename2ptr's + position + (can't
         // use strcat because strncpy doesn't null terminate.)
         strcpy(filename2 + base_len, suffix);
-        strcpy(filename2 + base_len + suffix_len, extension);
+        strcpy(filename2 + base_len + suffix_len, ext2);
     }
 
     if (v_flag) {
@@ -774,6 +813,7 @@ int main(int argc, char *argv[]) {
                      .colorTable = NULL,
                      .imageBuffer1 = NULL,
                      .imageBuffer3 = NULL,
+                     .histogram = NULL,
                      .output_mode = NO_MODE};
     Bitmap *bitmapPtr = &bitmap;
 
@@ -789,21 +829,24 @@ int main(int argc, char *argv[]) {
 
     switch (mode) {
     case COPY:
-        bitmapPtr->output_mode = COPY;
+        bitmapPtr->output_mode = mode;
         break;
     case GRAY:
-        bitmapPtr->output_mode = GRAY;
+        bitmapPtr->output_mode = mode;
         break;
     case MONO:
-        bitmapPtr->output_mode = MONO;
+        bitmapPtr->output_mode = mode;
         bitmapPtr->mono_threshold = m_flag_value;
         break;
     case BRIGHT:
-        bitmapPtr->output_mode = BRIGHT;
+        bitmapPtr->output_mode = mode;
         bitmapPtr->bright_percent = b_flag_float;
         bitmapPtr->bright_value = b_flag_int;
         printf("bitmapPtr->bright_percent = %.2f\n", bitmapPtr->bright_percent);
         printf("bitmapPtr->bright_value = %d\n", bitmapPtr->bright_value);
+        break;
+    case HIST:
+        bitmapPtr->output_mode = mode;
         break;
     default:
         fprintf(stderr, "No output mode matched.\n");
