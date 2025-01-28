@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,14 +30,15 @@ typedef struct {
     uint32_t imageSize;
     uint8_t bitDepth;
     uint8_t channels;
-    float_t mono_threshold; // 0.0 to 1.0 inclusive
+    float_t mono_threshold;    // 0.0 to 1.0 inclusive
     int_fast16_t bright_value; // -255 to 255 inclusive
-    float_t bright_percent; // -1.0 to 1.0 inclusive
+    float_t bright_percent;    // -1.0 to 1.0 inclusive
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
-    uint64_t *histogram;
+    // uint64_t *histogram;
+    float_t *histogram;
     enum Mode output_mode;
 } Bitmap;
 
@@ -112,6 +114,11 @@ bool endsWith(char *str, const char *ext) {
 // free memory allocated for bitmap structs.
 void freeImage(Bitmap *bmp) {
     if (bmp) {
+        if(bmp->histogram){
+            free(bmp->histogram);
+            bmp->histogram = NULL;
+        }
+        
         if (bmp->imageBuffer1) {
             free(bmp->imageBuffer1);
             bmp->imageBuffer1 = NULL; // Avoid dangling pointer.
@@ -122,7 +129,7 @@ void freeImage(Bitmap *bmp) {
             free(bmp->imageBuffer3);
             bmp->imageBuffer3 = NULL; // Avoid dangling pointer.
         }
-    }
+    } 
 }
 
 // returns false early and prints an error message if operation not complete.
@@ -384,22 +391,32 @@ void bright1(Bitmap *bmp) {
     }
 }
 
-
+// Creates a normalized histogram [0.0..1.0]
 void hist1(Bitmap *bmp) {
-    const uint8_t HIST_MAX = (1 << bmp->bitDepth) - 1;
-    bmp->histogram = (uint_fast64_t*)calloc( HIST_MAX, sizeof(uint_fast64_t));
-    if (bmp->histogram == NULL) {
-            fprintf(stderr,
-                    "Error: Failed to allocate memory for histogram.\n");
-            exit(EXIT_FAILURE);
-        }
+    const uint16_t HIST_MAX = (1 << bmp->bitDepth); // 256 for 8 bit images
+    uint_fast32_t *hist_temp = NULL;
+    if (!bmp->histogram) {
+        bmp->histogram = (float_t *)calloc(HIST_MAX, sizeof(float_t*));
+        hist_temp = (uint_fast32_t *)calloc(HIST_MAX, sizeof(uint_fast32_t*));
+    } else {
+        fprintf(stderr, "Error: Histogram not empty.\n");
+    }
+    if (bmp->histogram == NULL || hist_temp == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for histogram.\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    for (size_t i = 0; i < bmp->imageSize;  i++) {
+            hist_temp[bmp->imageBuffer1[i]]++;
+    }
 
+    // Normalize
+    for (int i = 0; i < HIST_MAX; i++){
+        bmp->histogram[i] = (float_t)hist_temp[i] / (float_t)bmp->imageSize;
+    }
 
-
-
-        
+    free(hist_temp);
 }
-
 
 bool write_image(Bitmap *bmp, char *filename) {
 
@@ -738,16 +755,16 @@ int main(int argc, char *argv[]) {
             if (endsWith(filename2, dot_bmp)) {
                 ext2 = dot_bmp;
             } else {
-                printf("Error: Output file %s does not end with %s\n", filename2,
-                       dot_bmp);
+                printf("Error: Output file %s does not end with %s\n",
+                       filename2, dot_bmp);
                 exit(EXIT_FAILURE);
             }
         } else { // mode = HIST
             if (endsWith(filename2, dot_txt) || endsWith(filename2, dot_dat)) {
                 ext2 = dot_txt;
             } else {
-                printf("Error: Output file %s does not end with %s or %s\n", filename2,
-                       dot_txt, dot_dat);
+                printf("Error: Output file %s does not end with %s or %s\n",
+                       filename2, dot_txt, dot_dat);
                 exit(EXIT_FAILURE);
             }
         }
