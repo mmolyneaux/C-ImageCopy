@@ -37,5 +37,10 @@ Examples:
   imagecopy -m 0.5 input.bmp      // monochrome
   imagecopy -b -0.5 input.bmp     // brightness
   imagecopy -b 200 input.bmp      // brightness
+---
 Histogram output can be plotted in gnuplot with command:
 p 'image_hist.txt' with impulse
+---
+Known issue: Exporting 2 and 1 bit bmp files from IrfanView is causing the bitdepth to read incorrectly:
+
+Tested working on 4 and 8 bit grayscale images and 24 bit color images.

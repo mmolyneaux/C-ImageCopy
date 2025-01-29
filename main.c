@@ -183,8 +183,9 @@ bool readImage(char *filename1, Bitmap *bitmap) {
     // if the bit depth is 1 to 8 then it has a
     // color table. 16-32 bit do not.
     // The read content is going to be stored in colorTable.
-
+    printf("Bitdepth: %d\n", bitmap->bitDepth);
     if (bitmap->bitDepth <= 8) {
+
         // if bit depth < 8 i still want 1 channel.
         bitmap->channels = 1;
         bitmap->CT_EXISTS = true;
@@ -419,28 +420,27 @@ void bright1(Bitmap *bmp) {
 // Creates a normalized histogram [0.0..1.0]
 void hist1(Bitmap *bmp) {
     bmp->HIST_MAX = (1 << bmp->bitDepth); // 256 for 8 bit images
+    printf("HIST_MAX: %d\n", bmp->HIST_MAX);
     uint_fast32_t *hist_temp = NULL;
     if (!bmp->histogram) {
-        bmp->histogram = (float_t *)calloc(bmp->HIST_MAX, sizeof(float_t *));
+        bmp->histogram = (float_t *)calloc(bmp->HIST_MAX, sizeof(float_t));
         hist_temp =
-            (uint_fast32_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast32_t *));
+            (uint_fast32_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast32_t));
     } else {
         fprintf(stderr, "Error: Histogram not empty.\n");
+        exit(EXIT_FAILURE);
     }
     if (bmp->histogram == NULL || hist_temp == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for histogram.\n");
         exit(EXIT_FAILURE);
     }
-
     for (size_t i = 0; i < bmp->imageSize; i++) {
         hist_temp[bmp->imageBuffer1[i]]++;
     }
-
     // Normalize
     for (int i = 0; i < bmp->HIST_MAX; i++) {
         bmp->histogram[i] = (float_t)hist_temp[i] / (float_t)bmp->imageSize;
     }
-
     free(hist_temp);
 }
 
@@ -496,7 +496,6 @@ bool write_image(Bitmap *bmp, char *filename) {
     if (bmp->output_mode == HIST) {
 
         streamOut = fopen(filename, "w");
-        uint8_t HIST_MAX = (1 << bmp->bitDepth) - 1;
         for (int i = 0; i < bmp->HIST_MAX; i++) {
             fprintf(streamOut, "%f\n", bmp->histogram[i]);
         }
@@ -535,43 +534,43 @@ bool write_image(Bitmap *bmp, char *filename) {
 void print_version() { printf("Program version: %s\n", VERSION); }
 
 void print_usage(char *app_name) {
-    printf(
-        "Usage: %s [OPTIONS] <input_filename> [output_filename]\n"
-        "\n"
-        "Processing Modes:\n"
-        "  -g                   Convert image to grayscale\n"
-        "  -m <value>           Convert image to monochrome.\n"
-        "                       Value is the threshold to round up to\n"
-        "                       white or down to black.\n"
-        "                       Value can be:\n"
-        "                       - A float between 0.0 and 1.0\n"
-        "                       - An integer between 0 and 255\n"
-        "                       Defaults to %.1f if none entered.\n"
-        "  -b <value>           Brightness, increase (positive) or\n"
-        "                       decrease (negative).\n"
-        "                       Value can be:\n"
-        "                       - A float between -1.0 and 1.0\n"
-        "                       - An integer between -255 and 255\n"
-        "                       0 or 0.0 will not do anything.\n"
-        "  -H                   Calculate normalized [0..1] histogram and write to .txt file.\n"
-        "Information modes:\n"
-        "  -h, --help           Show this help message and exit\n"
-        "  -v, --verbose        Enable verbose output\n"
-        "  --version            Show the program version\n"
-        "\n"
-        "Arguments:\n"
-        "  <input_filename>  The required input filename\n"
-        "  [output_filename]  An optional output filename\n"
-        "\n"
-        "Examples:\n"
-        "  %s -v -g input.bmp       // grayscale\n"
-        "  %s input.bmp output.bmp  // copy\n"
-        "  %s -m input.bmp          // monochrome\n"
-        "  %s -m 0.5 input.bmp      // monochrome\n"
-        "  %s -b -0.5 input.bmp     // brightness\n"
-        "  %s -b 200 input.bmp      // brightness\n",
-        app_name, M_FLAG_DEFAULT, app_name, app_name, app_name, app_name,
-        app_name, app_name);
+    printf("Usage: %s [OPTIONS] <input_filename> [output_filename]\n"
+           "\n"
+           "Processing Modes:\n"
+           "  -g                   Convert image to grayscale\n"
+           "  -m <value>           Convert image to monochrome.\n"
+           "                       Value is the threshold to round up to\n"
+           "                       white or down to black.\n"
+           "                       Value can be:\n"
+           "                       - A float between 0.0 and 1.0\n"
+           "                       - An integer between 0 and 255\n"
+           "                       Defaults to %.1f if none entered.\n"
+           "  -b <value>           Brightness, increase (positive) or\n"
+           "                       decrease (negative).\n"
+           "                       Value can be:\n"
+           "                       - A float between -1.0 and 1.0\n"
+           "                       - An integer between -255 and 255\n"
+           "                       0 or 0.0 will not do anything.\n"
+           "  -H                   Calculate normalized [0..1] histogram and "
+           "write to .txt file.\n"
+           "Information modes:\n"
+           "  -h, --help           Show this help message and exit\n"
+           "  -v, --verbose        Enable verbose output\n"
+           "  --version            Show the program version\n"
+           "\n"
+           "Arguments:\n"
+           "  <input_filename>  The required input filename\n"
+           "  [output_filename]  An optional output filename\n"
+           "\n"
+           "Examples:\n"
+           "  %s -v -g input.bmp       // grayscale\n"
+           "  %s input.bmp output.bmp  // copy\n"
+           "  %s -m input.bmp          // monochrome\n"
+           "  %s -m 0.5 input.bmp      // monochrome\n"
+           "  %s -b -0.5 input.bmp     // brightness\n"
+           "  %s -b 200 input.bmp      // brightness\n",
+           app_name, M_FLAG_DEFAULT, app_name, app_name, app_name, app_name,
+           app_name, app_name);
 }
 
 //
@@ -845,6 +844,7 @@ int main(int argc, char *argv[]) {
         } else {
             printf("-m (to monochrome): %s\n", m_flag ? "true" : "false");
         }
+        printf("-H (histogram):     %s\n", H_flag ? "true" : "false");
         printf("-h (help):          %s\n", h_flag ? "true" : "false");
         printf("-v (verbose):       %s\n", v_flag ? "true" : "false");
         printf("--version:          %s\n", version_flag ? "true" : "false");
