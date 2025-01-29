@@ -191,7 +191,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         bitmap->CT_EXISTS = true;
 
         // Allocate memory for colorTable
-        bitmap->colorTable = (unsigned char *)malloc(sizeof(char *) * CT_SIZE);
+        bitmap->colorTable = (unsigned char *)malloc(sizeof(char) * CT_SIZE);
         if (bitmap->colorTable == NULL) {
             fprintf(stderr,
                     "Error: Failed to allocate memory for color table.\n");
@@ -207,7 +207,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
     if (bitmap->channels == 1) {
         // Allocate memory for image buffer
         bitmap->imageBuffer1 =
-            (unsigned char *)malloc(sizeof(char *) * bitmap->imageSize);
+            (unsigned char *)malloc(sizeof(char) * bitmap->imageSize);
         if (bitmap->imageBuffer1 == NULL) {
             fprintf(stderr,
                     "Error: Failed to allocate memory for image buffer1.\n");
@@ -221,7 +221,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         // Allocate memory for the array of pointers (rows) for each pixel in
         // imagesize
         bitmap->imageBuffer3 =
-            (unsigned char **)malloc(sizeof(char *) * bitmap->imageSize);
+            (unsigned char **)malloc(sizeof(char) * bitmap->imageSize);
         if (bitmap->imageBuffer3 == NULL) {
             fprintf(stderr,
                     "Error: Failed to allocate memory for image buffer3.\n");
@@ -232,7 +232,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 
         for (int i = 0; i < bitmap->imageSize; i++) {
             bitmap->imageBuffer3[i] =
-                (unsigned char *)malloc(bitmap->channels * sizeof(char *));
+                (unsigned char *)malloc(bitmap->channels * sizeof(char));
             if (bitmap->imageBuffer3[i] == NULL) {
                 return false;
             }
