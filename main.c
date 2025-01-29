@@ -22,6 +22,9 @@
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
 enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST };
+char *dot_bmp = ".bmp";
+char *dot_txt = ".txt";
+char *dot_dat = ".dat";
 
 typedef struct {
     unsigned char header[HEADER_SIZE];
@@ -33,12 +36,13 @@ typedef struct {
     float_t mono_threshold;    // 0.0 to 1.0 inclusive
     int_fast16_t bright_value; // -255 to 255 inclusive
     float_t bright_percent;    // -1.0 to 1.0 inclusive
+    float_t *histogram;
+    uint16_t HIST_MAX; // 256 for 8 bit images
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
-    // uint64_t *histogram;
-    float_t *histogram;
+
     enum Mode output_mode;
 } Bitmap;
 
@@ -94,7 +98,7 @@ char *get_suffix(enum Mode mode) {
 // helper function, verify a filename ends with dot_bmp.
 // returns true if str ends with the correct ext,
 // returns false otherwise.
-bool endsWith(char *str, const char *ext) {
+bool ends_with(char *str, const char *ext) {
 
     // Check for NULL;
     if (!str || !ext) {
@@ -111,14 +115,35 @@ bool endsWith(char *str, const char *ext) {
     return strcmp(str + len_str - len_ext, ext) == 0;
 }
 
+char *get_output_ext(char *filename, enum Mode mode) {
+    if (filename) {
+        if (mode == HIST) {
+            if (ends_with(filename, dot_txt) || ends_with(filename, dot_dat)) {
+                return dot_txt;
+            }
+        } else { // image
+            if (ends_with(filename, dot_bmp)) {
+                return dot_bmp;
+            }
+        }
+        return NULL;
+    } else {
+        if (mode == HIST) {
+            return dot_txt;
+        } else {
+            return dot_bmp;
+        }
+    }
+}
+
 // free memory allocated for bitmap structs.
 void freeImage(Bitmap *bmp) {
     if (bmp) {
-        if(bmp->histogram){
+        if (bmp->histogram) {
             free(bmp->histogram);
             bmp->histogram = NULL;
         }
-        
+
         if (bmp->imageBuffer1) {
             free(bmp->imageBuffer1);
             bmp->imageBuffer1 = NULL; // Avoid dangling pointer.
@@ -129,7 +154,7 @@ void freeImage(Bitmap *bmp) {
             free(bmp->imageBuffer3);
             bmp->imageBuffer3 = NULL; // Avoid dangling pointer.
         }
-    } 
+    }
 }
 
 // returns false early and prints an error message if operation not complete.
@@ -393,11 +418,12 @@ void bright1(Bitmap *bmp) {
 
 // Creates a normalized histogram [0.0..1.0]
 void hist1(Bitmap *bmp) {
-    const uint16_t HIST_MAX = (1 << bmp->bitDepth); // 256 for 8 bit images
+    bmp->HIST_MAX = (1 << bmp->bitDepth); // 256 for 8 bit images
     uint_fast32_t *hist_temp = NULL;
     if (!bmp->histogram) {
-        bmp->histogram = (float_t *)calloc(HIST_MAX, sizeof(float_t*));
-        hist_temp = (uint_fast32_t *)calloc(HIST_MAX, sizeof(uint_fast32_t*));
+        bmp->histogram = (float_t *)calloc(bmp->HIST_MAX, sizeof(float_t *));
+        hist_temp =
+            (uint_fast32_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast32_t *));
     } else {
         fprintf(stderr, "Error: Histogram not empty.\n");
     }
@@ -405,13 +431,13 @@ void hist1(Bitmap *bmp) {
         fprintf(stderr, "Error: Failed to allocate memory for histogram.\n");
         exit(EXIT_FAILURE);
     }
-    
-    for (size_t i = 0; i < bmp->imageSize;  i++) {
-            hist_temp[bmp->imageBuffer1[i]]++;
+
+    for (size_t i = 0; i < bmp->imageSize; i++) {
+        hist_temp[bmp->imageBuffer1[i]]++;
     }
 
     // Normalize
-    for (int i = 0; i < HIST_MAX; i++){
+    for (int i = 0; i < bmp->HIST_MAX; i++) {
         bmp->histogram[i] = (float_t)hist_temp[i] / (float_t)bmp->imageSize;
     }
 
@@ -423,6 +449,7 @@ bool write_image(Bitmap *bmp, char *filename) {
     // Process image
 
     printf("Output mode: %s\n", mode_to_string(bmp->output_mode));
+
     // aka if (bmp->bitDepth <= 8), checked earlier
     if (bmp->channels == ONE_CHANNEL) {
         printf("ONE_CHANNEL\n");
@@ -461,34 +488,46 @@ bool write_image(Bitmap *bmp, char *filename) {
         }
     }
 
-    // Write image
+    // Write data
 
     bool write_succesful = false;
-    FILE *streamOut = fopen(filename, "wb");
-    if (streamOut == NULL) {
-        fprintf(stderr, "Error: failed to open output file %s\n", filename);
-        exit(EXIT_FAILURE);
-    }
-    fwrite(bmp->header, sizeof(char), HEADER_SIZE, streamOut);
+    FILE *streamOut;
 
-    if (bmp->channels == ONE_CHANNEL) {
-        printf("ONE_CHANNEL\n");
-        if (bmp->CT_EXISTS) {
-            fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
+    if (bmp->output_mode == HIST) {
+
+        streamOut = fopen(filename, "w");
+        uint8_t HIST_MAX = (1 << bmp->bitDepth) - 1;
+        for (int i = 0; i < bmp->HIST_MAX; i++) {
+            fprintf(streamOut, "%f\n", bmp->histogram[i]);
         }
-        fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
-    }
 
-    else if (bmp->channels == RGB) {
-        for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
-            // Write equally for each channel.
-            // j: red is 0, g is 1, b is 2
-            for (j = 0; j < 3; ++j) {
-                putc(bmp->imageBuffer3[i][j], streamOut);
+    } else {
+
+        streamOut = fopen(filename, "wb");
+        if (streamOut == NULL) {
+            fprintf(stderr, "Error: failed to open output file %s\n", filename);
+            exit(EXIT_FAILURE);
+        }
+        fwrite(bmp->header, sizeof(char), HEADER_SIZE, streamOut);
+
+        if (bmp->channels == ONE_CHANNEL) {
+            printf("ONE_CHANNEL\n");
+            if (bmp->CT_EXISTS) {
+                fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
+            }
+            fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
+        }
+
+        else if (bmp->channels == RGB) {
+            for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
+                // Write equally for each channel.
+                // j: red is 0, g is 1, b is 2
+                for (j = 0; j < 3; ++j) {
+                    putc(bmp->imageBuffer3[i][j], streamOut);
+                }
             }
         }
     }
-
     fclose(streamOut);
     return write_succesful = true;
 }
@@ -496,42 +535,43 @@ bool write_image(Bitmap *bmp, char *filename) {
 void print_version() { printf("Program version: %s\n", VERSION); }
 
 void print_usage(char *app_name) {
-    printf("Usage: %s [OPTIONS] <input_filename> [output_filename]\n"
-           "\n"
-           "Processing Modes:\n"
-           "  -g                   Convert image to grayscale\n"
-           "  -m <value>           Convert image to monochrome.\n"
-           "                       Value is the threshold to round up to "
-           "                       white or down to black."
-           "                       Value can be: "
-           "                       - A float between 0.0 and 1.0"
-           "                       - An integer between 0 and 255"
-           "                       Defaults to %.1f if none entered."
-           "  -b <value>           Brightness, increase (positive) or "
-           "                       decrease (negative)."
-           "                       Value can be: "
-           "                       - A float between -1.0 and 1.0"
-           "                       - An integer between -255 and 255"
-           "                       0 or 0.0 will not do anything."
-           "  -H                   Calculate histogram and write to .txt file."
-           "Information modes:\n"
-           "  -h, --help           Show this help message and exit\n"
-           "  -v, --verbose        Enable verbose output\n"
-           "  --version            Show the program version\n"
-           "\n"
-           "Arguments:\n"
-           "  <input_filename>  The required input filename\n"
-           "  [output_filename]  An optional output filename\n"
-           "\n"
-           "Examples:\n"
-           "  %s -v -g input.bmp       // grayscale\n"
-           "  %s input.bmp output.bmp  // copy\n"
-           "  %s -m input.bmp          // monochrome\n"
-           "  %s -m 0.5 input.bmp      // monochrome\n"
-           "  %s -b -0.5 input.bmp     // brightness\n"
-           "  %s -b 200 input.bmp      // brightness\n",
-           app_name, M_FLAG_DEFAULT, app_name, app_name, app_name, app_name,
-           app_name, app_name);
+    printf(
+        "Usage: %s [OPTIONS] <input_filename> [output_filename]\n"
+        "\n"
+        "Processing Modes:\n"
+        "  -g                   Convert image to grayscale\n"
+        "  -m <value>           Convert image to monochrome.\n"
+        "                       Value is the threshold to round up to\n"
+        "                       white or down to black.\n"
+        "                       Value can be:\n"
+        "                       - A float between 0.0 and 1.0\n"
+        "                       - An integer between 0 and 255\n"
+        "                       Defaults to %.1f if none entered.\n"
+        "  -b <value>           Brightness, increase (positive) or\n"
+        "                       decrease (negative).\n"
+        "                       Value can be:\n"
+        "                       - A float between -1.0 and 1.0\n"
+        "                       - An integer between -255 and 255\n"
+        "                       0 or 0.0 will not do anything.\n"
+        "  -H                   Calculate normalized [0..1] histogram and write to .txt file.\n"
+        "Information modes:\n"
+        "  -h, --help           Show this help message and exit\n"
+        "  -v, --verbose        Enable verbose output\n"
+        "  --version            Show the program version\n"
+        "\n"
+        "Arguments:\n"
+        "  <input_filename>  The required input filename\n"
+        "  [output_filename]  An optional output filename\n"
+        "\n"
+        "Examples:\n"
+        "  %s -v -g input.bmp       // grayscale\n"
+        "  %s input.bmp output.bmp  // copy\n"
+        "  %s -m input.bmp          // monochrome\n"
+        "  %s -m 0.5 input.bmp      // monochrome\n"
+        "  %s -b -0.5 input.bmp     // brightness\n"
+        "  %s -b 200 input.bmp      // brightness\n",
+        app_name, M_FLAG_DEFAULT, app_name, app_name, app_name, app_name,
+        app_name, app_name);
 }
 
 //
@@ -577,9 +617,6 @@ int main(int argc, char *argv[]) {
     char *filename2 = NULL;
     bool filename2_allocated = false;
     char *suffix = "_suffix"; // default
-    char *dot_bmp = ".bmp";
-    char *dot_txt = ".txt";
-    char *dot_dat = ".dat";
 
     // if only the program name is called, print usage and exit.
     if (argc == 1) {
@@ -689,6 +726,7 @@ int main(int argc, char *argv[]) {
             break;
         case 'H': // help
             H_flag = true;
+            break;
         case 'h': // help
             print_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -740,37 +778,36 @@ int main(int argc, char *argv[]) {
         filename2 = argv[optind];
     }
 
+    printf("Filename1: %s, and mode: %s.\n", filename1, mode_to_string(mode));
+
     // confirm filename1 ends with dot_bmp
-    if (!endsWith(filename1, dot_bmp)) {
+    if (!ends_with(filename1, dot_bmp)) {
         fprintf(stderr, "Error: Input file %s does not end with %s\n",
                 filename1, dot_bmp);
         exit(EXIT_FAILURE);
     }
     // if there is a filename2 we have to confirm the extension.
-    char *ext2 = NULL;
 
+    char *ext2;
+    // if there is a filename2 but not a valid extension
     if (filename2) {
-
-        if (mode != HIST) {
-            if (endsWith(filename2, dot_bmp)) {
-                ext2 = dot_bmp;
-            } else {
-                printf("Error: Output file %s does not end with %s\n",
-                       filename2, dot_bmp);
-                exit(EXIT_FAILURE);
-            }
-        } else { // mode = HIST
-            if (endsWith(filename2, dot_txt) || endsWith(filename2, dot_dat)) {
-                ext2 = dot_txt;
-            } else {
+        ext2 = get_output_ext(filename2, mode);
+        if (!ext2) { // if (NULL)
+            if (mode == HIST) {
                 printf("Error: Output file %s does not end with %s or %s\n",
                        filename2, dot_txt, dot_dat);
-                exit(EXIT_FAILURE);
+            } else { // image
+                printf("Error: Output file %s does not end with %s\n",
+                       filename2, dot_bmp);
             }
+            exit(EXIT_FAILURE);
         }
-    } else { // create filename2 with proper suffix from mode
+    }
+
+    else { // create filename2 with proper suffix from mode
         // Find the last position of the  '.' in the filename
         char *dot_pos = strrchr(filename1, '.');
+        ext2 = get_output_ext(NULL, mode);
         if (dot_pos == NULL) {
             fprintf(stderr, "\".\" not found in filename: %s\n", filename1);
             exit(EXIT_FAILURE);
@@ -799,7 +836,7 @@ int main(int argc, char *argv[]) {
         strcpy(filename2 + base_len, suffix);
         strcpy(filename2 + base_len + suffix_len, ext2);
     }
-
+    printf("Filename 2: %s\n", filename2);
     if (v_flag) {
         printf("-g (to gray):       %s\n", g_flag ? "true" : "false");
         if (m_flag) {
@@ -831,6 +868,7 @@ int main(int argc, char *argv[]) {
                      .imageBuffer1 = NULL,
                      .imageBuffer3 = NULL,
                      .histogram = NULL,
+                     .HIST_MAX = 0,
                      .output_mode = NO_MODE};
     Bitmap *bitmapPtr = &bitmap;
 
