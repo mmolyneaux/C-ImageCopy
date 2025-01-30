@@ -91,7 +91,7 @@ char *get_suffix(enum Mode mode) {
         return "_hist";
         break;
     default:
-        return "_def";
+        return "_suffix";
     }
 }
 
@@ -274,8 +274,8 @@ void gray3(Bitmap *bmp) {
 }
 
 // converts to grayscale and then mono
-void MONO3(Bitmap *bmp) {
-    printf("Mono3\n");
+void mono3(Bitmap *bmp) {
+    printf("mono3\n");
     gray3(bmp);
 
     // left shift bitdepth - 1 = bitdepth:white, 1:1, 2:3, 4:15, 8:255, rgb =
@@ -385,8 +385,7 @@ void bright1(Bitmap *bmp) {
     const uint_fast8_t WHITE = (1 << bmp->bitDepth) - 1;
 
     if (bmp->bright_value) {
-        int value = 0;
-        for (int i = 0; i < bmp->imageSize; i++) {
+        for (int i = 0, value = 0; i < bmp->imageSize; i++) {
             // Adds the positive or negative value with black and white
             // bounds.
 
@@ -402,8 +401,7 @@ void bright1(Bitmap *bmp) {
         }
     } else { // bmp->bright_percent
              // if (bmp->bright_percent) {
-        int value = 0;
-        for (int i = 0; i < bmp->imageSize; i++) {
+        for (int i = 0, value = 0; i < bmp->imageSize; i++) {
             // Adds the positive or negative value with black and white
             // bounds.
             value = bmp->imageBuffer1[i] +
@@ -419,13 +417,15 @@ void bright1(Bitmap *bmp) {
 
 // Creates a normalized histogram [0.0..1.0]
 void hist1(Bitmap *bmp) {
-    bmp->HIST_MAX = (1 << bmp->bitDepth); // 256 for 8 bit images
+    // bmp->HIST_MAX = (1 << bmp->bitDepth); // 256 for 8 bit images
+    bmp->HIST_MAX = 256; // 256 for 8 or less bit images
     printf("HIST_MAX: %d\n", bmp->HIST_MAX);
-    uint_fast32_t *hist_temp = NULL;
+    uint_fast8_t *hist_temp = NULL;
     if (!bmp->histogram) {
         bmp->histogram = (float_t *)calloc(bmp->HIST_MAX, sizeof(float_t));
         hist_temp =
-            (uint_fast32_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast32_t));
+            (uint_fast8_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast8_t));
+        //(uint_fast32_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast32_t));
     } else {
         fprintf(stderr, "Error: Histogram not empty.\n");
         exit(EXIT_FAILURE);
@@ -434,14 +434,17 @@ void hist1(Bitmap *bmp) {
         fprintf(stderr, "Error: Failed to allocate memory for histogram.\n");
         exit(EXIT_FAILURE);
     }
+    
     for (size_t i = 0; i < bmp->imageSize; i++) {
-        hist_temp[bmp->imageBuffer1[i]]++;
+            hist_temp[bmp->imageBuffer1[i]]++;
     }
     // Normalize
     for (int i = 0; i < bmp->HIST_MAX; i++) {
         bmp->histogram[i] = (float_t)hist_temp[i] / (float_t)bmp->imageSize;
     }
+    printf("Check1\n");
     free(hist_temp);
+    printf("Check2\n");
 }
 
 bool write_image(Bitmap *bmp, char *filename) {
@@ -463,7 +466,9 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == BRIGHT) {
             bright1(bmp);
         } else if (bmp->output_mode == HIST) {
+            printf("Check3\n");
             hist1(bmp);
+            printf("Check4\n");
         }
 
     } else if (bmp->channels == RGB) {
@@ -476,7 +481,7 @@ bool write_image(Bitmap *bmp, char *filename) {
             gray3(bmp);
         } else if (bmp->output_mode == MONO) {
             printf("M3\n");
-            MONO3(bmp);
+            mono3(bmp);
         } else if (bmp->output_mode == BRIGHT) {
             printf("B3\n");
             bright3(bmp);
@@ -499,7 +504,7 @@ bool write_image(Bitmap *bmp, char *filename) {
         for (int i = 0; i < bmp->HIST_MAX; i++) {
             fprintf(streamOut, "%f\n", bmp->histogram[i]);
         }
-
+        printf("Check5\n");
     } else {
 
         streamOut = fopen(filename, "wb");
@@ -615,7 +620,7 @@ int main(int argc, char *argv[]) {
     char *filename1 = NULL;
     char *filename2 = NULL;
     bool filename2_allocated = false;
-    char *suffix = "_suffix"; // default
+    // const char *suffix = "_suffix"; // default
 
     // if only the program name is called, print usage and exit.
     if (argc == 1) {
@@ -812,7 +817,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
-        suffix = get_suffix(mode);
+        const char *suffix = get_suffix(mode);
 
         // Calculate the length of the parts to create filename2
         size_t base_len = dot_pos - filename1;
