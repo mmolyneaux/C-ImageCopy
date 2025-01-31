@@ -13,30 +13,31 @@
 
 // Bitmap file header size of every bmp
 #define HEADER_SIZE 54
-// Bitmap color table size if it's needed, if bitdepth <= 8 by def.
+// Bitmap color table size if it's needed, if bit_depth <= 8 by def.
 #define CT_SIZE 1024
 // This is the 5th lesson / repo  of this program.
-#define VERSION "0.6" // Histogram
+#define VERSION "0.7" // Equalize
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
-enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST };
+enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST, EQUAL };
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
 char *dot_dat = ".dat";
 
 typedef struct {
     unsigned char header[HEADER_SIZE];
-    uint32_t width;
-    uint32_t height;
-    uint32_t imageSize;
-    uint8_t bitDepth;
+    uint16_t width;
+    uint16_t height;
+    uint16_t image_size;
+    uint8_t bit_depth;
     uint8_t channels;
     float_t mono_threshold;    // 0.0 to 1.0 inclusive
     int_fast16_t bright_value; // -255 to 255 inclusive
     float_t bright_percent;    // -1.0 to 1.0 inclusive
-    float_t *histogram;
+    uint8_t *histogram;
+    // float_t *histogram_normalized;
     uint16_t HIST_MAX; // 256 for 8 bit images
     bool CT_EXISTS;
     unsigned char *colorTable;
@@ -65,6 +66,9 @@ char *mode_to_string(enum Mode mode) {
         break;
     case HIST:
         return "Histogram";
+        break;
+    case EQUAL:
+        return "Equalize";
         break;
     default:
         return "default: mode string not found";
@@ -148,7 +152,7 @@ void freeImage(Bitmap *bmp) {
             free(bmp->imageBuffer1);
             bmp->imageBuffer1 = NULL; // Avoid dangling pointer.
         } else if (bmp->imageBuffer3) {
-            for (int i = 0; i < bmp->imageSize; i++) {
+            for (int i = 0; i < bmp->image_size; i++) {
                 free(bmp->imageBuffer3[i]);
             }
             free(bmp->imageBuffer3);
@@ -177,14 +181,14 @@ bool readImage(char *filename1, Bitmap *bitmap) {
     // Then the height can be retreived from the next 4 byts and so on.
     bitmap->width = *(int *)&bitmap->header[18];
     bitmap->height = *(int *)&bitmap->header[22];
-    bitmap->bitDepth = *(int *)&bitmap->header[28];
-    bitmap->imageSize = bitmap->width * bitmap->height;
+    bitmap->bit_depth = *(int *)&bitmap->header[28];
+    bitmap->image_size = bitmap->width * bitmap->height;
 
     // if the bit depth is 1 to 8 then it has a
     // color table. 16-32 bit do not.
     // The read content is going to be stored in colorTable.
-    printf("Bitdepth: %d\n", bitmap->bitDepth);
-    if (bitmap->bitDepth <= 8) {
+    printf("bit_depth: %d\n", bitmap->bit_depth);
+    if (bitmap->bit_depth <= 8) {
 
         // if bit depth < 8 i still want 1 channel.
         bitmap->channels = 1;
@@ -201,27 +205,27 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         fread(bitmap->colorTable, sizeof(char), CT_SIZE, streamIn);
     } else {
         // 24 bit is 3 channel rbg, 32 bit is 32 bit rgba
-        bitmap->channels = bitmap->bitDepth / 8;
+        bitmap->channels = bitmap->bit_depth / 8;
         printf("channel calculation line 152: %d", bitmap->channels);
     }
     if (bitmap->channels == 1) {
         // Allocate memory for image buffer
         bitmap->imageBuffer1 =
-            (unsigned char *)malloc(sizeof(char) * bitmap->imageSize);
+            (unsigned char *)malloc(sizeof(char) * bitmap->image_size);
         if (bitmap->imageBuffer1 == NULL) {
             fprintf(stderr,
                     "Error: Failed to allocate memory for image buffer1.\n");
             return false;
         }
-        fread(bitmap->imageBuffer1, sizeof(char), bitmap->imageSize, streamIn);
+        fread(bitmap->imageBuffer1, sizeof(char), bitmap->image_size, streamIn);
 
         file_read_completed = true;
     } else if (bitmap->channels == 3) {
 
         // Allocate memory for the array of pointers (rows) for each pixel in
-        // imagesize
+        // image_size
         bitmap->imageBuffer3 =
-            (unsigned char **)malloc(sizeof(char) * bitmap->imageSize);
+            (unsigned char **)malloc(sizeof(char) * bitmap->image_size);
         if (bitmap->imageBuffer3 == NULL) {
             fprintf(stderr,
                     "Error: Failed to allocate memory for image buffer3.\n");
@@ -230,7 +234,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 
         // Allocate memory for each row (RGB values for each pixel)
 
-        for (int i = 0; i < bitmap->imageSize; i++) {
+        for (int i = 0; i < bitmap->image_size; i++) {
             bitmap->imageBuffer3[i] =
                 (unsigned char *)malloc(bitmap->channels * sizeof(char));
             if (bitmap->imageBuffer3[i] == NULL) {
@@ -238,7 +242,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
             }
         }
 
-        for (int i = 0; i < bitmap->imageSize; i++) {
+        for (int i = 0; i < bitmap->image_size; i++) {
             bitmap->imageBuffer3[i][0] = getc(streamIn); // red
             bitmap->imageBuffer3[i][1] = getc(streamIn); // green
             bitmap->imageBuffer3[i][2] = getc(streamIn); // blue
@@ -263,7 +267,7 @@ void gray3(Bitmap *bmp) {
     float b = 0.11;
 
     uint32_t temp = 0;
-    for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
+    for (int i = 0, j = 0; i < bmp->image_size; ++i) {
         temp = (bmp->imageBuffer3[i][0] * r) + (bmp->imageBuffer3[i][1] * g) +
                (bmp->imageBuffer3[i][2] * b);
         for (j = 0; j < 3; ++j) {
@@ -278,29 +282,29 @@ void mono3(Bitmap *bmp) {
     printf("mono3\n");
     gray3(bmp);
 
-    // left shift bitdepth - 1 = bitdepth:white, 1:1, 2:3, 4:15, 8:255, rgb =
-    // 8,8,8:255,255,255 same as: WHITE = POW(2, bmp-bitDepth) - 1, POW from
+    // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15, 8:255, rgb =
+    // 8,8,8:255,255,255 same as: WHITE = POW(2, bmp-bit_depth) - 1, POW from
     // math.h
-    const uint8_t WHITE = (1 << (bmp->bitDepth / bmp->channels)) - 1;
+    const uint8_t WHITE = (1 << (bmp->bit_depth / bmp->channels)) - 1;
     printf("White is %d\n", WHITE);
 
     uint8_t threshold = WHITE * bmp->mono_threshold;
 
     if (threshold >= WHITE) {
-        for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
+        for (int i = 0, j = 0; i < bmp->image_size; ++i) {
             for (j = 0; j < 3; ++j) {
                 bmp->imageBuffer3[i][j] = WHITE;
             }
         }
     } else if (threshold <= BLACK) {
-        for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
+        for (int i = 0, j = 0; i < bmp->image_size; ++i) {
             for (j = 0; j < 3; ++j) {
                 bmp->imageBuffer3[i][j] = BLACK;
             }
         }
     } else {
         // Black and White converter
-        for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
+        for (int i = 0, j = 0; i < bmp->image_size; ++i) {
             for (j = 0; j < 3; ++j) {
                 bmp->imageBuffer3[i][j] =
                     (bmp->imageBuffer3[i][j] >= threshold) ? WHITE : BLACK;
@@ -312,12 +316,12 @@ void mono3(Bitmap *bmp) {
 void bright3(Bitmap *bmp) {
     printf("Bright3\n");
 
-    const uint8_t WHITE = (1 << (bmp->bitDepth / bmp->channels)) - 1;
+    const uint8_t WHITE = (1 << (bmp->bit_depth / bmp->channels)) - 1;
     printf("White: %d\n", WHITE);
     if (bmp->bright_value) {
         int value = 0;
         int j = 0;
-        for (int i = 0; i < bmp->imageSize; ++i) {
+        for (int i = 0; i < bmp->image_size; ++i) {
             // Adds the positive or negative value with black and white
             // bounds.
             for (j = 0; j < 3; ++j) {
@@ -337,7 +341,7 @@ void bright3(Bitmap *bmp) {
         int value = 0;
         int j = 0;
 
-        for (int i = 0; i < bmp->imageSize; ++i) {
+        for (int i = 0; i < bmp->image_size; ++i) {
             for (j = 0; j < 3; ++j) {
                 value = bmp->imageBuffer3[i][j] +
                         (int)(bmp->bright_percent * bmp->imageBuffer3[i][j]);
@@ -356,24 +360,24 @@ void copy1(Bitmap *bmp) { printf("Copy1\n"); }
 void mono1(Bitmap *bmp) {
     printf("Mono1\n");
 
-    // left shift bitdepth - 1 = bitdepth:white, 1:1, 2:3, 4:15,
-    // 8:255 same as: WHITE = POW(2, bmp-bitDepth) - 1, POW from
+    // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15,
+    // 8:255 same as: WHITE = POW(2, bmp-bit_depth) - 1, POW from
     // math.h
-    const uint8_t WHITE = (1 << bmp->bitDepth) - 1;
+    const uint8_t WHITE = (1 << bmp->bit_depth) - 1;
 
     uint8_t threshold = WHITE * bmp->mono_threshold;
 
     if (threshold >= WHITE) {
-        for (int i = 0; i < bmp->imageSize; i++) {
+        for (int i = 0; i < bmp->image_size; i++) {
             bmp->imageBuffer1[i] = WHITE;
         }
     } else if (threshold <= BLACK) {
-        for (int i = 0; i < bmp->imageSize; i++) {
+        for (int i = 0; i < bmp->image_size; i++) {
             bmp->imageBuffer1[i] = BLACK;
         }
     } else {
         // Black and White converter
-        for (int i = 0; i < bmp->imageSize; i++) {
+        for (int i = 0; i < bmp->image_size; i++) {
             bmp->imageBuffer1[i] =
                 (bmp->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
         }
@@ -382,10 +386,10 @@ void mono1(Bitmap *bmp) {
 
 void bright1(Bitmap *bmp) {
     printf("Bright1\n");
-    const uint_fast8_t WHITE = (1 << bmp->bitDepth) - 1;
+    const uint_fast8_t WHITE = (1 << bmp->bit_depth) - 1;
 
     if (bmp->bright_value) {
-        for (int i = 0, value = 0; i < bmp->imageSize; i++) {
+        for (int i = 0, value = 0; i < bmp->image_size; i++) {
             // Adds the positive or negative value with black and white
             // bounds.
 
@@ -401,7 +405,7 @@ void bright1(Bitmap *bmp) {
         }
     } else { // bmp->bright_percent
              // if (bmp->bright_percent) {
-        for (int i = 0, value = 0; i < bmp->imageSize; i++) {
+        for (int i = 0, value = 0; i < bmp->image_size; i++) {
             // Adds the positive or negative value with black and white
             // bounds.
             value = bmp->imageBuffer1[i] +
@@ -415,36 +419,88 @@ void bright1(Bitmap *bmp) {
     }
 }
 
-// Creates a normalized histogram [0.0..1.0]
+
 void hist1(Bitmap *bmp) {
-    // bmp->HIST_MAX = (1 << bmp->bitDepth); // 256 for 8 bit images
+    // bmp->HIST_MAX = (1 << bmp->bit_depth); // 256 for 8 bit images
     bmp->HIST_MAX = 256; // 256 for 8 or less bit images
     printf("HIST_MAX: %d\n", bmp->HIST_MAX);
-    uint_fast8_t *hist_temp = NULL;
+    //  uint_fast8_t *hist_temp = NULL;
     if (!bmp->histogram) {
-        bmp->histogram = (float_t *)calloc(bmp->HIST_MAX, sizeof(float_t));
-        hist_temp =
-            (uint_fast8_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast8_t));
+        bmp->histogram = (uint8_t *)calloc(bmp->HIST_MAX, sizeof(uint8_t));
         //(uint_fast32_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast32_t));
     } else {
-        fprintf(stderr, "Error: Histogram not empty.\n");
+        fprintf(stderr, "Caution: Histogram already populated.\n");
+        return;
+    }
+    if (bmp->histogram == NULL) {
+        fprintf(stderr, "Error: Could not allocate memory for histogram.\n");
         exit(EXIT_FAILURE);
     }
-    if (bmp->histogram == NULL || hist_temp == NULL) {
-        fprintf(stderr, "Error: Failed to allocate memory for histogram.\n");
-        exit(EXIT_FAILURE);
+
+    for (size_t i = 0; i < bmp->image_size; i++) {
+        bmp->histogram[bmp->imageBuffer1[i]]++;
     }
-    
-    for (size_t i = 0; i < bmp->imageSize; i++) {
-            hist_temp[bmp->imageBuffer1[i]]++;
+}
+
+// Creates a Creates a normalized histogram [0.0..1.0], from a histogram [0..255]
+// Takes a histogram or calculates it from bmp if hist is NULL
+float_t *hist1_normalized(Bitmap *bmp, int8_t * hist) {
+    if (!hist) {
+        hist1(bmp);
     }
-    // Normalize
+
+    float_t *histogram_normalized =
+        (float_t *)calloc(bmp->HIST_MAX, sizeof(float_t));
+
+    // Normalize [0..1]
     for (int i = 0; i < bmp->HIST_MAX; i++) {
-        bmp->histogram[i] = (float_t)hist_temp[i] / (float_t)bmp->imageSize;
+        histogram_normalized[i] =
+            (float_t)bmp->histogram[i] / (float_t)bmp->image_size;
     }
-    printf("Check1\n");
-    free(hist_temp);
-    printf("Check2\n");
+    return histogram_normalized;
+}
+
+void equal1(Bitmap *bmp) {
+    if (!bmp->histogram) {
+        hist1(bmp);
+    }
+    // float_t* hist_n = hist1_normalized(bmp);
+
+    uint8_t *hist = bmp->histogram;
+    const uint16_t MAX = bmp->HIST_MAX; //256
+    // cumilative distribution function
+    uint8_t *cdf = (uint8_t *)calloc(MAX, sizeof(uint8_t));
+    uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
+    
+    uint8_t i = 0; // index     
+
+    // Calculate the cumulative distribtion function (CDF)
+    for (i = 1; i < MAX; i++) {
+        cdf[i] = hist[i] + hist[i - 1];
+        
+    }
+
+    // Find the minimum (first) non-zero CDF value
+    uint8_t min_cdf = 0;
+    for (i = 0; min_cdf == 0 && i < MAX; i++) {
+        if (cdf[i] != 0) {
+            min_cdf = cdf[i];
+        }
+    }
+
+    // Normalize the CDF to map the pixel values to [0, 255]
+    int adjusted_pixel_count = bmp->image_size - min_cdf;
+
+    for (i = 0; i < MAX; i++){
+        equalized[i] = (uint8_t)((float_t)(MAX - 1)(cdf[i]-min_cdf )) / adjusted_pixel_count;
+    }    
+
+    //
+    for (i = 0; i < bmp->image_size; i++){
+        bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
+    }
+
+    free(cdf);
 }
 
 bool write_image(Bitmap *bmp, char *filename) {
@@ -453,7 +509,7 @@ bool write_image(Bitmap *bmp, char *filename) {
 
     printf("Output mode: %s\n", mode_to_string(bmp->output_mode));
 
-    // aka if (bmp->bitDepth <= 8), checked earlier
+    // aka if (bmp->bit_depth <= 8), checked earlier
     if (bmp->channels == ONE_CHANNEL) {
         printf("ONE_CHANNEL\n");
 
@@ -502,7 +558,7 @@ bool write_image(Bitmap *bmp, char *filename) {
 
         streamOut = fopen(filename, "w");
         for (int i = 0; i < bmp->HIST_MAX; i++) {
-            fprintf(streamOut, "%f\n", bmp->histogram[i]);
+            fprintf(streamOut, "%d\n", bmp->histogram[i]);
         }
         printf("Check5\n");
     } else {
@@ -519,11 +575,11 @@ bool write_image(Bitmap *bmp, char *filename) {
             if (bmp->CT_EXISTS) {
                 fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
             }
-            fwrite(bmp->imageBuffer1, sizeof(char), bmp->imageSize, streamOut);
+            fwrite(bmp->imageBuffer1, sizeof(char), bmp->image_size, streamOut);
         }
 
         else if (bmp->channels == RGB) {
-            for (int i = 0, j = 0; i < bmp->imageSize; ++i) {
+            for (int i = 0, j = 0; i < bmp->image_size; ++i) {
                 // Write equally for each channel.
                 // j: red is 0, g is 1, b is 2
                 for (j = 0; j < 3; ++j) {
@@ -862,8 +918,8 @@ int main(int argc, char *argv[]) {
     Bitmap bitmap = {.header = {0},
                      .width = 0,
                      .height = 0,
-                     .imageSize = 0,
-                     .bitDepth = 0,
+                     .image_size = 0,
+                     .bit_depth = 0,
                      .channels = 0,
                      .mono_threshold = 0.0,
                      .bright_value = 0,
@@ -885,7 +941,7 @@ int main(int argc, char *argv[]) {
 
     printf("width: %d\n", bitmapPtr->width);
     printf("height: %d\n", bitmapPtr->height);
-    printf("bitDepth: %d\n", bitmapPtr->bitDepth);
+    printf("bit_depth: %d\n", bitmapPtr->bit_depth);
 
     switch (mode) {
     case COPY:
