@@ -21,7 +21,7 @@
 #define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
-enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST, EQUAL };
+enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST, HIST_N, EQUAL };
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
 char *dot_dat = ".dat";
@@ -36,9 +36,10 @@ typedef struct {
     float_t mono_threshold;    // 0.0 to 1.0 inclusive
     int_fast16_t bright_value; // -255 to 255 inclusive
     float_t bright_percent;    // -1.0 to 1.0 inclusive
-    uint8_t *histogram;
-    // float_t *histogram_normalized;
-    uint16_t HIST_MAX; // 256 for 8 bit images
+    uint8_t *histogram; // In the raw color range (hist1) or equalized (equal1),
+                        // [0..255]
+    float_t *histogram_n; // Normalized to [0..1]
+    uint16_t HIST_MAX;    // 256 for 8 bit images, set by calling hist1
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
@@ -67,6 +68,9 @@ char *mode_to_string(enum Mode mode) {
     case HIST:
         return "Histogram";
         break;
+    case HIST_N:
+        return "Histogram Normalized";
+        break;
     case EQUAL:
         return "Equalize";
         break;
@@ -93,6 +97,9 @@ char *get_suffix(enum Mode mode) {
         break;
     case HIST:
         return "_hist";
+        break;
+    case EQUAL:
+        return "_equal";
         break;
     default:
         return "_suffix";
@@ -147,7 +154,10 @@ void freeImage(Bitmap *bmp) {
             free(bmp->histogram);
             bmp->histogram = NULL;
         }
-
+        if (bmp->histogram_n) {
+            free(bmp->histogram_n);
+            bmp->histogram_n = NULL;
+        }
         if (bmp->imageBuffer1) {
             free(bmp->imageBuffer1);
             bmp->imageBuffer1 = NULL; // Avoid dangling pointer.
@@ -386,7 +396,7 @@ void mono1(Bitmap *bmp) {
 
 void bright1(Bitmap *bmp) {
     printf("Bright1\n");
-    const uint_fast8_t WHITE = (1 << bmp->bit_depth) - 1;
+    const uint8_t WHITE = (1 << bmp->bit_depth) - 1;
 
     if (bmp->bright_value) {
         for (int i = 0, value = 0; i < bmp->image_size; i++) {
@@ -419,7 +429,6 @@ void bright1(Bitmap *bmp) {
     }
 }
 
-
 void hist1(Bitmap *bmp) {
     // bmp->HIST_MAX = (1 << bmp->bit_depth); // 256 for 8 bit images
     bmp->HIST_MAX = 256; // 256 for 8 or less bit images
@@ -430,22 +439,22 @@ void hist1(Bitmap *bmp) {
         //(uint_fast32_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast32_t));
     } else {
         fprintf(stderr, "Caution: Histogram already populated.\n");
-        return;
     }
     if (bmp->histogram == NULL) {
         fprintf(stderr, "Error: Could not allocate memory for histogram.\n");
         exit(EXIT_FAILURE);
     }
 
+    // Create histogram / count pixels
     for (size_t i = 0; i < bmp->image_size; i++) {
         bmp->histogram[bmp->imageBuffer1[i]]++;
     }
 }
 
-// Creates a Creates a normalized histogram [0.0..1.0], from a histogram [0..255]
-// Takes a histogram or calculates it from bmp if hist is NULL
-float_t *hist1_normalized(Bitmap *bmp, int8_t * hist) {
-    if (!hist) {
+// Creates a Creates a normalized histogram [0.0..1.0], from a histogram
+// [0..255] Takes a histogram or calculates it from bmp if hist is NULL
+void hist1_normalized(Bitmap *bmp) {
+    if (!bmp->histogram) {
         hist1(bmp);
     }
 
@@ -457,7 +466,6 @@ float_t *hist1_normalized(Bitmap *bmp, int8_t * hist) {
         histogram_normalized[i] =
             (float_t)bmp->histogram[i] / (float_t)bmp->image_size;
     }
-    return histogram_normalized;
 }
 
 void equal1(Bitmap *bmp) {
@@ -467,17 +475,16 @@ void equal1(Bitmap *bmp) {
     // float_t* hist_n = hist1_normalized(bmp);
 
     uint8_t *hist = bmp->histogram;
-    const uint16_t MAX = bmp->HIST_MAX; //256
+    const uint16_t MAX = bmp->HIST_MAX; // 256
     // cumilative distribution function
     uint8_t *cdf = (uint8_t *)calloc(MAX, sizeof(uint8_t));
     uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
-    
-    uint8_t i = 0; // index     
+
+    uint8_t i = 0; // index
 
     // Calculate the cumulative distribtion function (CDF)
     for (i = 1; i < MAX; i++) {
         cdf[i] = hist[i] + hist[i - 1];
-        
     }
 
     // Find the minimum (first) non-zero CDF value
@@ -489,18 +496,22 @@ void equal1(Bitmap *bmp) {
     }
 
     // Normalize the CDF to map the pixel values to [0, 255]
-    int adjusted_pixel_count = bmp->image_size - min_cdf;
+    // equalized value = 255 * (cdf[i]- min_cdf)) /
+    //                    (image_size - min_cdf);  // adjusted pixel quantity
+    for (i = 0; i < MAX; i++) {
+        equalized[i] = (uint8_t)((float_t)(MAX - 1) * (cdf[i] - min_cdf)) /
+                           bmp->image_size -
+                       min_cdf;
+        // should be optimized by compiler
+    }
 
-    for (i = 0; i < MAX; i++){
-        equalized[i] = (uint8_t)((float_t)(MAX - 1)(cdf[i]-min_cdf )) / adjusted_pixel_count;
-    }    
-
-    //
-    for (i = 0; i < bmp->image_size; i++){
+    // Map the equalized values back to image data
+    for (i = 0; i < bmp->image_size; i++) {
         bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
     }
 
     free(cdf);
+    free(equalized);
 }
 
 bool write_image(Bitmap *bmp, char *filename) {
@@ -525,6 +536,10 @@ bool write_image(Bitmap *bmp, char *filename) {
             printf("Check3\n");
             hist1(bmp);
             printf("Check4\n");
+        } else if (bmp->output_mode == HIST_N) {
+            hist1_normalized(bmp);
+        }else if (bmp->output_mode == EQUAL) {
+            equal1(bmp);
         }
 
     } else if (bmp->channels == RGB) {
@@ -929,6 +944,7 @@ int main(int argc, char *argv[]) {
                      .imageBuffer1 = NULL,
                      .imageBuffer3 = NULL,
                      .histogram = NULL,
+                     .histogram_n = NULL,
                      .HIST_MAX = 0,
                      .output_mode = NO_MODE};
     Bitmap *bitmapPtr = &bitmap;
