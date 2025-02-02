@@ -30,7 +30,7 @@ typedef struct {
     unsigned char header[HEADER_SIZE];
     uint16_t width;
     uint16_t height;
-    uint16_t image_size;
+    uint32_t image_size;
     uint8_t bit_depth;
     uint8_t channels;
     float_t mono_threshold;    // 0.0 to 1.0 inclusive
@@ -231,10 +231,6 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         fread(bitmap->imageBuffer1, sizeof(char), bitmap->image_size, streamIn);
 
         file_read_completed = true;
-        for (int i = 0; i < bitmap->image_size; i++) {
-            printf("%d ", bitmap->imageBuffer1[i]);
-        }
-        printf("\n");
     } else if (bitmap->channels == 3) {
 
         // Allocate memory for the array of pointers (rows) for each pixel in
@@ -487,48 +483,60 @@ void equal1(Bitmap *bmp) {
     //   uint8_t *hist = bmp->histogram;
     const uint16_t MAX = bmp->HIST_MAX; // 256
     // cumilative distribution function
-    // uint8_t *cdf = (uint8_t *)calloc(MAX, sizeof(uint8_t));
-
+    uint32_t *cdf = (uint32_t *)calloc(MAX, sizeof(uint32_t));
     uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
+    if (!cdf || !equalized) {
+        printf("cdf or equalized not initialized.\n");
+        exit(EXIT_FAILURE);
+    }
 
     printf("E2\n");
-    uint16_t i = 0; // index
-    // Histogram becomes a CDF and re-uses bmp histogram space.
-    uint8_t *cdf = bmp->histogram;
     printf("Hist: %d\n", bmp->histogram[0]);
+
+    uint16_t i = 0; // index
+    cdf[i] = bmp->histogram[i];
     for (i = 1; i < MAX; i++) {
-        printf("I   : %d\n", i);
-        printf("Hist: %d\n", bmp->histogram[i]);
+        // printf("I   : %d\n", i);
+        // printf("Hist: %d\n", bmp->histogram[i]);
         // bmp->histogram[i] = bmp->histogram[i] + bmp->histogram[i - 1];
-        cdf[i] = cdf[i] + cdf[i - 1];
-        printf("CDF : %d\n", cdf[i]);
+        cdf[i] = bmp->histogram[i] + cdf[i - 1];
+        // printf("CDF : %d\n", cdf[i]);
     }
     printf("Hist max: %d\n", MAX);
 
-    // Calculate the cumulative distribtion function (CDF)
-    // for (i = 1; i < MAX; i++) {
-    //     cdf[i] = hist[i] + hist[i - 1];
-    // }
-
     printf("E3");
     // Find the minimum (first) non-zero CDF value
-    uint8_t min_cdf = 0;
-    for (i = 0; min_cdf == 0 && i < MAX; i++) {
+    uint16_t min_index = 0;
+    uint32_t min_cdf = cdf[0];
+    // uint8_t min_cdf = cdf[0];
+    for (i = 1; min_cdf == 0 && i < MAX; i++) {
         if (cdf[i] != 0) {
             min_cdf = cdf[i];
+            min_index = i;
         }
     }
 
-    printf("E4");
-    // Normalize the CDF to map the pixel values to [0, 255]
+    printf("E4\n");
+
     // equalized value = 255 * (cdf[i]- min_cdf)) /
     //                    (image_size - min_cdf);  // adjusted pixel quantity
-    for (i = 0; i < MAX; i++) {
-        equalized[i] = (uint8_t)((float_t)(MAX - 1) * (cdf[i] - min_cdf)) /
-                       (bmp->image_size - min_cdf);
-    }
 
+    // Normalize the CDF to map the pixel values to [0, 255]
+    for (i = 0; i < MAX; i++) {
+        if(cdf[i] >= min_cdf) {
+        equalized[i] = (uint8_t)(((float_t)(MAX - 1.0) * (cdf[i] - min_cdf)) /
+                                 (bmp->image_size - min_cdf));
+        } else{
+            equalized[i] = 0;
+        }
+    }
+    printf("Equilizer: \n");
+    for (int i = 0; i < bmp->HIST_MAX; i++) {
+        printf("%d ", equalized[i]);
+    }
+    printf(" End output.\n");
     printf("E5");
+    exit(1);
     // Map the equalized values back to image data
     for (i = 0; i < bmp->image_size; i++) {
         bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
@@ -548,9 +556,7 @@ bool write_image(Bitmap *bmp, char *filename) {
 
     // aka if (bmp->bit_depth <= 8), checked earlier
     if (bmp->channels == ONE_CHANNEL) {
-        for (int i = 0; i < bmp->image_size; i++) {
-            printf("%d ", bmp->imageBuffer1[i]);
-        }
+
         printf("\n");
         printf("ONE_CHANNEL\n");
 
@@ -596,14 +602,6 @@ bool write_image(Bitmap *bmp, char *filename) {
 
     // Write data
 
-    if (bmp->channels == ONE_CHANNEL) {
-        printf("Output: \n");
-        for (int i = 0; i < bmp->image_size; i++) {
-            printf("%d ", bmp->imageBuffer1[i]);
-        }
-        printf(" End output.\n");
-    }
-
     bool write_succesful = false;
     FILE *streamOut;
 
@@ -633,12 +631,12 @@ bool write_image(Bitmap *bmp, char *filename) {
                 fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
             }
 
-            // Print test
-            printf("Output: \n");
-            for (int i = 0; i < bmp->image_size; i++) {
-                printf("%d ", bmp->imageBuffer1[i]);
-            }
-            printf(" End output.\n");
+            /*             // Print test
+                        printf("Output: \n");
+                        for (int i = 0; i < bmp->image_size; i++) {
+                            printf("%d ", bmp->imageBuffer1[i]);
+                        }
+                        printf(" End output.\n"); */
 
             fwrite(bmp->imageBuffer1, sizeof(char), bmp->image_size, streamOut);
         } else if (bmp->channels == RGB) {
