@@ -218,6 +218,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         bitmap->channels = bitmap->bit_depth / 8;
         printf("channel calculation line 152: %d", bitmap->channels);
     }
+
     if (bitmap->channels == 1) {
         // Allocate memory for image buffer
         bitmap->imageBuffer1 =
@@ -230,6 +231,10 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         fread(bitmap->imageBuffer1, sizeof(char), bitmap->image_size, streamIn);
 
         file_read_completed = true;
+        for (int i = 0; i < bitmap->image_size; i++) {
+            printf("%d ", bitmap->imageBuffer1[i]);
+        }
+        printf("\n");
     } else if (bitmap->channels == 3) {
 
         // Allocate memory for the array of pointers (rows) for each pixel in
@@ -265,6 +270,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
     fclose(streamIn);
     return file_read_completed;
 }
+
 // No need to change image buffer for direct copy.
 void copy3(Bitmap *bmp) { printf("Copy3\n"); }
 
@@ -449,6 +455,10 @@ void hist1(Bitmap *bmp) {
     for (size_t i = 0; i < bmp->image_size; i++) {
         bmp->histogram[bmp->imageBuffer1[i]]++;
     }
+    // for (int i = 0; i < 256; i++) {
+    //     printf("H: %d ", bmp->histogram[i]);
+    // }
+    printf("Hist1 finished.\n");
 }
 
 // Creates a Creates a normalized histogram [0.0..1.0], from a histogram
@@ -473,20 +483,34 @@ void equal1(Bitmap *bmp) {
         hist1(bmp);
     }
     // float_t* hist_n = hist1_normalized(bmp);
-
-    uint8_t *hist = bmp->histogram;
+    printf("E1");
+    //   uint8_t *hist = bmp->histogram;
     const uint16_t MAX = bmp->HIST_MAX; // 256
     // cumilative distribution function
-    uint8_t *cdf = (uint8_t *)calloc(MAX, sizeof(uint8_t));
+    // uint8_t *cdf = (uint8_t *)calloc(MAX, sizeof(uint8_t));
+
     uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
 
-    uint8_t i = 0; // index
+    printf("E2\n");
+    uint16_t i = 0; // index
+    // Histogram becomes a CDF and re-uses bmp histogram space.
+    uint8_t *cdf = bmp->histogram;
+    printf("Hist: %d\n", bmp->histogram[0]);
+    for (i = 1; i < MAX; i++) {
+        printf("I   : %d\n", i);
+        printf("Hist: %d\n", bmp->histogram[i]);
+        // bmp->histogram[i] = bmp->histogram[i] + bmp->histogram[i - 1];
+        cdf[i] = cdf[i] + cdf[i - 1];
+        printf("CDF : %d\n", cdf[i]);
+    }
+    printf("Hist max: %d\n", MAX);
 
     // Calculate the cumulative distribtion function (CDF)
-    for (i = 1; i < MAX; i++) {
-        cdf[i] = hist[i] + hist[i - 1];
-    }
+    // for (i = 1; i < MAX; i++) {
+    //     cdf[i] = hist[i] + hist[i - 1];
+    // }
 
+    printf("E3");
     // Find the minimum (first) non-zero CDF value
     uint8_t min_cdf = 0;
     for (i = 0; min_cdf == 0 && i < MAX; i++) {
@@ -495,22 +519,24 @@ void equal1(Bitmap *bmp) {
         }
     }
 
+    printf("E4");
     // Normalize the CDF to map the pixel values to [0, 255]
     // equalized value = 255 * (cdf[i]- min_cdf)) /
     //                    (image_size - min_cdf);  // adjusted pixel quantity
     for (i = 0; i < MAX; i++) {
         equalized[i] = (uint8_t)((float_t)(MAX - 1) * (cdf[i] - min_cdf)) /
-                           bmp->image_size -
-                       min_cdf;
-        // should be optimized by compiler
+                       (bmp->image_size - min_cdf);
     }
 
+    printf("E5");
     // Map the equalized values back to image data
     for (i = 0; i < bmp->image_size; i++) {
         bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
     }
 
-    free(cdf);
+    printf("E6");
+    free(cdf); //(bmp->histogram)
+    cdf = NULL;
     free(equalized);
 }
 
@@ -522,6 +548,10 @@ bool write_image(Bitmap *bmp, char *filename) {
 
     // aka if (bmp->bit_depth <= 8), checked earlier
     if (bmp->channels == ONE_CHANNEL) {
+        for (int i = 0; i < bmp->image_size; i++) {
+            printf("%d ", bmp->imageBuffer1[i]);
+        }
+        printf("\n");
         printf("ONE_CHANNEL\n");
 
         if (bmp->output_mode == COPY) {
@@ -538,7 +568,7 @@ bool write_image(Bitmap *bmp, char *filename) {
             printf("Check4\n");
         } else if (bmp->output_mode == HIST_N) {
             hist1_normalized(bmp);
-        }else if (bmp->output_mode == EQUAL) {
+        } else if (bmp->output_mode == EQUAL) {
             equal1(bmp);
         }
 
@@ -566,10 +596,18 @@ bool write_image(Bitmap *bmp, char *filename) {
 
     // Write data
 
+    if (bmp->channels == ONE_CHANNEL) {
+        printf("Output: \n");
+        for (int i = 0; i < bmp->image_size; i++) {
+            printf("%d ", bmp->imageBuffer1[i]);
+        }
+        printf(" End output.\n");
+    }
+
     bool write_succesful = false;
     FILE *streamOut;
 
-    if (bmp->output_mode == HIST) {
+    if (bmp->output_mode == HIST || bmp->output_mode == HIST_N) {
 
         streamOut = fopen(filename, "w");
         for (int i = 0; i < bmp->HIST_MAX; i++) {
@@ -583,17 +621,27 @@ bool write_image(Bitmap *bmp, char *filename) {
             fprintf(stderr, "Error: failed to open output file %s\n", filename);
             exit(EXIT_FAILURE);
         }
+
+        // Copy header info
         fwrite(bmp->header, sizeof(char), HEADER_SIZE, streamOut);
 
         if (bmp->channels == ONE_CHANNEL) {
             printf("ONE_CHANNEL\n");
+
+            // Write color table if necessary.
             if (bmp->CT_EXISTS) {
                 fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
             }
-            fwrite(bmp->imageBuffer1, sizeof(char), bmp->image_size, streamOut);
-        }
 
-        else if (bmp->channels == RGB) {
+            // Print test
+            printf("Output: \n");
+            for (int i = 0; i < bmp->image_size; i++) {
+                printf("%d ", bmp->imageBuffer1[i]);
+            }
+            printf(" End output.\n");
+
+            fwrite(bmp->imageBuffer1, sizeof(char), bmp->image_size, streamOut);
+        } else if (bmp->channels == RGB) {
             for (int i = 0, j = 0; i < bmp->image_size; ++i) {
                 // Write equally for each channel.
                 // j: red is 0, g is 1, b is 2
@@ -627,8 +675,11 @@ void print_usage(char *app_name) {
            "                       - A float between -1.0 and 1.0\n"
            "                       - An integer between -255 and 255\n"
            "                       0 or 0.0 will not do anything.\n"
-           "  -H                   Calculate normalized [0..1] histogram and "
+           "  -H                   Calculate histogram [0..255] write to .txt "
+           "file.\n"
+           "  -n                   Calculate normalized histogram [0..1] and "
            "write to .txt file.\n"
+           "  -e                   Equalize image contrast.\n"
            "Information modes:\n"
            "  -h, --help           Show this help message and exit\n"
            "  -v, --verbose        Enable verbose output\n"
@@ -691,7 +742,6 @@ int main(int argc, char *argv[]) {
     char *filename1 = NULL;
     char *filename2 = NULL;
     bool filename2_allocated = false;
-    // const char *suffix = "_suffix"; // default
 
     // if only the program name is called, print usage and exit.
     if (argc == 1) {
@@ -704,6 +754,8 @@ int main(int argc, char *argv[]) {
         m_flag = false,       // monochrome
         b_flag = false,       // brightness
         H_flag = false,       // histogram
+        n_flag = false,       // histogram normalized [0..1]
+        e_flag = false,       // equalized
         h_flag = false,       // help
         v_flag = false,       // verbose
         version_flag = false; // version
@@ -726,7 +778,7 @@ int main(int argc, char *argv[]) {
           // in getopt.h
     };
 
-    while ((option = getopt(argc, argv, "m:b:gHhv")) != -1) {
+    while ((option = getopt(argc, argv, "m:b:gHnehv")) != -1) {
         printf("Optind: %d\n", optind);
         switch (option) {
         case 'm':
@@ -802,6 +854,12 @@ int main(int argc, char *argv[]) {
         case 'H': // help
             H_flag = true;
             break;
+        case 'n': // help
+            n_flag = true;
+            break;
+        case 'e': // help
+            e_flag = true;
+            break;
         case 'h': // help
             print_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -821,12 +879,12 @@ int main(int argc, char *argv[]) {
     }
 
     // set the mode and make sure only one mode is true.
-    char *multiple_mode_error_message =
-        "Error: Only one processing mode permitted at a time.\n";
-    if (g_flag + b_flag + m_flag + H_flag > 1) {
-        fprintf(stderr, "%s", multiple_mode_error_message);
+    if (g_flag + b_flag + m_flag + H_flag + n_flag + e_flag > 1) {
+        fprintf(stderr, "%s",
+                "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
     }
+
     if (g_flag) {
         mode = GRAY;
     } else if (m_flag) {
@@ -835,6 +893,10 @@ int main(int argc, char *argv[]) {
         mode = BRIGHT;
     } else if (H_flag) {
         mode = HIST;
+    } else if (n_flag) {
+        mode = HIST_N;
+    } else if (e_flag) {
+        mode = EQUAL;
     } else {
         mode = COPY;
     }
@@ -921,6 +983,8 @@ int main(int argc, char *argv[]) {
             printf("-m (to monochrome): %s\n", m_flag ? "true" : "false");
         }
         printf("-H (histogram):     %s\n", H_flag ? "true" : "false");
+        printf("-n (histogram_n):   %s\n", n_flag ? "true" : "false");
+        printf("-e (equalize):      %s\n", e_flag ? "true" : "false");
         printf("-h (help):          %s\n", h_flag ? "true" : "false");
         printf("-v (verbose):       %s\n", v_flag ? "true" : "false");
         printf("--version:          %s\n", version_flag ? "true" : "false");
@@ -978,6 +1042,12 @@ int main(int argc, char *argv[]) {
         printf("bitmapPtr->bright_value = %d\n", bitmapPtr->bright_value);
         break;
     case HIST:
+        bitmapPtr->output_mode = mode;
+        break;
+    case HIST_N:
+        bitmapPtr->output_mode = mode;
+        break;
+    case EQUAL:
         bitmapPtr->output_mode = mode;
         break;
     default:
