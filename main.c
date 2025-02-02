@@ -494,7 +494,7 @@ void equal1(Bitmap *bmp) {
     printf("Hist: %d\n", bmp->histogram[0]);
 
     uint16_t i = 0; // index
-    cdf[i] = bmp->histogram[i];
+    cdf[0] = bmp->histogram[0];
     for (i = 1; i < MAX; i++) {
         // printf("I   : %d\n", i);
         // printf("Hist: %d\n", bmp->histogram[i]);
@@ -517,15 +517,19 @@ void equal1(Bitmap *bmp) {
     }
 
     printf("E4\n");
-
-    // equalized value = 255 * (cdf[i]- min_cdf)) /
-    //                    (image_size - min_cdf);  // adjusted pixel quantity
+    
+    
+    printf("CDF: \n");
+    for(i = 0; i < MAX; i++){
+        printf("%d ", cdf[i]);
+    }
+    printf("\n");
 
     // Normalize the CDF to map the pixel values to [0, 255]
     for (i = 0; i < MAX; i++) {
         if(cdf[i] >= min_cdf) {
         equalized[i] = (uint8_t)(((float_t)(MAX - 1.0) * (cdf[i] - min_cdf)) /
-                                 (bmp->image_size - min_cdf));
+                                 (cdf[MAX - 1] - min_cdf));
         } else{
             equalized[i] = 0;
         }
@@ -536,13 +540,14 @@ void equal1(Bitmap *bmp) {
     }
     printf(" End output.\n");
     printf("E5");
-    exit(1);
+    //exit(1);
     // Map the equalized values back to image data
-    for (i = 0; i < bmp->image_size; i++) {
+    for (size_t i = 0; i < bmp->image_size; i++) {
         bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
     }
 
     printf("E6");
+    //exit(EXIT_FAILURE);
     free(cdf); //(bmp->histogram)
     cdf = NULL;
     free(equalized);
