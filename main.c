@@ -232,26 +232,29 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 
         file_read_completed = true;
     } else if (bitmap->channels == 3) {
-
+        printf("Bitmap channels 3.\n");
         // Allocate memory for the array of pointers (rows) for each pixel in
         // image_size
         bitmap->imageBuffer3 =
-            (unsigned char **)malloc(sizeof(char) * bitmap->image_size);
+            (unsigned char **)malloc( bitmap->image_size * sizeof(unsigned char *));
         if (bitmap->imageBuffer3 == NULL) {
             fprintf(stderr,
                     "Error: Failed to allocate memory for image buffer3.\n");
             return false;
         }
-
+        printf("Image buffer 1 created\n");
         // Allocate memory for each row (RGB values for each pixel)
 
         for (int i = 0; i < bitmap->image_size; i++) {
             bitmap->imageBuffer3[i] =
-                (unsigned char *)malloc(bitmap->channels * sizeof(char));
+                (unsigned char *)malloc(bitmap->channels * sizeof(unsigned char *));
             if (bitmap->imageBuffer3[i] == NULL) {
+                fprintf(stderr, "WtF.\n");
                 return false;
             }
         }
+
+        printf("Image buffer 2 created.\n");
 
         for (int i = 0; i < bitmap->image_size; i++) {
             bitmap->imageBuffer3[i][0] = getc(streamIn); // red
@@ -259,11 +262,13 @@ bool readImage(char *filename1, Bitmap *bitmap) {
             bitmap->imageBuffer3[i][2] = getc(streamIn); // blue
         }
         file_read_completed = true;
+        printf("Channels read.\n");
     } else if (bitmap->channels == 4) {
         fprintf(stderr, "Error: not set up for 4 channel rgba\n");
         exit(EXIT_FAILURE);
     }
     fclose(streamIn);
+    printf("File read completed.\n");
     return file_read_completed;
 }
 
