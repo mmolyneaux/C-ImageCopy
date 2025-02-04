@@ -44,3 +44,30 @@ p 'image_hist.txt' with impulse
 Known issue: Exporting 2 and 1 bit bmp files from IrfanView is causing the bitdepth to read incorrectly:
 
 Tested working on 4 and 8 bit grayscale images and 24 bit color images.
+
+Current Working modes
+
+"Copy"
+-8-bit  Grayscale
+-24-bit RGB
+---
+"Grayscale";
+-24-bit RGB
+---
+"Monochrome";
+-8-bit  Grayscale
+-24-bit RGB
+---
+"Brightness";
+-8-bit  Grayscale
+-24-bit RGB
+---
+"Histogram";
+-8-bit  Grayscale
+---
+"Histogram Normalized";
+-8-bit  Grayscale
+---
+"Equalize";
+-8-bit  Grayscale
+---

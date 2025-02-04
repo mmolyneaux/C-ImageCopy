@@ -16,12 +16,12 @@
 // Bitmap color table size if it's needed, if bit_depth <= 8 by def.
 #define CT_SIZE 1024
 // This is the 5th lesson / repo  of this program.
-#define VERSION "0.7" // Equalize
+#define VERSION "0.8" // Rotation
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
-enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST, HIST_N, EQUAL };
+enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST, HIST_N, EQUAL, ROT };
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
 char *dot_dat = ".dat";
@@ -40,6 +40,7 @@ typedef struct {
                         // [0..255]
     float_t *histogram_n; // Normalized to [0..1]
     uint16_t HIST_MAX;    // 256 for 8 bit images, set by calling hist1
+    float_t degrees;
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
@@ -74,6 +75,9 @@ char *mode_to_string(enum Mode mode) {
     case EQUAL:
         return "Equalize";
         break;
+    case ROT:
+        return "Rotate";
+        break;
     default:
         return "default: mode string not found";
     }
@@ -100,6 +104,9 @@ char *get_suffix(enum Mode mode) {
         break;
     case EQUAL:
         return "_equal";
+        break;
+    case ROT:
+        return "_rot";
         break;
     default:
         return "_suffix";
@@ -145,6 +152,44 @@ char *get_output_ext(char *filename, enum Mode mode) {
             return dot_bmp;
         }
     }
+}
+
+void init_buffer3(Bitmap *bmp) {
+    printf("Buffer_init3\n");
+    if (!bmp) {
+        fprintf(
+            stderr,
+            "Error: Buffer initialization failed, Bitmap not initialized.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (!bmp) {
+        fprintf(
+            stderr,
+            "Error: Buffer initialization failed, Bitmap not initialized.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (!bmp->image_size) {
+        fprintf(
+            stderr,
+            "Error: Buffer initialization failed, Image size not defined.\n");
+        exit(EXIT_FAILURE);
+    }
+    unsigned char **buf3 =
+        (unsigned char **)malloc(bmp->image_size * sizeof(unsigned char *));
+    if (buf3 == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i < bmp->image_size; i++) {
+        buf3[i] = (unsigned char *)calloc(bmp->channels, sizeof(unsigned char));
+        if (buf3[i] == NULL) {
+            fprintf(stderr,
+                    "Error: Failed to allocate memory for image data.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    bmp->imageBuffer3 = buf3;
 }
 
 // free memory allocated for bitmap structs.
@@ -235,24 +280,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         printf("Bitmap channels 3.\n");
         // Allocate memory for the array of pointers (rows) for each pixel in
         // image_size
-        bitmap->imageBuffer3 =
-            (unsigned char **)malloc( bitmap->image_size * sizeof(unsigned char *));
-        if (bitmap->imageBuffer3 == NULL) {
-            fprintf(stderr,
-                    "Error: Failed to allocate memory for image buffer3.\n");
-            return false;
-        }
-        printf("Image buffer 1 created\n");
-        // Allocate memory for each row (RGB values for each pixel)
-
-        for (int i = 0; i < bitmap->image_size; i++) {
-            bitmap->imageBuffer3[i] =
-                (unsigned char *)malloc(bitmap->channels * sizeof(unsigned char *));
-            if (bitmap->imageBuffer3[i] == NULL) {
-                fprintf(stderr, "WtF.\n");
-                return false;
-            }
-        }
+        init_buffer3(bitmap);
 
         printf("Image buffer 2 created.\n");
 
@@ -522,20 +550,20 @@ void equal1(Bitmap *bmp) {
     }
 
     printf("E4\n");
-    
-    
+
     printf("CDF: \n");
-    for(i = 0; i < MAX; i++){
+    for (i = 0; i < MAX; i++) {
         printf("%d ", cdf[i]);
     }
     printf("\n");
 
     // Normalize the CDF to map the pixel values to [0, 255]
     for (i = 0; i < MAX; i++) {
-        if(cdf[i] >= min_cdf) {
-        equalized[i] = (uint8_t)(((float_t)(MAX - 1.0) * (cdf[i] - min_cdf)) /
-                                 (cdf[MAX - 1] - min_cdf));
-        } else{
+        if (cdf[i] >= min_cdf) {
+            equalized[i] =
+                (uint8_t)(((float_t)(MAX - 1.0) * (cdf[i] - min_cdf)) /
+                          (cdf[MAX - 1] - min_cdf));
+        } else {
             equalized[i] = 0;
         }
     }
@@ -545,17 +573,24 @@ void equal1(Bitmap *bmp) {
     }
     printf(" End output.\n");
     printf("E5");
-    //exit(1);
-    // Map the equalized values back to image data
+    // exit(1);
+    //  Map the equalized values back to image data
     for (size_t i = 0; i < bmp->image_size; i++) {
         bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
     }
 
     printf("E6");
-    //exit(EXIT_FAILURE);
+    // exit(EXIT_FAILURE);
     free(cdf); //(bmp->histogram)
     cdf = NULL;
     free(equalized);
+}
+
+void rot1(Bitmap *bmp) {
+    uint8_t *out = calloc(bmp->image_size, sizeof(unsigned char));
+
+    free(bmp->imageBuffer1);
+    bmp->imageBuffer1 = out;
 }
 
 bool write_image(Bitmap *bmp, char *filename) {
@@ -586,6 +621,8 @@ bool write_image(Bitmap *bmp, char *filename) {
             hist1_normalized(bmp);
         } else if (bmp->output_mode == EQUAL) {
             equal1(bmp);
+        } else if (bmp->output_mode == EQUAL) {
+            rot1(bmp);
         }
 
     } else if (bmp->channels == RGB) {
@@ -602,6 +639,9 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == BRIGHT) {
             printf("B3\n");
             bright3(bmp);
+        //} else if (bmp->output_mode == ROT) {
+          //  printf("R3\n");
+            //rot3(bmp);
         } else {
             printf("CHANNEL FAIL\n");
             fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
