@@ -154,6 +154,39 @@ char *get_output_ext(char *filename, enum Mode mode) {
     }
 }
 
+
+void init_buffer1(Bitmap *bmp) {
+    printf("Buffer_init1\n");
+    if (!bmp) {
+        fprintf(
+            stderr,
+            "Error: Buffer initialization failed, Bitmap not initialized.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (!bmp) {
+        fprintf(
+            stderr,
+            "Error: Buffer initialization failed, Bitmap not initialized.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (!bmp->image_size) {
+        fprintf(
+            stderr,
+            "Error: Buffer initialization failed, Image size not defined.\n");
+        exit(EXIT_FAILURE);
+    }
+    unsigned char *buf1=
+        (unsigned char *)calloc(bmp->image_size, sizeof(unsigned char));
+    if (buf1 == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    bmp->imageBuffer1 = buf1;
+}
+
+
 void init_buffer3(Bitmap *bmp) {
     printf("Buffer_init3\n");
     if (!bmp) {
@@ -266,13 +299,8 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 
     if (bitmap->channels == 1) {
         // Allocate memory for image buffer
-        bitmap->imageBuffer1 =
-            (unsigned char *)malloc(sizeof(char) * bitmap->image_size);
-        if (bitmap->imageBuffer1 == NULL) {
-            fprintf(stderr,
-                    "Error: Failed to allocate memory for image buffer1.\n");
-            return false;
-        }
+        init_buffer1(bitmap);
+        
         fread(bitmap->imageBuffer1, sizeof(char), bitmap->image_size, streamIn);
 
         file_read_completed = true;
