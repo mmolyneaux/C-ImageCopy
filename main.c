@@ -154,7 +154,6 @@ char *get_output_ext(char *filename, enum Mode mode) {
     }
 }
 
-
 void init_buffer1(Bitmap *bmp) {
     printf("Buffer_init1\n");
     if (!bmp) {
@@ -176,16 +175,15 @@ void init_buffer1(Bitmap *bmp) {
             "Error: Buffer initialization failed, Image size not defined.\n");
         exit(EXIT_FAILURE);
     }
-    unsigned char *buf1=
+    unsigned char *buf1 =
         (unsigned char *)calloc(bmp->image_size, sizeof(unsigned char));
     if (buf1 == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
         exit(EXIT_FAILURE);
     }
-    
+
     bmp->imageBuffer1 = buf1;
 }
-
 
 void init_buffer3(Bitmap *bmp) {
     printf("Buffer_init3\n");
@@ -294,13 +292,12 @@ bool readImage(char *filename1, Bitmap *bitmap) {
     } else {
         // 24 bit is 3 channel rbg, 32 bit is 32 bit rgba
         bitmap->channels = bitmap->bit_depth / 8;
-        printf("channel calculation line 152: %d", bitmap->channels);
     }
 
     if (bitmap->channels == 1) {
         // Allocate memory for image buffer
         init_buffer1(bitmap);
-        
+
         fread(bitmap->imageBuffer1, sizeof(char), bitmap->image_size, streamIn);
 
         file_read_completed = true;
@@ -310,7 +307,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         // image_size
         init_buffer3(bitmap);
 
-        printf("Image buffer 2 created.\n");
+        printf("Image buffer3 created.\n");
 
         for (int i = 0; i < bitmap->image_size; i++) {
             bitmap->imageBuffer3[i][0] = getc(streamIn); // red
@@ -615,10 +612,29 @@ void equal1(Bitmap *bmp) {
 }
 
 void rot1(Bitmap *bmp) {
-    uint8_t *out = calloc(bmp->image_size, sizeof(unsigned char));
+    uint8_t *output_buffer = calloc(bmp->image_size, sizeof(unsigned char));
+
+    Bitmap bitmap = {.header = {0},
+                     .width = 0,
+                     .height = 0,
+                     .image_size = 0,
+                     .bit_depth = 0,
+                     .channels = 0,
+                     .mono_threshold = 0.0,
+                     .bright_value = 0,
+                     .bright_percent = 0.0,
+                     .CT_EXISTS = false,
+                     .colorTable = NULL,
+                     .imageBuffer1 = NULL,
+                     .imageBuffer3 = NULL,
+                     .histogram = NULL,
+                     .histogram_n = NULL,
+                     .HIST_MAX = 0,
+                     .output_mode = NO_MODE};
+    Bitmap *bitmapPtr = &bitmap;
 
     free(bmp->imageBuffer1);
-    bmp->imageBuffer1 = out;
+    bmp->imageBuffer1 = output_buffer;
 }
 
 bool write_image(Bitmap *bmp, char *filename) {
@@ -667,9 +683,9 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == BRIGHT) {
             printf("B3\n");
             bright3(bmp);
-        //} else if (bmp->output_mode == ROT) {
-          //  printf("R3\n");
-            //rot3(bmp);
+            //} else if (bmp->output_mode == ROT) {
+            //  printf("R3\n");
+            // rot3(bmp);
         } else {
             printf("CHANNEL FAIL\n");
             fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
@@ -832,6 +848,7 @@ int main(int argc, char *argv[]) {
         H_flag = false,       // histogram
         n_flag = false,       // histogram normalized [0..1]
         e_flag = false,       // equalized
+        r_flag = false,       // rotate +/- 90, 180 , 270
         h_flag = false,       // help
         v_flag = false,       // verbose
         version_flag = false; // version
@@ -840,6 +857,7 @@ int main(int argc, char *argv[]) {
     float m_flag_value = M_FLAG_DEFAULT;
     float b_flag_float = 0.0;
     int b_flag_int = 0;
+    int r_flag_int = 0;
 
     struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -854,7 +872,7 @@ int main(int argc, char *argv[]) {
           // in getopt.h
     };
 
-    while ((option = getopt(argc, argv, "m:b:gHnehv")) != -1) {
+    while ((option = getopt(argc, argv, "m:b:gHner:hv")) != -1) {
         printf("Optind: %d\n", optind);
         switch (option) {
         case 'm':
@@ -936,6 +954,43 @@ int main(int argc, char *argv[]) {
         case 'e': // help
             e_flag = true;
             break;
+        case 'r': // rotate
+            r_flag = true;
+
+            bool valid_r_value = false;
+            // Check both optarg is not null,
+            // and optarg[0] starts with char 0-9 or "."
+            if (optarg) {
+                // Negative check. Check if the first character is '-'
+                uint8_t check_digit = 0;
+                if (optarg[check_digit] == '-') {
+                    check_digit++;
+                }
+
+                if (is_digit(optarg[check_digit])) {
+                    printf("is_digit\n");
+                    int r_int_input = 0;
+                    printf("get_valid_int: %s\n",
+                           get_valid_int(optarg, &r_int_input) ? "true"
+                                                               : "false");
+                    if (get_valid_int(optarg, &r_int_input)) {
+                        printf("get_valid_int\n");
+                        if ((r_int_input != 0) && (r_int_input >= -270) &&
+                            (r_int_input <= 270 && r_int_input % 90 == 0)) {
+                            r_flag_int = r_int_input;
+                            printf("-r int value: %d\n", r_flag_int);
+                            valid_r_value = true;
+                        }
+                    }
+                }
+            }
+            if (!valid_r_value) {
+
+                fprintf(stderr, "-r value error: \"%s\"\n", optarg);
+                exit(EXIT_FAILURE);
+            }
+
+            break;
         case 'h': // help
             print_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -955,7 +1010,7 @@ int main(int argc, char *argv[]) {
     }
 
     // set the mode and make sure only one mode is true.
-    if (g_flag + b_flag + m_flag + H_flag + n_flag + e_flag > 1) {
+    if (g_flag + b_flag + m_flag + H_flag + n_flag + e_flag + r_flag > 1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
@@ -973,6 +1028,8 @@ int main(int argc, char *argv[]) {
         mode = HIST_N;
     } else if (e_flag) {
         mode = EQUAL;
+    } else if (r_flag) {
+        mode = ROT;
     } else {
         mode = COPY;
     }
@@ -1061,6 +1118,7 @@ int main(int argc, char *argv[]) {
         printf("-H (histogram):     %s\n", H_flag ? "true" : "false");
         printf("-n (histogram_n):   %s\n", n_flag ? "true" : "false");
         printf("-e (equalize):      %s\n", e_flag ? "true" : "false");
+        printf("-r (rotate):        %s\n", r_flag ? "true" : "false");
         printf("-h (help):          %s\n", h_flag ? "true" : "false");
         printf("-v (verbose):       %s\n", v_flag ? "true" : "false");
         printf("--version:          %s\n", version_flag ? "true" : "false");
@@ -1086,6 +1144,7 @@ int main(int argc, char *argv[]) {
                      .histogram = NULL,
                      .histogram_n = NULL,
                      .HIST_MAX = 0,
+                     .degrees = 0,
                      .output_mode = NO_MODE};
     Bitmap *bitmapPtr = &bitmap;
 
@@ -1125,6 +1184,10 @@ int main(int argc, char *argv[]) {
         break;
     case EQUAL:
         bitmapPtr->output_mode = mode;
+        break;
+    case ROT:
+        bitmapPtr->output_mode = mode;
+        bitmapPtr->degrees = r_flag_int;
         break;
     default:
         fprintf(stderr, "No output mode matched.\n");
