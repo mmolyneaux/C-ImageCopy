@@ -613,17 +613,25 @@ void equal1(Bitmap *bmp) {
 
 void rot1(Bitmap *bmp) {
 
-    uint16_t width = 0;
-    uint16_t height = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
 
     int16_t degrees = bmp->degrees;
 
+
+
     // if we are rotating into a plane the flips the width and height.
     // else width and height are the same
-    // else no match and return
     if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
-        width = bmp->height; // flipped
-        height = bmp->width;
+        height = bmp->height; 
+        width = bmp->width;
+        bmp->width = height; // flipped
+        bmp->height = width;
+
+        // Update header
+        *(int *)&bmp->header[18] = (uint32_t)bmp->width;
+        *(int *)&bmp->header[22] = (uint32_t)bmp->height;
+
     } else if (degrees == 180 || degrees == -180) {
         width = bmp->width; // normal
         height = bmp->height;
@@ -631,8 +639,9 @@ void rot1(Bitmap *bmp) {
         return;
     }
     uint32_t image_size = bmp->image_size;
-    uint16_t rows = height;
-    uint16_t cols = width;
+        // For transformation algorithm, pre-transform.
+    uint32_t rows = height;
+    uint32_t cols = width;
 
     // height / rows / y
     // width / cols / x
@@ -646,33 +655,36 @@ void rot1(Bitmap *bmp) {
                 output_buffer[r * cols + c] = bmp->imageBuffer1[r * cols + c];
             }
         }
-        // : The pixel at position (r, c) in the input image is moved to (c, rows - 1 - r)
-    // (r, c) =
-    // (  cols - c, rows  )
+        // : The pixel at position (r, c) in the input image is moved to (c,
+        // rows - 1 - r)
+        // (r, c) =
+        // (  cols - c, rows  )
     } else if (degrees == 90 || degrees == -270) {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                output_buffer[c * rows + (rows - 1 - r)] = bmp->imageBuffer1[r * cols + c];
-            //    output_buffer[c * rows + (rows - 1 - r)] = bmp->imageBuffer1[r * cols + c];
+                output_buffer[c * rows + (rows - 1 - r)] =
+                    bmp->imageBuffer1[r * cols + c];
+                //    output_buffer[c * rows + (rows - 1 - r)] =
+                //    bmp->imageBuffer1[r * cols + c];
             }
         }
     } else if (degrees == 180 || degrees == -180) {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                output_buffer[(rows - 1 - r )*cols + (cols - 1 - c)] = bmp->imageBuffer1[r * cols + c];
+                output_buffer[(rows - 1 - r) * cols + (cols - 1 - c)] =
+                    bmp->imageBuffer1[r * cols + c];
             }
         }
     } else if (degrees == 270 || degrees == -90) {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                output_buffer[(cols - 1 - c ) * rows + r] = bmp->imageBuffer1[r * cols + c];
+                output_buffer[(cols - 1 - c) * rows + r] =
+                    bmp->imageBuffer1[r * cols + c];
             }
         }
     }
 
     free(bmp->imageBuffer1);
-    bmp->width = width;
-    bmp->height = height;
     bmp->imageBuffer1 = output_buffer;
 }
 
@@ -753,7 +765,13 @@ bool write_image(Bitmap *bmp, char *filename) {
             exit(EXIT_FAILURE);
         }
 
-        // Copy header info
+        // // width and height may be reversed do to rotation,
+        // // bmp values have been set in rot functions, this resets them if
+        // neccesary
+        //  *(int *)&bmp->header[18] = (uint32_t)bmp->width;
+        //  *(int *)&bmp->header[22] = (uint32_t)bmp->height;
+
+        // Write header info
         fwrite(bmp->header, sizeof(char), HEADER_SIZE, streamOut);
 
         if (bmp->channels == ONE_CHANNEL) {
@@ -1234,6 +1252,8 @@ int main(int argc, char *argv[]) {
     }
     write_image(bitmapPtr, filename2);
 
+    printf("width: %d\n", bitmapPtr->width);
+    printf("height: %d\n", bitmapPtr->height);
     // free filename2 memory if it was allocated
     if (filename2_allocated && filename2 != NULL) {
         free(filename2);
