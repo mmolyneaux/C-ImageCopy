@@ -40,7 +40,7 @@ typedef struct {
                         // [0..255]
     float_t *histogram_n; // Normalized to [0..1]
     uint16_t HIST_MAX;    // 256 for 8 bit images, set by calling hist1
-    float_t degrees;
+    int16_t degrees;
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
@@ -612,28 +612,67 @@ void equal1(Bitmap *bmp) {
 }
 
 void rot1(Bitmap *bmp) {
-    uint8_t *output_buffer = calloc(bmp->image_size, sizeof(unsigned char));
 
-    Bitmap bitmap = {.header = {0},
-                     .width = 0,
-                     .height = 0,
-                     .image_size = 0,
-                     .bit_depth = 0,
-                     .channels = 0,
-                     .mono_threshold = 0.0,
-                     .bright_value = 0,
-                     .bright_percent = 0.0,
-                     .CT_EXISTS = false,
-                     .colorTable = NULL,
-                     .imageBuffer1 = NULL,
-                     .imageBuffer3 = NULL,
-                     .histogram = NULL,
-                     .histogram_n = NULL,
-                     .HIST_MAX = 0,
-                     .output_mode = NO_MODE};
-    Bitmap *bitmapPtr = &bitmap;
+    uint16_t width = 0;
+    uint16_t height = 0;
+
+    int16_t degrees = bmp->degrees;
+
+    // if we are rotating into a plane the flips the width and height.
+    // else width and height are the same
+    // else no match and return
+    if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
+        width = bmp->height; // flipped
+        height = bmp->width;
+    } else if (degrees == 180 || degrees == -180) {
+        width = bmp->width; // normal
+        height = bmp->height;
+    } else {
+        return;
+    }
+    uint32_t image_size = bmp->image_size;
+    uint16_t rows = height;
+    uint16_t cols = width;
+
+    // height / rows / y
+    // width / cols / x
+    uint8_t *output_buffer =
+        (unsigned char *)malloc(image_size * sizeof(unsigned char));
+
+    // straight forward (normal), left in for completeness/reference.
+    if (degrees == 0) {
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                output_buffer[r * cols + c] = bmp->imageBuffer1[r * cols + c];
+            }
+        }
+        // : The pixel at position (r, c) in the input image is moved to (c, rows - 1 - r)
+    // (r, c) =
+    // (  cols - c, rows  )
+    } else if (degrees == 90 || degrees == -270) {
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                output_buffer[c * rows + (rows - 1 - r)] = bmp->imageBuffer1[r * cols + c];
+            //    output_buffer[c * rows + (rows - 1 - r)] = bmp->imageBuffer1[r * cols + c];
+            }
+        }
+    } else if (degrees == 180 || degrees == -180) {
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                output_buffer[(rows - 1 - r )*cols + (cols - 1 - c)] = bmp->imageBuffer1[r * cols + c];
+            }
+        }
+    } else if (degrees == 270 || degrees == -90) {
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                output_buffer[(cols - 1 - c ) * rows + r] = bmp->imageBuffer1[r * cols + c];
+            }
+        }
+    }
 
     free(bmp->imageBuffer1);
+    bmp->width = width;
+    bmp->height = height;
     bmp->imageBuffer1 = output_buffer;
 }
 
@@ -665,7 +704,7 @@ bool write_image(Bitmap *bmp, char *filename) {
             hist1_normalized(bmp);
         } else if (bmp->output_mode == EQUAL) {
             equal1(bmp);
-        } else if (bmp->output_mode == EQUAL) {
+        } else if (bmp->output_mode == ROT) {
             rot1(bmp);
         }
 
