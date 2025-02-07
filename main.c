@@ -154,73 +154,49 @@ char *get_output_ext(char *filename, enum Mode mode) {
     }
 }
 
-void init_buffer1(Bitmap *bmp) {
-    printf("Buffer_init1\n");
-    if (!bmp) {
-        fprintf(
-            stderr,
-            "Error: Buffer initialization failed, Bitmap not initialized.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (!bmp) {
-        fprintf(
-            stderr,
-            "Error: Buffer initialization failed, Bitmap not initialized.\n");
-        exit(EXIT_FAILURE);
-    }
-    if (!bmp->image_size) {
+uint8_t *init_buffer1(uint32_t image_size) {
+    if (!image_size) {
         fprintf(
             stderr,
             "Error: Buffer initialization failed, Image size not defined.\n");
         exit(EXIT_FAILURE);
     }
     unsigned char *buf1 =
-        (unsigned char *)calloc(bmp->image_size, sizeof(unsigned char));
+        (unsigned char *)calloc(image_size, sizeof(unsigned char));
     if (buf1 == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
         exit(EXIT_FAILURE);
     }
 
-    bmp->imageBuffer1 = buf1;
+    // bmp->imageBuffer1 = buf1;
+    return buf1;
 }
 
-void init_buffer3(Bitmap *bmp) {
+uint8_t **init_buffer3(uint32_t image_size) {
     printf("Buffer_init3\n");
-    if (!bmp) {
-        fprintf(
-            stderr,
-            "Error: Buffer initialization failed, Bitmap not initialized.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (!bmp) {
-        fprintf(
-            stderr,
-            "Error: Buffer initialization failed, Bitmap not initialized.\n");
-        exit(EXIT_FAILURE);
-    }
-    if (!bmp->image_size) {
+    uint8_t channels = 3;
+    if (!image_size) {
         fprintf(
             stderr,
             "Error: Buffer initialization failed, Image size not defined.\n");
         exit(EXIT_FAILURE);
     }
-    unsigned char **buf3 =
-        (unsigned char **)malloc(bmp->image_size * sizeof(unsigned char *));
+    uint8_t **buf3 =
+        (unsigned char **)malloc(image_size * sizeof(unsigned char *));
     if (buf3 == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
         exit(EXIT_FAILURE);
     }
-    for (int i = 0; i < bmp->image_size; i++) {
-        buf3[i] = (unsigned char *)calloc(bmp->channels, sizeof(unsigned char));
+    for (int i = 0; i < image_size; i++) {
+        buf3[i] = (unsigned char *)calloc(channels, sizeof(unsigned char));
         if (buf3[i] == NULL) {
             fprintf(stderr,
                     "Error: Failed to allocate memory for image data.\n");
             exit(EXIT_FAILURE);
         }
     }
-    bmp->imageBuffer3 = buf3;
+    // bmp->imageBuffer3 = buf3;
+    return buf3;
 }
 
 // free memory allocated for bitmap structs.
@@ -296,7 +272,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 
     if (bitmap->channels == 1) {
         // Allocate memory for image buffer
-        init_buffer1(bitmap);
+        bitmap->imageBuffer1 = init_buffer1(bitmap->image_size);
 
         fread(bitmap->imageBuffer1, sizeof(char), bitmap->image_size, streamIn);
 
@@ -305,7 +281,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         printf("Bitmap channels 3.\n");
         // Allocate memory for the array of pointers (rows) for each pixel in
         // image_size
-        init_buffer3(bitmap);
+        bitmap->imageBuffer3 = init_buffer3(bitmap->image_size);
 
         printf("Image buffer3 created.\n");
 
@@ -422,6 +398,135 @@ void bright3(Bitmap *bmp) {
                 }
             }
         }
+    }
+}
+
+void rot13(Bitmap *bmp) {
+
+    uint32_t width = 0;
+    uint32_t height = 0;
+
+    int16_t degrees = bmp->degrees;
+
+    // if we are rotating into a plane the flips the width and height.
+    // else width and height are the same
+    if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
+        height = bmp->height;
+        width = bmp->width;
+        bmp->width = height; // rotated dimensions
+        bmp->height = width;
+
+        // Update header with rotated dimensions for output
+        *(int *)&bmp->header[18] = (uint32_t)bmp->width;
+        *(int *)&bmp->header[22] = (uint32_t)bmp->height;
+
+    } else if (degrees == 180 || degrees == -180) {
+        width = bmp->width; // Read in normal values for local variables
+        height = bmp->height;
+    } else {
+        return;
+    }
+    // For transformation algorithm, pre-transform.
+    uint32_t image_size = bmp->image_size;
+    uint32_t rows = height;
+    uint32_t cols = width;
+
+    // height / rows / y
+    // width / cols / x
+    uint8_t *output_buffer1 = NULL;
+    uint8_t **output_buffer3 = NULL;
+
+    if (bmp->channels == 1) {
+        output_buffer1 = init_buffer1(image_size);
+
+        // straight forward (normal), left in for completeness/reference.
+        if (degrees == 0) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[r * cols + c] =
+                        bmp->imageBuffer1[r * cols + c];
+                }
+            }
+        } else if (degrees == -90 || degrees == 270) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[c * rows + (rows - 1 - r)] =
+                        bmp->imageBuffer1[r * cols + c];
+                }
+            }
+        } else if (degrees == 180 || degrees == -180) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[(rows - 1 - r) * cols + (cols - 1 - c)] =
+                        bmp->imageBuffer1[r * cols + c];
+                }
+            }
+        } else if (degrees == -270 || degrees == 90) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[(cols - 1 - c) * rows + r] =
+                        bmp->imageBuffer1[r * cols + c];
+                }
+            }
+        }
+
+        free(bmp->imageBuffer1);
+        bmp->imageBuffer1 = output_buffer1;
+
+    } else if (bmp->channels == 3) {
+        output_buffer3 = init_buffer3(image_size);
+        // straight forward (normal), left in for completeness/reference.
+        if (degrees == 0) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    for (int rgb = 0; rgb < 3; rgb++) {
+                        output_buffer3[r * cols + c][rgb] =
+                            bmp->imageBuffer3[r * cols + c][rgb];
+                    }
+                }
+            }
+        } else if (degrees == -90 || degrees == 270) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+
+                    for (int rgb = 0; rgb < 3; rgb++) {
+                        output_buffer3[c * rows + (rows - 1 - r)][rgb] =
+                            bmp->imageBuffer3[r * cols + c][rgb];
+                    }
+                }
+            }
+        } else if (degrees == 180 || degrees == -180) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+
+                    for (int rgb = 0; rgb < 3; rgb++) {
+                        output_buffer3[(rows - 1 - r) * cols + (cols - 1 - c)]
+                                      [rgb] = bmp->imageBuffer3[r * cols + c][rgb];
+                    }
+                }
+            }
+        } else if (degrees == -270 || degrees == 90) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+
+                    for (int rgb = 0; rgb < 3; rgb++) {
+                        output_buffer3[(cols - 1 - c) * rows + r][rgb] =
+                            bmp->imageBuffer3[r * cols + c][rgb];
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < image_size; i++) {
+            free(bmp->imageBuffer3[i]);
+        }
+        free(bmp->imageBuffer3);
+
+        bmp->imageBuffer3 = output_buffer3;
+
+    } else {
+        fprintf(stderr, "Error: Rotation buffer initialization.\n");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -618,12 +723,10 @@ void rot1(Bitmap *bmp) {
 
     int16_t degrees = bmp->degrees;
 
-
-
     // if we are rotating into a plane the flips the width and height.
     // else width and height are the same
     if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
-        height = bmp->height; 
+        height = bmp->height;
         width = bmp->width;
         bmp->width = height; // flipped
         bmp->height = width;
@@ -639,7 +742,7 @@ void rot1(Bitmap *bmp) {
         return;
     }
     uint32_t image_size = bmp->image_size;
-        // For transformation algorithm, pre-transform.
+    // For transformation algorithm, pre-transform.
     uint32_t rows = height;
     uint32_t cols = width;
 
@@ -659,7 +762,7 @@ void rot1(Bitmap *bmp) {
         // rows - 1 - r)
         // (r, c) =
         // (  cols - c, rows  )
-    } else if (degrees == 90 || degrees == -270) {
+    } else if (degrees == -90 || degrees == 270) {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 output_buffer[c * rows + (rows - 1 - r)] =
@@ -675,7 +778,7 @@ void rot1(Bitmap *bmp) {
                     bmp->imageBuffer1[r * cols + c];
             }
         }
-    } else if (degrees == 270 || degrees == -90) {
+    } else if (degrees == -270 || degrees == 90) {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 output_buffer[(cols - 1 - c) * rows + r] =
@@ -717,7 +820,7 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == EQUAL) {
             equal1(bmp);
         } else if (bmp->output_mode == ROT) {
-            rot1(bmp);
+            rot13(bmp);
         }
 
     } else if (bmp->channels == RGB) {
@@ -734,9 +837,9 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == BRIGHT) {
             printf("B3\n");
             bright3(bmp);
-            //} else if (bmp->output_mode == ROT) {
-            //  printf("R3\n");
-            // rot3(bmp);
+        } else if (bmp->output_mode == ROT) {
+            printf("R3\n");
+            rot13(bmp);
         } else {
             printf("CHANNEL FAIL\n");
             fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
