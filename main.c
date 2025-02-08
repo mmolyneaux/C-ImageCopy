@@ -21,7 +21,8 @@
 #define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
-enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST, HIST_N, EQUAL, ROT };
+enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST, HIST_N, EQUAL, ROT, FLIP };
+enum Axis { X = 1, Y = 2};
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
 char *dot_dat = ".dat";
@@ -41,11 +42,12 @@ typedef struct {
     float_t *histogram_n; // Normalized to [0..1]
     uint16_t HIST_MAX;    // 256 for 8 bit images, set by calling hist1
     int16_t degrees;
+    
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
-
+    enum Axis axis; // X, Y
     enum Mode output_mode;
 } Bitmap;
 
@@ -78,6 +80,9 @@ char *mode_to_string(enum Mode mode) {
     case ROT:
         return "Rotate";
         break;
+    case FLIP:
+        return "Flip";
+        break;
     default:
         return "default: mode string not found";
     }
@@ -107,6 +112,9 @@ char *get_suffix(enum Mode mode) {
         break;
     case ROT:
         return "_rot";
+        break;
+    case FLIP:
+        return "_flip";
         break;
     default:
         return "_suffix";
@@ -266,7 +274,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 
         fread(bitmap->colorTable, sizeof(char), CT_SIZE, streamIn);
     } else {
-        // 24 bit is 3 channel rbg, 32 bit is 32 bit rgba
+        // 24 bit is 3 channel rbg, 32 bit is 32 bit is 4 channel rgba
         bitmap->channels = bitmap->bit_depth / 8;
     }
 
@@ -501,7 +509,8 @@ void rot13(Bitmap *bmp) {
 
                     for (int rgb = 0; rgb < 3; rgb++) {
                         output_buffer3[(rows - 1 - r) * cols + (cols - 1 - c)]
-                                      [rgb] = bmp->imageBuffer3[r * cols + c][rgb];
+                                      [rgb] =
+                                          bmp->imageBuffer3[r * cols + c][rgb];
                     }
                 }
             }
@@ -524,6 +533,104 @@ void rot13(Bitmap *bmp) {
 
         bmp->imageBuffer3 = output_buffer3;
 
+    } else {
+        fprintf(stderr, "Error: Rotation buffer initialization.\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void flip13(Bitmap *bmp) {
+
+    enum Axis axis = bmp->axis;
+
+    uint32_t width = bmp->width;
+    uint32_t height = bmp->height;
+    uint32_t image_size = bmp->image_size;
+    uint32_t rows = height;
+    uint32_t cols = width;
+
+    // height / rows / y
+    // width / cols / x
+    uint8_t *output_buffer1 = NULL;
+    uint8_t **output_buffer3 = NULL;
+
+    if (bmp->channels == 1) {
+        output_buffer1 = init_buffer1(image_size);
+
+        // straight forward (normal), left in for completeness/reference.
+        if (axis == X) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[r * cols - c + (cols - 1)] =
+                        bmp->imageBuffer1[r * cols + c];
+                }
+            }
+        } else if (axis == Y) {
+            for (int c = 0; c < cols; c++) {
+                for (int r = 0; r < rows; r++) {
+                    output_buffer1[rows * c - r + (rows - 1)] =
+                        bmp->imageBuffer1[rows * c + r];
+                }
+            }
+        }
+
+        // } else if (degrees == -90 || degrees == 270) {
+        //     for (int r = 0; r < rows; r++) {
+        //         for (int c = 0; c < cols; c++) {
+        //             output_buffer1[c * rows + (rows - 1 - r)] =
+        //                 bmp->imageBuffer1[r * cols + c];
+        //         }
+        //     }
+        // } else if (degrees == 180 || degrees == -180) {
+        //     for (int r = 0; r < rows; r++) {
+        //         for (int c = 0; c < cols; c++) {
+        //             output_buffer1[(rows - 1 - r) * cols + (cols - 1
+        //             - c)] =
+        //                 bmp->imageBuffer1[r * cols + c];
+        //         }
+        //     }
+        // } else if (degrees == -270 || degrees == 90) {
+        //     for (int r = 0; r < rows; r++) {
+        //         for (int c = 0; c < cols; c++) {
+        //             output_buffer1[(cols - 1 - c) * rows + r] =
+        //                 bmp->imageBuffer1[r * cols + c];
+        //         }
+        //     }
+        // }
+
+        free(bmp->imageBuffer1);
+        bmp->imageBuffer1 = output_buffer1;
+    } else if (bmp->channels == 3) {
+        output_buffer3 = init_buffer3(image_size);
+        // straight forward (normal), left in for
+        // completeness/reference.
+        if (axis == Y) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    for (int rgb = 0; rgb < 3; rgb++) {
+                        output_buffer3[r * cols + c][rgb] =
+                            bmp->imageBuffer3[r * cols + c][rgb];
+                    }
+                }
+            }
+        } else if (axis == Y) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+
+                    for (int rgb = 0; rgb < 3; rgb++) {
+                        output_buffer3[c * rows + (rows - 1 - r)][rgb] =
+                            bmp->imageBuffer3[r * cols + c][rgb];
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < image_size; i++) {
+            free(bmp->imageBuffer3[i]);
+        }
+        free(bmp->imageBuffer3);
+
+        bmp->imageBuffer3 = output_buffer3;
     } else {
         fprintf(stderr, "Error: Rotation buffer initialization.\n");
         exit(EXIT_FAILURE);
@@ -661,7 +768,8 @@ void equal1(Bitmap *bmp) {
     for (i = 1; i < MAX; i++) {
         // printf("I   : %d\n", i);
         // printf("Hist: %d\n", bmp->histogram[i]);
-        // bmp->histogram[i] = bmp->histogram[i] + bmp->histogram[i - 1];
+        // bmp->histogram[i] = bmp->histogram[i] + bmp->histogram[i -
+        // 1];
         cdf[i] = bmp->histogram[i] + cdf[i - 1];
         // printf("CDF : %d\n", cdf[i]);
     }
@@ -716,81 +824,6 @@ void equal1(Bitmap *bmp) {
     free(equalized);
 }
 
-void rot1(Bitmap *bmp) {
-
-    uint32_t width = 0;
-    uint32_t height = 0;
-
-    int16_t degrees = bmp->degrees;
-
-    // if we are rotating into a plane the flips the width and height.
-    // else width and height are the same
-    if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
-        height = bmp->height;
-        width = bmp->width;
-        bmp->width = height; // flipped
-        bmp->height = width;
-
-        // Update header
-        *(int *)&bmp->header[18] = (uint32_t)bmp->width;
-        *(int *)&bmp->header[22] = (uint32_t)bmp->height;
-
-    } else if (degrees == 180 || degrees == -180) {
-        width = bmp->width; // normal
-        height = bmp->height;
-    } else {
-        return;
-    }
-    uint32_t image_size = bmp->image_size;
-    // For transformation algorithm, pre-transform.
-    uint32_t rows = height;
-    uint32_t cols = width;
-
-    // height / rows / y
-    // width / cols / x
-    uint8_t *output_buffer =
-        (unsigned char *)malloc(image_size * sizeof(unsigned char));
-
-    // straight forward (normal), left in for completeness/reference.
-    if (degrees == 0) {
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                output_buffer[r * cols + c] = bmp->imageBuffer1[r * cols + c];
-            }
-        }
-        // : The pixel at position (r, c) in the input image is moved to (c,
-        // rows - 1 - r)
-        // (r, c) =
-        // (  cols - c, rows  )
-    } else if (degrees == -90 || degrees == 270) {
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                output_buffer[c * rows + (rows - 1 - r)] =
-                    bmp->imageBuffer1[r * cols + c];
-                //    output_buffer[c * rows + (rows - 1 - r)] =
-                //    bmp->imageBuffer1[r * cols + c];
-            }
-        }
-    } else if (degrees == 180 || degrees == -180) {
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                output_buffer[(rows - 1 - r) * cols + (cols - 1 - c)] =
-                    bmp->imageBuffer1[r * cols + c];
-            }
-        }
-    } else if (degrees == -270 || degrees == 90) {
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                output_buffer[(cols - 1 - c) * rows + r] =
-                    bmp->imageBuffer1[r * cols + c];
-            }
-        }
-    }
-
-    free(bmp->imageBuffer1);
-    bmp->imageBuffer1 = output_buffer;
-}
-
 bool write_image(Bitmap *bmp, char *filename) {
 
     // Process image
@@ -821,6 +854,8 @@ bool write_image(Bitmap *bmp, char *filename) {
             equal1(bmp);
         } else if (bmp->output_mode == ROT) {
             rot13(bmp);
+        } else if (bmp->output_mode == FLIP) {
+            flip13(bmp);
         }
 
     } else if (bmp->channels == RGB) {
@@ -840,6 +875,9 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == ROT) {
             printf("R3\n");
             rot13(bmp);
+        } else if (bmp->output_mode == FLIP) {
+            printf("R3\n");
+            flip13(bmp);
         } else {
             printf("CHANNEL FAIL\n");
             fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
@@ -869,8 +907,8 @@ bool write_image(Bitmap *bmp, char *filename) {
         }
 
         // // width and height may be reversed do to rotation,
-        // // bmp values have been set in rot functions, this resets them if
-        // neccesary
+        // // bmp values have been set in rot functions, this resets
+        // them if neccesary
         //  *(int *)&bmp->header[18] = (uint32_t)bmp->width;
         //  *(int *)&bmp->header[22] = (uint32_t)bmp->height;
 
@@ -927,9 +965,11 @@ void print_usage(char *app_name) {
            "                       - A float between -1.0 and 1.0\n"
            "                       - An integer between -255 and 255\n"
            "                       0 or 0.0 will not do anything.\n"
-           "  -H                   Calculate histogram [0..255] write to .txt "
+           "  -H                   Calculate histogram [0..255] write to "
+           ".txt "
            "file.\n"
-           "  -n                   Calculate normalized histogram [0..1] and "
+           "  -n                   Calculate normalized histogram [0..1] "
+           "and "
            "write to .txt file.\n"
            "  -e                   Equalize image contrast.\n"
            "Information modes:\n"
@@ -1009,6 +1049,7 @@ int main(int argc, char *argv[]) {
         n_flag = false,       // histogram normalized [0..1]
         e_flag = false,       // equalized
         r_flag = false,       // rotate +/- 90, 180 , 270
+        f_flag = false,       // flip x, y
         h_flag = false,       // help
         v_flag = false,       // verbose
         version_flag = false; // version
@@ -1018,6 +1059,7 @@ int main(int argc, char *argv[]) {
     float b_flag_float = 0.0;
     int b_flag_int = 0;
     int r_flag_int = 0;
+    enum Axis f_flag_input = 0;
 
     struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -1028,11 +1070,11 @@ int main(int argc, char *argv[]) {
             0,
             0,
             0,
-        } // sentinal value indicating the end of the array, for getopt_long
-          // in getopt.h
+        } // sentinal value indicating the end of the array, for
+          // getopt_long in getopt.h
     };
 
-    while ((option = getopt(argc, argv, "m:b:gHner:hv")) != -1) {
+    while ((option = getopt(argc, argv, "m:b:gHner:f:hv")) != -1) {
         printf("Optind: %d\n", optind);
         switch (option) {
         case 'm':
@@ -1046,7 +1088,8 @@ int main(int argc, char *argv[]) {
                         m_flag_value = m_input;
                     } else {
                         fprintf(stderr,
-                                "-m value error \"%s\", defaulting to %.1f\n",
+                                "-m value error \"%s\", defaulting to "
+                                "%.1f\n",
                                 optarg, m_flag_value);
                     }
                 }
@@ -1145,11 +1188,25 @@ int main(int argc, char *argv[]) {
                 }
             }
             if (!valid_r_value) {
-
                 fprintf(stderr, "-r value error: \"%s\"\n", optarg);
                 exit(EXIT_FAILURE);
             }
+            break;
 
+        case 'f':
+            f_flag = true;
+            if (optarg && optarg[0] && !optarg[1]) {
+                if (optarg[0] == 'x' || optarg[0] == 'X') {
+                    f_flag_input = X;
+                } else if (optarg[0] == 'y' || optarg[0] == 'Y') {
+                    f_flag_input = Y;
+                }
+            } 
+            
+            if(f_flag_input != X && f_flag_input != Y){
+                fprintf(stderr, "-f value error: \"%c\"\n", optarg[0]);
+                exit(EXIT_FAILURE);
+            }
             break;
         case 'h': // help
             print_usage(argv[0]);
@@ -1170,7 +1227,7 @@ int main(int argc, char *argv[]) {
     }
 
     // set the mode and make sure only one mode is true.
-    if (g_flag + b_flag + m_flag + H_flag + n_flag + e_flag + r_flag > 1) {
+    if (g_flag + b_flag + m_flag + H_flag + n_flag + e_flag + r_flag + f_flag> 1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
@@ -1190,6 +1247,8 @@ int main(int argc, char *argv[]) {
         mode = EQUAL;
     } else if (r_flag) {
         mode = ROT;
+    } else if (f_flag) {
+        mode = FLIP;
     } else {
         mode = COPY;
     }
@@ -1224,7 +1283,8 @@ int main(int argc, char *argv[]) {
         ext2 = get_output_ext(filename2, mode);
         if (!ext2) { // if (NULL)
             if (mode == HIST) {
-                printf("Error: Output file %s does not end with %s or %s\n",
+                printf("Error: Output file %s does not end with %s or "
+                       "%s\n",
                        filename2, dot_txt, dot_dat);
             } else { // image
                 printf("Error: Output file %s does not end with %s\n",
@@ -1258,11 +1318,11 @@ int main(int argc, char *argv[]) {
         }
         filename2_allocated = true;
         // Copy the base part of filename1 and append the suffix and
-        // dot_bmp. strncpy copies the first base_len number of chars from
-        // filename1 into filename2
+        // dot_bmp. strncpy copies the first base_len number of chars
+        // from filename1 into filename2
         strncpy(filename2, filename1, base_len);
-        // use ptr math to copy suffix to filename2ptr's + position + (can't
-        // use strcat because strncpy doesn't null terminate.)
+        // use ptr math to copy suffix to filename2ptr's + position +
+        // (can't use strcat because strncpy doesn't null terminate.)
         strcpy(filename2 + base_len, suffix);
         strcpy(filename2 + base_len + suffix_len, ext2);
     }
@@ -1279,6 +1339,7 @@ int main(int argc, char *argv[]) {
         printf("-n (histogram_n):   %s\n", n_flag ? "true" : "false");
         printf("-e (equalize):      %s\n", e_flag ? "true" : "false");
         printf("-r (rotate):        %s\n", r_flag ? "true" : "false");
+        printf("-f (flip):          %s\n", f_flag ? "true" : "false");
         printf("-h (help):          %s\n", h_flag ? "true" : "false");
         printf("-v (verbose):       %s\n", v_flag ? "true" : "false");
         printf("--version:          %s\n", version_flag ? "true" : "false");
@@ -1305,6 +1366,7 @@ int main(int argc, char *argv[]) {
                      .histogram_n = NULL,
                      .HIST_MAX = 0,
                      .degrees = 0,
+                     .axis = 0,
                      .output_mode = NO_MODE};
     Bitmap *bitmapPtr = &bitmap;
 
@@ -1348,6 +1410,10 @@ int main(int argc, char *argv[]) {
     case ROT:
         bitmapPtr->output_mode = mode;
         bitmapPtr->degrees = r_flag_int;
+        break;
+    case FLIP:
+        bitmapPtr->output_mode = mode;
+        bitmapPtr->axis = f_flag_input; // enum Axis
         break;
     default:
         fprintf(stderr, "No output mode matched.\n");
