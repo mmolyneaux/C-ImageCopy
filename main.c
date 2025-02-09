@@ -16,13 +16,13 @@
 // Bitmap color table size if it's needed, if bit_depth <= 8 by def.
 #define CT_SIZE 1024
 // This is the 5th lesson / repo  of this program.
-#define VERSION "0.8" // Rotation
+#define VERSION "0.9" // Flip
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
 enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST, HIST_N, EQUAL, ROT, FLIP };
-enum Axis { X = 1, Y = 2};
+enum Dir { H = 1, V = 2 }; 
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
 char *dot_dat = ".dat";
@@ -42,12 +42,12 @@ typedef struct {
     float_t *histogram_n; // Normalized to [0..1]
     uint16_t HIST_MAX;    // 256 for 8 bit images, set by calling hist1
     int16_t degrees;
-    
+
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
-    enum Axis axis; // X, Y
+    enum Dir direction;           // Flip direction, <H>orizontal or <V>ertical
     enum Mode output_mode;
 } Bitmap;
 
@@ -541,7 +541,7 @@ void rot13(Bitmap *bmp) {
 
 void flip13(Bitmap *bmp) {
 
-    enum Axis axis = bmp->axis;
+    enum Dir dir = bmp->direction;
 
     uint32_t width = bmp->width;
     uint32_t height = bmp->height;
@@ -549,8 +549,8 @@ void flip13(Bitmap *bmp) {
     uint32_t rows = height;
     uint32_t cols = width;
 
-    // height / rows / y
-    // width / cols / x
+    // height / rows / y / v
+    // width / cols / x / h
     uint8_t *output_buffer1 = NULL;
     uint8_t **output_buffer3 = NULL;
 
@@ -558,18 +558,18 @@ void flip13(Bitmap *bmp) {
         output_buffer1 = init_buffer1(image_size);
 
         // straight forward (normal), left in for completeness/reference.
-        if (axis == X) {
+        if (dir == H) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
-                    output_buffer1[r * cols - c + (cols - 1)] =
+                    output_buffer1[r * cols + (cols - 1 - c)] =
                         bmp->imageBuffer1[r * cols + c];
                 }
             }
-        } else if (axis == Y) {
-            for (int c = 0; c < cols; c++) {
-                for (int r = 0; r < rows; r++) {
-                    output_buffer1[rows * c - r + (rows - 1)] =
-                        bmp->imageBuffer1[rows * c + r];
+        } else if (dir == V) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[(rows - 1 - r) * cols + c] =
+                        bmp->imageBuffer1[r * cols + c];
                 }
             }
         }
@@ -604,7 +604,7 @@ void flip13(Bitmap *bmp) {
         output_buffer3 = init_buffer3(image_size);
         // straight forward (normal), left in for
         // completeness/reference.
-        if (axis == Y) {
+        if (dir == H) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
                     for (int rgb = 0; rgb < 3; rgb++) {
@@ -613,7 +613,7 @@ void flip13(Bitmap *bmp) {
                     }
                 }
             }
-        } else if (axis == Y) {
+        } else if (dir == V) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
 
@@ -1059,7 +1059,7 @@ int main(int argc, char *argv[]) {
     float b_flag_float = 0.0;
     int b_flag_int = 0;
     int r_flag_int = 0;
-    enum Axis f_flag_input = 0;
+    enum Dir f_flag_input = 0;
 
     struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -1196,14 +1196,14 @@ int main(int argc, char *argv[]) {
         case 'f':
             f_flag = true;
             if (optarg && optarg[0] && !optarg[1]) {
-                if (optarg[0] == 'x' || optarg[0] == 'X') {
-                    f_flag_input = X;
-                } else if (optarg[0] == 'y' || optarg[0] == 'Y') {
-                    f_flag_input = Y;
+                if (optarg[0] == 'h' || optarg[0] == 'H') {
+                    f_flag_input = H;
+                } else if (optarg[0] == 'v' || optarg[0] == 'V') {
+                    f_flag_input = V;
                 }
-            } 
-            
-            if(f_flag_input != X && f_flag_input != Y){
+            }
+
+            if (f_flag_input != H && f_flag_input != V) {
                 fprintf(stderr, "-f value error: \"%c\"\n", optarg[0]);
                 exit(EXIT_FAILURE);
             }
@@ -1227,7 +1227,8 @@ int main(int argc, char *argv[]) {
     }
 
     // set the mode and make sure only one mode is true.
-    if (g_flag + b_flag + m_flag + H_flag + n_flag + e_flag + r_flag + f_flag> 1) {
+    if (g_flag + b_flag + m_flag + H_flag + n_flag + e_flag + r_flag + f_flag >
+        1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
@@ -1366,7 +1367,7 @@ int main(int argc, char *argv[]) {
                      .histogram_n = NULL,
                      .HIST_MAX = 0,
                      .degrees = 0,
-                     .axis = 0,
+                     .direction = 0,
                      .output_mode = NO_MODE};
     Bitmap *bitmapPtr = &bitmap;
 
@@ -1413,7 +1414,7 @@ int main(int argc, char *argv[]) {
         break;
     case FLIP:
         bitmapPtr->output_mode = mode;
-        bitmapPtr->axis = f_flag_input; // enum Axis
+        bitmapPtr->direction = f_flag_input; // enum Dir
         break;
     default:
         fprintf(stderr, "No output mode matched.\n");
