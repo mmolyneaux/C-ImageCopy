@@ -29,20 +29,19 @@ char *dot_dat = ".dat";
 
 typedef struct {
     unsigned char header[HEADER_SIZE];
-    uint16_t width;
-    uint16_t height;
+    uint32_t width;
+    uint32_t height;
     uint32_t image_size;
     uint8_t bit_depth;
     uint8_t channels;
     float_t mono_threshold;    // 0.0 to 1.0 inclusive
-    int_fast16_t bright_value; // -255 to 255 inclusive
+    int16_t bright_value; // -255 to 255 inclusive
     float_t bright_percent;    // -1.0 to 1.0 inclusive
     uint8_t *histogram; // In the raw color range (hist1) or equalized (equal1),
                         // [0..255]
     float_t *histogram_n; // Normalized to [0..1]
     uint16_t HIST_MAX;    // 256 for 8 bit images, set by calling hist1
     int16_t degrees;
-
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
@@ -574,32 +573,9 @@ void flip13(Bitmap *bmp) {
             }
         }
 
-        // } else if (degrees == -90 || degrees == 270) {
-        //     for (int r = 0; r < rows; r++) {
-        //         for (int c = 0; c < cols; c++) {
-        //             output_buffer1[c * rows + (rows - 1 - r)] =
-        //                 bmp->imageBuffer1[r * cols + c];
-        //         }
-        //     }
-        // } else if (degrees == 180 || degrees == -180) {
-        //     for (int r = 0; r < rows; r++) {
-        //         for (int c = 0; c < cols; c++) {
-        //             output_buffer1[(rows - 1 - r) * cols + (cols - 1
-        //             - c)] =
-        //                 bmp->imageBuffer1[r * cols + c];
-        //         }
-        //     }
-        // } else if (degrees == -270 || degrees == 90) {
-        //     for (int r = 0; r < rows; r++) {
-        //         for (int c = 0; c < cols; c++) {
-        //             output_buffer1[(cols - 1 - c) * rows + r] =
-        //                 bmp->imageBuffer1[r * cols + c];
-        //         }
-        //     }
-        // }
-
         free(bmp->imageBuffer1);
         bmp->imageBuffer1 = output_buffer1;
+
     } else if (bmp->channels == 3) {
         output_buffer3 = init_buffer3(image_size);
         // straight forward (normal), left in for
@@ -608,7 +584,7 @@ void flip13(Bitmap *bmp) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
                     for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[r * cols + c][rgb] =
+                        output_buffer3[r * cols + (cols - 1 - c)][rgb] =
                             bmp->imageBuffer3[r * cols + c][rgb];
                     }
                 }
@@ -616,9 +592,8 @@ void flip13(Bitmap *bmp) {
         } else if (dir == V) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
-
                     for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[c * rows + (rows - 1 - r)][rgb] =
+                        output_buffer3[(rows - 1 - r) * cols + c][rgb] =
                             bmp->imageBuffer3[r * cols + c][rgb];
                     }
                 }
@@ -629,10 +604,9 @@ void flip13(Bitmap *bmp) {
             free(bmp->imageBuffer3[i]);
         }
         free(bmp->imageBuffer3);
-
         bmp->imageBuffer3 = output_buffer3;
     } else {
-        fprintf(stderr, "Error: Rotation buffer initialization.\n");
+        fprintf(stderr, "Error: Flip buffer initialization.\n");
         exit(EXIT_FAILURE);
     }
 }
