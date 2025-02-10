@@ -16,13 +16,25 @@
 // Bitmap color table size if it's needed, if bit_depth <= 8 by def.
 #define CT_SIZE 1024
 // This is the 5th lesson / repo  of this program.
-#define VERSION "0.9" // Flip
+#define VERSION "0.10" // Negative
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
-enum Mode { NO_MODE, COPY, GRAY, MONO, BRIGHT, HIST, HIST_N, EQUAL, ROT, FLIP };
-enum Dir { H = 1, V = 2 }; 
+enum Mode {
+    NO_MODE,
+    COPY,
+    GRAY,
+    MONO,
+    NEG,
+    BRIGHT,
+    HIST,
+    HIST_N,
+    EQUAL,
+    ROT,
+    FLIP
+};
+enum Dir { H = 1, V = 2 };
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
 char *dot_dat = ".dat";
@@ -34,9 +46,9 @@ typedef struct {
     uint32_t image_size;
     uint8_t bit_depth;
     uint8_t channels;
-    float_t mono_threshold;    // 0.0 to 1.0 inclusive
-    int16_t bright_value; // -255 to 255 inclusive
-    float_t bright_percent;    // -1.0 to 1.0 inclusive
+    float_t mono_threshold; // 0.0 to 1.0 inclusive
+    int16_t bright_value;   // -255 to 255 inclusive
+    float_t bright_percent; // -1.0 to 1.0 inclusive
     uint8_t *histogram; // In the raw color range (hist1) or equalized (equal1),
                         // [0..255]
     float_t *histogram_n; // Normalized to [0..1]
@@ -63,6 +75,9 @@ char *mode_to_string(enum Mode mode) {
         break;
     case MONO:
         return "Monochrome";
+        break;
+    case NEG:
+        return "Negative";
         break;
     case BRIGHT:
         return "Brightness";
@@ -99,6 +114,9 @@ char *get_suffix(enum Mode mode) {
         break;
     case MONO:
         return "_mono";
+        break;
+    case NEG:
+        return "_neg";
         break;
     case BRIGHT:
         return "_bright";
@@ -640,6 +658,16 @@ void mono1(Bitmap *bmp) {
     }
 }
 
+void neg1(Bitmap *bmp) {
+    printf("Neg1\n");
+    for(int i = 0; i < bmp->image_size; i++) {
+        bmp->imageBuffer1[i] = 255 - bmp->imageBuffer1[i];
+    }
+}
+
+
+
+
 void bright1(Bitmap *bmp) {
     printf("Bright1\n");
     const uint8_t WHITE = (1 << bmp->bit_depth) - 1;
@@ -815,7 +843,8 @@ bool write_image(Bitmap *bmp, char *filename) {
 
         } else if (bmp->output_mode == MONO) {
             mono1(bmp);
-
+        } else if (bmp->output_mode == NEG) {
+            neg1(bmp);
         } else if (bmp->output_mode == BRIGHT) {
             bright1(bmp);
         } else if (bmp->output_mode == HIST) {
@@ -1018,9 +1047,10 @@ int main(int argc, char *argv[]) {
     // Parse command-line options
     bool g_flag = false,      // gray
         m_flag = false,       // monochrome
+        n_flag = false,       // negative
         b_flag = false,       // brightness
-        H_flag = false,       // histogram
-        n_flag = false,       // histogram normalized [0..1]
+        hist_flag = false,    // histogram
+        histn_flag = false,   // histogram normalized [0..1]
         e_flag = false,       // equalized
         r_flag = false,       // rotate +/- 90, 180 , 270
         f_flag = false,       // flip x, y
@@ -1039,6 +1069,8 @@ int main(int argc, char *argv[]) {
         {"help", no_argument, 0, 'h'},
         {"verbose", no_argument, 0, 'v'},
         {"version", no_argument, 0, 0},
+        {"hist", no_argument, 0, 0},
+        {"histn", no_argument, 0, 0},
         {
             0,
             0,
@@ -1122,9 +1154,6 @@ int main(int argc, char *argv[]) {
         case 'g': // mode: GRAY, to grayscale image
             g_flag = true;
             break;
-        case 'H': // help
-            H_flag = true;
-            break;
         case 'n': // help
             n_flag = true;
             break;
@@ -1133,7 +1162,6 @@ int main(int argc, char *argv[]) {
             break;
         case 'r': // rotate
             r_flag = true;
-
             bool valid_r_value = false;
             // Check both optarg is not null,
             // and optarg[0] starts with char 0-9 or "."
@@ -1201,7 +1229,8 @@ int main(int argc, char *argv[]) {
     }
 
     // set the mode and make sure only one mode is true.
-    if (g_flag + b_flag + m_flag + H_flag + n_flag + e_flag + r_flag + f_flag >
+    if (g_flag + b_flag + m_flag + n_flag + hist_flag + histn_flag + e_flag +
+            r_flag + f_flag >
         1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
@@ -1212,11 +1241,13 @@ int main(int argc, char *argv[]) {
         mode = GRAY;
     } else if (m_flag) {
         mode = MONO;
+    } else if (n_flag) {
+        mode = NEG;
     } else if (b_flag) {
         mode = BRIGHT;
-    } else if (H_flag) {
+    } else if (hist_flag) {
         mode = HIST;
-    } else if (n_flag) {
+    } else if (histn_flag) {
         mode = HIST_N;
     } else if (e_flag) {
         mode = EQUAL;
@@ -1305,18 +1336,21 @@ int main(int argc, char *argv[]) {
     if (v_flag) {
         printf("-g (to gray):       %s\n", g_flag ? "true" : "false");
         if (m_flag) {
-            printf("-m (to monochrome): %s, value: %.2f\n",
+            printf("-m (monochrome): %s, value: %.2f\n",
                    m_flag ? "true" : "false", m_flag_value);
         } else {
-            printf("-m (to monochrome): %s\n", m_flag ? "true" : "false");
+            printf("-m (monochrome): %s\n", m_flag ? "true" : "false");
         }
-        printf("-H (histogram):     %s\n", H_flag ? "true" : "false");
-        printf("-n (histogram_n):   %s\n", n_flag ? "true" : "false");
+        printf("-n (negative):     %s\n", hist_flag ? "true" : "false");
         printf("-e (equalize):      %s\n", e_flag ? "true" : "false");
         printf("-r (rotate):        %s\n", r_flag ? "true" : "false");
         printf("-f (flip):          %s\n", f_flag ? "true" : "false");
-        printf("-h (help):          %s\n", h_flag ? "true" : "false");
+        printf("-h (help):          %s\n", hist_flag ? "true" : "false");
         printf("-v (verbose):       %s\n", v_flag ? "true" : "false");
+        printf("--hist (histogram 0..255):     %s\n",
+               hist_flag ? "true" : "false");
+        printf("--histn (histogram_normalized 0..1):   %s\n",
+               histn_flag ? "true" : "false");
         printf("--version:          %s\n", version_flag ? "true" : "false");
         printf("filename1: %s\n", filename1);
         if (filename2)
@@ -1365,6 +1399,9 @@ int main(int argc, char *argv[]) {
     case MONO:
         bitmapPtr->output_mode = mode;
         bitmapPtr->mono_threshold = m_flag_value;
+        break;
+    case NEG:
+        bitmapPtr->output_mode = mode;
         break;
     case BRIGHT:
         bitmapPtr->output_mode = mode;
