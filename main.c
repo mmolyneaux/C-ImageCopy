@@ -16,17 +16,17 @@
 // Bitmap color table size if it's needed, if bit_depth <= 8 by def.
 #define CT_SIZE 1024
 // This is the 5th lesson / repo  of this program.
-#define VERSION "0.10" // Negative
+#define VERSION "0.10" // "Inverse"
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
 
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
 enum Mode {
-    NO_MODE,
+    NO_MODE = 0,
     COPY,
     GRAY,
     MONO,
-    NEG,
+    INV,
     BRIGHT,
     HIST,
     HIST_N,
@@ -34,6 +34,7 @@ enum Mode {
     ROT,
     FLIP
 };
+enum Invert { RGB_INVERT = 1, HSV_INVERT = 2 };
 enum Dir { H = 1, V = 2 };
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
@@ -60,6 +61,7 @@ typedef struct {
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
     enum Dir direction;           // Flip direction, <H>orizontal or <V>ertical
     enum Mode output_mode;
+    enum Invert invert;
 } Bitmap;
 
 char *mode_to_string(enum Mode mode) {
@@ -76,8 +78,8 @@ char *mode_to_string(enum Mode mode) {
     case MONO:
         return "Monochrome";
         break;
-    case NEG:
-        return "Negative";
+    case INV:
+        return "Inverse";
         break;
     case BRIGHT:
         return "Brightness";
@@ -104,7 +106,7 @@ char *mode_to_string(enum Mode mode) {
 char *get_suffix(enum Mode mode) {
     switch (mode) {
     case NO_MODE:
-        return "_none";
+        return "_none"; // not used currently besides initializaton
         break;
     case COPY:
         return "_copy";
@@ -115,8 +117,8 @@ char *get_suffix(enum Mode mode) {
     case MONO:
         return "_mono";
         break;
-    case NEG:
-        return "_neg";
+    case INV:
+        return "_inv";
         break;
     case BRIGHT:
         return "_bright";
@@ -658,15 +660,48 @@ void mono1(Bitmap *bmp) {
     }
 }
 
-void neg1(Bitmap *bmp) {
-    printf("Neg1\n");
-    for(int i = 0; i < bmp->image_size; i++) {
-        bmp->imageBuffer1[i] = 255 - bmp->imageBuffer1[i];
+void inv13(Bitmap *bmp) {
+    printf("inv13\n");
+
+    // simple grayscale invert, 255 - color, ignores invert mode setting.
+    if (bmp->channels == 1) {
+        for (int i = 0; i < bmp->image_size; i++) {
+            bmp->imageBuffer1[i] = 255 - bmp->imageBuffer1[i];
+        }
+    } else if (bmp->channels == 3) {
+        // RGB Simple invert for each RGB value and also the DEFAULT mode.
+        if (bmp->invert == 0 || bmp->invert == RGB_INVERT) {
+            for (int i = 0; i < bmp->image_size; i++) {
+                for (int j = 0; j < 3; j++) {
+                    bmp->imageBuffer3[i][j] = 255 - bmp->imageBuffer3[i][j];
+                }
+            }
+            // HSV based invert
+        } else if (bmp->invert == HSV_INVERT) {
+
+            float r, g, b, max, min, v, scale;
+            for (int i = 0; i < bmp->image_size; i++) {
+
+                r = bmp->imageBuffer3[i][0] / 255.0;
+                g = bmp->imageBuffer3[i][1] / 255.0;
+                b = bmp->imageBuffer3[i][2] / 255.0;
+
+                // Convert RGB to HSV
+                max = fmaxf(fmaxf(r, g), b);
+                min = fminf(fminf(r, g), b);
+                // v = max, invert the value v
+                v = 1.0 - max;
+
+                // Convert back to RGB
+                scale = v / max;
+
+                bmp->imageBuffer3[i][0] = (uint8_t)(r * scale * 255);
+                bmp->imageBuffer3[i][1] = (uint8_t)(g * scale * 255);
+                bmp->imageBuffer3[i][2] = (uint8_t)(b * scale * 255);
+            }
+        }
     }
 }
-
-
-
 
 void bright1(Bitmap *bmp) {
     printf("Bright1\n");
@@ -843,8 +878,8 @@ bool write_image(Bitmap *bmp, char *filename) {
 
         } else if (bmp->output_mode == MONO) {
             mono1(bmp);
-        } else if (bmp->output_mode == NEG) {
-            neg1(bmp);
+        } else if (bmp->output_mode == INV) {
+            inv13(bmp);
         } else if (bmp->output_mode == BRIGHT) {
             bright1(bmp);
         } else if (bmp->output_mode == HIST) {
@@ -872,6 +907,9 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == MONO) {
             printf("M3\n");
             mono3(bmp);
+        } else if (bmp->output_mode == INV) {
+            printf("I3\n");
+            inv13(bmp);
         } else if (bmp->output_mode == BRIGHT) {
             printf("B3\n");
             bright3(bmp);
@@ -1038,7 +1076,7 @@ int main(int argc, char *argv[]) {
     char *filename2 = NULL;
     bool filename2_allocated = false;
 
-    // if only the program name is called, print usage and exit.
+    // if the program is called with no options, print usage and exit.
     if (argc == 1) {
         print_usage(argv[0]);
         exit(EXIT_SUCCESS);
@@ -1047,13 +1085,13 @@ int main(int argc, char *argv[]) {
     // Parse command-line options
     bool g_flag = false,      // gray
         m_flag = false,       // monochrome
-        n_flag = false,       // negative
         b_flag = false,       // brightness
         hist_flag = false,    // histogram
         histn_flag = false,   // histogram normalized [0..1]
         e_flag = false,       // equalized
-        r_flag = false,       // rotate +/- 90, 180 , 270
-        f_flag = false,       // flip x, y
+        r_flag = false,       // rotate (+/-) 90, 180 , 270
+        f_flag = false,       // flip h, v
+        i_flag = false,       // invert v
         h_flag = false,       // help
         v_flag = false,       // verbose
         version_flag = false; // version
@@ -1064,6 +1102,7 @@ int main(int argc, char *argv[]) {
     int b_flag_int = 0;
     int r_flag_int = 0;
     enum Dir f_flag_input = 0;
+    enum Invert i_flag_input = 0;
 
     struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -1080,7 +1119,7 @@ int main(int argc, char *argv[]) {
           // getopt_long in getopt.h
     };
 
-    while ((option = getopt(argc, argv, "m:b:gHner:f:hv")) != -1) {
+    while ((option = getopt(argc, argv, "m:b:gHner:f:i:hv")) != -1) {
         printf("Optind: %d\n", optind);
         switch (option) {
         case 'm':
@@ -1154,9 +1193,7 @@ int main(int argc, char *argv[]) {
         case 'g': // mode: GRAY, to grayscale image
             g_flag = true;
             break;
-        case 'n': // help
-            n_flag = true;
-            break;
+            ;
         case 'e': // help
             e_flag = true;
             break;
@@ -1210,6 +1247,22 @@ int main(int argc, char *argv[]) {
                 exit(EXIT_FAILURE);
             }
             break;
+
+        case 'i':
+            i_flag = true;
+            if (optarg && !optarg[1]) {
+                if (optarg[0] == 'r' || optarg[0] == 'R') {
+                    i_flag_input = RGB_INVERT;
+                } else if (optarg[0] == 'h' || optarg[0] == 'H') {
+                    i_flag_input = HSV_INVERT;
+                }
+            } else {
+                // Adjust optind to reconsider the current argument as a
+                // non-option argument
+                optind--;
+            }
+            break;
+
         case 'h': // help
             print_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -1229,7 +1282,7 @@ int main(int argc, char *argv[]) {
     }
 
     // set the mode and make sure only one mode is true.
-    if (g_flag + b_flag + m_flag + n_flag + hist_flag + histn_flag + e_flag +
+    if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
             r_flag + f_flag >
         1) {
         fprintf(stderr, "%s",
@@ -1241,8 +1294,8 @@ int main(int argc, char *argv[]) {
         mode = GRAY;
     } else if (m_flag) {
         mode = MONO;
-    } else if (n_flag) {
-        mode = NEG;
+    } else if (i_flag) {
+        mode = INV;
     } else if (b_flag) {
         mode = BRIGHT;
     } else if (hist_flag) {
@@ -1376,6 +1429,7 @@ int main(int argc, char *argv[]) {
                      .HIST_MAX = 0,
                      .degrees = 0,
                      .direction = 0,
+                     .invert = 0,
                      .output_mode = NO_MODE};
     Bitmap *bitmapPtr = &bitmap;
 
@@ -1400,8 +1454,9 @@ int main(int argc, char *argv[]) {
         bitmapPtr->output_mode = mode;
         bitmapPtr->mono_threshold = m_flag_value;
         break;
-    case NEG:
+    case INV:
         bitmapPtr->output_mode = mode;
+        bitmapPtr->invert = i_flag_input; // enum Invert
         break;
     case BRIGHT:
         bitmapPtr->output_mode = mode;
