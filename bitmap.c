@@ -469,7 +469,7 @@ void inv13(Bitmap *bmp) {
             // HSV based invert
         } else if (bmp->invert == HSV_INVERT) {
 
-            float r, g, b, max, min, v, scale;
+            float r, g, b, max, v, scale;
             for (int i = 0; i < bmp->image_size; i++) {
 
                 r = bmp->imageBuffer3[i][0] / 255.0;
@@ -478,7 +478,6 @@ void inv13(Bitmap *bmp) {
 
                 // Convert RGB to HSV
                 max = fmaxf(fmaxf(r, g), b);
-                min = fminf(fminf(r, g), b);
                 // v = max, invert the value v
                 v = 1.0 - max;
 
@@ -604,13 +603,10 @@ void equal1(Bitmap *bmp) {
 
     printf("E3");
     // Find the minimum (first) non-zero CDF value
-    uint16_t min_index = 0;
     uint32_t min_cdf = cdf[0];
-    // uint8_t min_cdf = cdf[0];
     for (i = 1; min_cdf == 0 && i < MAX; i++) {
         if (cdf[i] != 0) {
             min_cdf = cdf[i];
-            min_index = i;
         }
     }
 

@@ -410,7 +410,6 @@ int main(int argc, char *argv[]) {
         r_flag = false,       // rotate (+/-) 90, 180 , 270
         f_flag = false,       // flip h, v
         i_flag = false,       // invert v
-        h_flag = false,       // help
         v_flag = false,       // verbose
         version_flag = false; // version
 
@@ -439,7 +438,7 @@ int main(int argc, char *argv[]) {
 
     while ((option = getopt(argc, argv, "m:b:gHner:f:i:hv")) != -1) {
         printf("Optind: %d\n", optind);
-        switch (option) {
+        switch (option) { 
         case 'm':
             m_flag = true;
             // Check both optarg is not null,
@@ -512,7 +511,7 @@ int main(int argc, char *argv[]) {
             g_flag = true;
             break;
             ;
-        case 'e': // help
+        case 'e': // equalize
             e_flag = true;
             break;
         case 'r': // rotate
