@@ -1,4 +1,5 @@
 #include "bitmap.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -64,6 +65,14 @@ uint8_t *init_buffer1(uint32_t image_size) {
     return buf1;
 }
 
+uint8_t **buffer1_to_2D(uint8_t * buf1, uint32_t rows, uint32_t cols) {
+    uint8_t **array2D = (uint8_t **) malloc(sizeof(uint8_t*) * rows);    
+    for (int r = 0; r < rows; r++ ) {
+        array2D[r] = &buf1[r * cols ]; 
+    }
+    return array2D;
+}
+
 uint8_t **init_buffer3(uint32_t image_size) {
     printf("Buffer_init3\n");
     uint8_t channels = 3;
@@ -89,6 +98,14 @@ uint8_t **init_buffer3(uint32_t image_size) {
     }
     // bmp->imageBuffer3 = buf3;
     return buf3;
+}
+
+uint8_t **buffer3_to_2D(uint8_t * buf1, uint32_t rows, uint32_t cols) {
+    uint8_t **array2D = (uint8_t **) malloc(sizeof(uint8_t*) * rows);    
+    for (int r = 0; r < rows; r++ ) {
+        array2D[r] = &buf1[r * cols ]; 
+    }
+    return array2D;
 }
 
 // free memory allocated for bitmap structs.
@@ -129,12 +146,12 @@ void gray3(Bitmap *bmp){
     float b = 0.11;
 
     uint32_t temp = 0;
-    for (int i = 0, j = 0; i < bmp->image_size; ++i) {
+    for (int i = 0, rgb = 0; i < bmp->image_size; ++i) {
         temp = (bmp->imageBuffer3[i][0] * r) + (bmp->imageBuffer3[i][1] * g) +
                (bmp->imageBuffer3[i][2] * b);
-        for (j = 0; j < 3; ++j) {
+        for (rgb = 0; rgb < 3; ++rgb) {
             // Write equally for each channel.
-            bmp->imageBuffer3[i][j] = temp;
+            bmp->imageBuffer3[i][rgb] = temp;
         }
     }
 }
@@ -645,4 +662,23 @@ void equal1(Bitmap *bmp) {
     free(cdf); //(bmp->histogram)
     cdf = NULL;
     free(equalized);
+}
+
+void blur1(Bitmap *bmp) {
+
+    float kernal[3][3];
+    float v = 1.0/9.0;
+
+    for (int i = 0; i < 9; i++) {
+        kernal[i/3][i%3] = v;
+    }
+    // For transformation algorithm, pre-transform.
+    uint32_t rows = bmp->height;
+    uint32_t cols = bmp->width;
+    uint32_t image_size = rows * cols;
+
+    // height / rows / y
+    // width / cols / x
+    uint8_t *output_buffer1 = NULL;
+
 }
