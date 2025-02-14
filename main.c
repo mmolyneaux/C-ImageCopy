@@ -216,7 +216,7 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == FLIP) {
             flip13(bmp);
         } else if (bmp->output_mode == BLUR) {
-            blur13(bmp);
+            blur13a(bmp);
         }
 
     } else if (bmp->channels == RGB) {

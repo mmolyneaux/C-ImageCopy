@@ -75,4 +75,5 @@ void hist1(Bitmap *bmp);
 void hist1_normalized(Bitmap *bmp);
 void equal1(Bitmap *bmp);
 void blur13(Bitmap *bmp);
+void blur13a(Bitmap *bmp);
 #endif

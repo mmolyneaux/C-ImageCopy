@@ -688,29 +688,67 @@ void blur13(Bitmap *bmp) {
     float sum;
 
     for (size_t r = 1; r < rows - 1; r++) {
-        for (size_t c = 1; c < cols- 1; c++) {
+        for (size_t c = 1; c < cols - 1; c++) {
             sum = 0.0;
 
             for (int8_t r1 = -1; r1 <= 1; r1++) {
                 for (int8_t c1 = -1; c1 <= 1; c1++) {
-                    sum += kernal1D[(r1 + 1) * 3 + (c1 + 1)] * buf1[(r + r1) * cols + (c + c1)];
+                    sum += kernal1D[(r1 + 1) * 3 + (c1 + 1)] *
+                           buf1[(r + r1) * cols + (c + c1)];
                 }
-                buf2[r*cols + c] = (uint8_t) sum;
-
-            // for (int8_t r1 = -1; r1 <= 1; r1++) {
-            //     for (int8_t c1 = -1; c1 <= 1; c1++) {
-            //         buf2_2D[r + r1][c + c1] += kernal2D[r + r1][c + c1] *
-            //         kernal2D[r + r1][c + c1];
-            //     }
-
-            
             }
+            buf2[r * cols + c] = (uint8_t)sum;
         }
     }
-    for (int i = 0; i < 9; i++){
+    for (int i = 0; i < 9; i++) {
         printf("%d %d ", buf1[i], buf2[i]);
     }
 
     free(bmp->imageBuffer1);
+    bmp->imageBuffer1 = buf2;
+}
+
+void blur13a(Bitmap *bmp) {
+    printf("Blur13a\n");
+    float v = 1.0 / 9.0;
+
+    float kernal2D[3][3];
+
+    for (int i = 0; i < 9; i++) {
+        kernal2D[i / 3][i % 3] = v;
+    }
+
+    uint32_t rows = bmp->height;
+    uint32_t cols = bmp->width;
+    uint32_t image_size = rows * cols;
+
+    // height / rows / y
+    // width / cols / x
+    uint8_t *buf1 = bmp->imageBuffer1;
+    uint8_t **buf1_2D = buffer1_to_2D(buf1, rows, cols);
+    uint8_t *buf2 = init_buffer1(image_size);
+    uint8_t **buf2_2D = buffer1_to_2D(buf2, rows, cols);
+
+    float sum;
+
+    for (size_t r = 1; r < rows - 1; r++) {
+        for (size_t c = 1; c < cols - 1; c++) {
+            sum = 0.0;
+
+            for (int8_t r1 = -1; r1 <= 1; r1++) {
+                for (int8_t c1 = -1; c1 <= 1; c1++) {
+                    sum += kernal2D[r1][c1] * buf1_2D[r + r1][c + c1];
+                }
+            }
+            buf2_2D[r][c] = (uint8_t)sum;
+        }
+        printf("%d ", buf2_2D[50][50]);
+    }
+    printf("This %d ", buf2_2D[50][50]);
+
+    free(bmp->imageBuffer1);
+    free(buf1_2D);
+    // free(buf2_2D);
+
     bmp->imageBuffer1 = buf2;
 }
