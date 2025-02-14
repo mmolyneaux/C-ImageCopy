@@ -28,15 +28,16 @@ enum Mode {
     HIST_N,
     EQUAL,
     ROT,
-    FLIP
+    FLIP,
+    BLUR
 };
 enum Invert { RGB_INVERT = 1, HSV_INVERT = 2 };
 enum Dir { H = 1, V = 2 };
 
 typedef struct {
     unsigned char header[HEADER_SIZE];
-    uint32_t width;
     uint32_t height;
+    uint32_t width;
     uint32_t image_size;
     uint8_t bit_depth;
     uint8_t channels;
@@ -73,4 +74,5 @@ void bright1(Bitmap *bmp);
 void hist1(Bitmap *bmp);
 void hist1_normalized(Bitmap *bmp);
 void equal1(Bitmap *bmp);
+void blur13(Bitmap *bmp);
 #endif

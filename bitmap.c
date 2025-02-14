@@ -1,11 +1,8 @@
 #include "bitmap.h"
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-
-
-
 
 char *mode_to_string(enum Mode mode) {
     switch (mode) {
@@ -65,10 +62,10 @@ uint8_t *init_buffer1(uint32_t image_size) {
     return buf1;
 }
 
-uint8_t **buffer1_to_2D(uint8_t * buf1, uint32_t rows, uint32_t cols) {
-    uint8_t **array2D = (uint8_t **) malloc(sizeof(uint8_t*) * rows);    
-    for (int r = 0; r < rows; r++ ) {
-        array2D[r] = &buf1[r * cols ]; 
+uint8_t **buffer1_to_2D(uint8_t *buf, uint32_t rows, uint32_t cols) {
+    uint8_t **array2D = (uint8_t **)malloc(sizeof(uint8_t *) * rows);
+    for (int r = 0; r < rows; r++) {
+        array2D[r] = &buf[r * cols];
     }
     return array2D;
 }
@@ -100,10 +97,10 @@ uint8_t **init_buffer3(uint32_t image_size) {
     return buf3;
 }
 
-uint8_t **buffer3_to_2D(uint8_t * buf1, uint32_t rows, uint32_t cols) {
-    uint8_t **array2D = (uint8_t **) malloc(sizeof(uint8_t*) * rows);    
-    for (int r = 0; r < rows; r++ ) {
-        array2D[r] = &buf1[r * cols ]; 
+uint8_t **buffer3_to_2D(uint8_t *buf1, uint32_t rows, uint32_t cols) {
+    uint8_t **array2D = (uint8_t **)malloc(sizeof(uint8_t *) * rows);
+    for (int r = 0; r < rows; r++) {
+        array2D[r] = &buf1[r * cols];
     }
     return array2D;
 }
@@ -134,10 +131,7 @@ void free_mem(Bitmap *bmp) {
 
 void copy13(Bitmap *bmp) {}
 
-
- 
-
-void gray3(Bitmap *bmp){
+void gray3(Bitmap *bmp) {
     printf("Gray3\n");
     // the values for mixing RGB to gray.
     // amount of rgb to keep, from 0.0 to 1.0.
@@ -464,9 +458,6 @@ void flip13(Bitmap *bmp) {
     }
 }
 
-
-
-
 void inv13(Bitmap *bmp) {
     printf("inv13\n");
 
@@ -664,14 +655,20 @@ void equal1(Bitmap *bmp) {
     free(equalized);
 }
 
-void blur1(Bitmap *bmp) {
-
-    float kernal[3][3];
-    float v = 1.0/9.0;
+void blur13(Bitmap *bmp) {
+    float kernal1D[9];
+    float v = 1.0 / 9.0;
 
     for (int i = 0; i < 9; i++) {
-        kernal[i/3][i%3] = v;
+        kernal1D[i] = v;
     }
+
+    // float kernal2D[3][3];
+
+    // for (int i = 0; i < 9; i++) {
+    //     kernal2D[i / 3][i % 3] = v;
+    // }
+
     // For transformation algorithm, pre-transform.
     uint32_t rows = bmp->height;
     uint32_t cols = bmp->width;
@@ -679,6 +676,26 @@ void blur1(Bitmap *bmp) {
 
     // height / rows / y
     // width / cols / x
-    uint8_t *output_buffer1 = NULL;
+    uint8_t *buf1 = bmp->imageBuffer1;
+    // uint8_t **buf1_2D = buffer1_to_2D(buf1, rows, cols);
+    uint8_t *buf2 = init_buffer1(image_size);
+    // uint8_t **buf2_2D = buffer1_to_2D(buf2, rows, cols);
 
+    for (size_t r = 1; r < rows - 1; r++) {
+        for (size_t c = 1 < cols; cols - 1; c++) {
+
+            // for (int8_t r1 = -1; r1 <= 1; r1++) {
+            //     for (int8_t c1 = -1; c1 <= 1; c1++) {
+            //         buf2_2D[r + r1][c + c1] += kernal2D[r + r1][c + c1] *
+            //         kernal2D[r + r1][c + c1];
+            //     }
+
+            for (int8_t r1 = -1; r1 <= 1; r1++) {
+                for (int8_t c1 = -1; c1 <= 1; c1++) {
+                    buf2[r * cols + c] += kernal1D[(r + 1) * cols + (c + c1)] *
+                                          buf1[(r + 1) * cols + (c + c1)];
+                }
+            }
+        }
+    }
 }

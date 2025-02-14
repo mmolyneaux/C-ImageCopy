@@ -54,6 +54,9 @@ char *get_suffix(enum Mode mode) {
     case FLIP:
         return "_flip";
         break;
+    case BLUR:
+        return "_flip";
+        break;
     default:
         return "_suffix";
     }
@@ -212,6 +215,8 @@ bool write_image(Bitmap *bmp, char *filename) {
             rot13(bmp);
         } else if (bmp->output_mode == FLIP) {
             flip13(bmp);
+        } else if (bmp->output_mode == BLUR) {
+            blur13(bmp);
         }
 
     } else if (bmp->channels == RGB) {
@@ -237,6 +242,9 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == FLIP) {
             printf("R3\n");
             flip13(bmp);
+        } else if (bmp->output_mode == BLUR) {
+            printf("L3\n");
+            blur13(bmp);
         } else {
             printf("CHANNEL FAIL\n");
             fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
@@ -410,6 +418,7 @@ int main(int argc, char *argv[]) {
         r_flag = false,       // rotate (+/-) 90, 180 , 270
         f_flag = false,       // flip h, v
         i_flag = false,       // invert v
+        l_flag = false,       // blur
         v_flag = false,       // verbose
         version_flag = false; // version
 
@@ -436,7 +445,7 @@ int main(int argc, char *argv[]) {
           // getopt_long in getopt.h
     };
 
-    while ((option = getopt(argc, argv, "m:b:gHner:f:i:hv")) != -1) {
+    while ((option = getopt(argc, argv, "m:b:gHner:f:i:lhv")) != -1) {
         printf("Optind: %d\n", optind);
         switch (option) { 
         case 'm':
@@ -579,7 +588,9 @@ int main(int argc, char *argv[]) {
                 optind--;
             }
             break;
-
+        case 'l': // blur
+            l_flag = true;
+            break;
         case 'h': // help
             print_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -600,7 +611,7 @@ int main(int argc, char *argv[]) {
 
     // set the mode and make sure only one mode is true.
     if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
-            r_flag + f_flag >
+            r_flag + f_flag + l_flag >
         1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
@@ -625,6 +636,8 @@ int main(int argc, char *argv[]) {
         mode = ROT;
     } else if (f_flag) {
         mode = FLIP;
+    } else if (l_flag) {
+        mode = BLUR;
     } else {
         mode = COPY;
     }
@@ -711,10 +724,11 @@ int main(int argc, char *argv[]) {
         } else {
             printf("-m (monochrome): %s\n", m_flag ? "true" : "false");
         }
-        printf("-n (negative):     %s\n", hist_flag ? "true" : "false");
+        printf("-i (invert):        %s\n", i_flag ? "true" : "false");
         printf("-e (equalize):      %s\n", e_flag ? "true" : "false");
         printf("-r (rotate):        %s\n", r_flag ? "true" : "false");
         printf("-f (flip):          %s\n", f_flag ? "true" : "false");
+        printf("-l (blur):          %s\n", l_flag ? "true" : "false");
         printf("-h (help):          %s\n", hist_flag ? "true" : "false");
         printf("-v (verbose):       %s\n", v_flag ? "true" : "false");
         printf("--hist (histogram 0..255):     %s\n",
@@ -798,6 +812,9 @@ int main(int argc, char *argv[]) {
     case FLIP:
         bitmapPtr->output_mode = mode;
         bitmapPtr->direction = f_flag_input; // enum Dir
+        break;
+    case BLUR:
+        bitmapPtr->output_mode = mode;
         break;
     default:
         fprintf(stderr, "No output mode matched.\n");
