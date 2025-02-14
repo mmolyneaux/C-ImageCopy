@@ -55,7 +55,7 @@ char *get_suffix(enum Mode mode) {
         return "_flip";
         break;
     case BLUR:
-        return "_flip";
+        return "_blur";
         break;
     default:
         return "_suffix";

@@ -39,6 +39,9 @@ char *mode_to_string(enum Mode mode) {
     case FLIP:
         return "Flip";
         break;
+    case BLUR:
+        return "Blur";
+        break;
     default:
         return "default: mode string not found";
     }
@@ -656,6 +659,7 @@ void equal1(Bitmap *bmp) {
 }
 
 void blur13(Bitmap *bmp) {
+    printf("Blur13\n");
     float kernal1D[9];
     float v = 1.0 / 9.0;
 
@@ -681,8 +685,17 @@ void blur13(Bitmap *bmp) {
     uint8_t *buf2 = init_buffer1(image_size);
     // uint8_t **buf2_2D = buffer1_to_2D(buf2, rows, cols);
 
+    float sum;
+
     for (size_t r = 1; r < rows - 1; r++) {
-        for (size_t c = 1 < cols; cols - 1; c++) {
+        for (size_t c = 1; c < cols- 1; c++) {
+            sum = 0.0;
+
+            for (int8_t r1 = -1; r1 <= 1; r1++) {
+                for (int8_t c1 = -1; c1 <= 1; c1++) {
+                    sum += kernal1D[(r1 + 1) * 3 + (c1 + 1)] * buf1[(r + r1) * cols + (c + c1)];
+                }
+                buf2[r*cols + c] = (uint8_t) sum;
 
             // for (int8_t r1 = -1; r1 <= 1; r1++) {
             //     for (int8_t c1 = -1; c1 <= 1; c1++) {
@@ -690,12 +703,14 @@ void blur13(Bitmap *bmp) {
             //         kernal2D[r + r1][c + c1];
             //     }
 
-            for (int8_t r1 = -1; r1 <= 1; r1++) {
-                for (int8_t c1 = -1; c1 <= 1; c1++) {
-                    buf2[r * cols + c] += kernal1D[(r + 1) * cols + (c + c1)] *
-                                          buf1[(r + 1) * cols + (c + c1)];
-                }
+            
             }
         }
     }
+    for (int i = 0; i < 9; i++){
+        printf("%d %d ", buf1[i], buf2[i]);
+    }
+
+    free(bmp->imageBuffer1);
+    bmp->imageBuffer1 = buf2;
 }
