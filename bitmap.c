@@ -54,8 +54,7 @@ uint8_t *init_buffer1(uint32_t image_size) {
             "Error: Buffer initialization failed, Image size not defined.\n");
         exit(EXIT_FAILURE);
     }
-    unsigned char *buf1 =
-        (unsigned char *)calloc(image_size, sizeof(unsigned char));
+    uint8_t *buf1 = (uint8_t *)calloc(image_size, sizeof(uint8_t));
     if (buf1 == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
         exit(EXIT_FAILURE);
@@ -65,12 +64,27 @@ uint8_t *init_buffer1(uint32_t image_size) {
     return buf1;
 }
 
-uint8_t **buffer1_to_2D(uint8_t *buf, uint32_t rows, uint32_t cols) {
-    uint8_t **array2D = (uint8_t **)malloc(sizeof(uint8_t *) * rows);
-    for (int r = 0; r < rows; r++) {
-        array2D[r] = &buf[r * cols];
+void buffer1_to_2D(uint8_t *buf1D, uint8_t ***buf2D, uint32_t rows,
+                   uint32_t cols) {
+    if (!buf1D) {
+        fprintf(stderr,
+                "Error: 2D array initialization error. 1D array is empty.");
+        exit(EXIT_FAILURE);
     }
-    return array2D;
+    if (!(buf2D)) {
+        fprintf(stderr,
+                "Error: 2D array initialization error. 2D address is empty.");
+        exit(EXIT_FAILURE);
+    }
+    *buf2D = (uint8_t **)malloc(sizeof(uint8_t *) * rows);
+    if (!(*buf2D)) {
+        fprintf(stderr,
+                "Error: Failed to allocate memory for 2D image buffer.\n");
+        exit(EXIT_FAILURE);
+    }
+    for (int r = 0; r < rows; r++) {
+        (*buf2D)[r] = &buf1D[r * cols];
+    }
 }
 
 uint8_t **init_buffer3(uint32_t image_size) {
@@ -725,9 +739,17 @@ void blur13a(Bitmap *bmp) {
     // height / rows / y
     // width / cols / x
     uint8_t *buf1 = bmp->imageBuffer1;
-    uint8_t **buf1_2D = buffer1_to_2D(buf1, rows, cols);
+    uint8_t **buf1_2D = NULL;
+    buffer1_to_2D(buf1, &buf1_2D, rows, cols);
+
     uint8_t *buf2 = init_buffer1(image_size);
-    uint8_t **buf2_2D = buffer1_to_2D(buf2, rows, cols);
+    uint8_t **buf2_2D = NULL;
+    buffer1_to_2D(buf2, &buf2_2D, rows, cols);
+
+    for (size_t r = 1; r < rows - 1; r++) {
+        for (size_t c = 1; c < cols - 1; c++) {
+        }
+    }
 
     float sum;
 
@@ -735,20 +757,20 @@ void blur13a(Bitmap *bmp) {
         for (size_t c = 1; c < cols - 1; c++) {
             sum = 0.0;
 
+            buf2_2D[r][c] = buf1_2D[r][c];
             for (int8_t r1 = -1; r1 <= 1; r1++) {
                 for (int8_t c1 = -1; c1 <= 1; c1++) {
-                    sum += kernal2D[r1][c1] * buf1_2D[r + r1][c + c1];
+                    sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
+                    // sum += v * buf1_2D[r + r1][c + c1];
                 }
             }
             buf2_2D[r][c] = (uint8_t)sum;
         }
-        printf("%d ", buf2_2D[50][50]);
     }
-    printf("This %d ", buf2_2D[50][50]);
 
     free(bmp->imageBuffer1);
     free(buf1_2D);
-    // free(buf2_2D);
+    free(buf2_2D);
 
     bmp->imageBuffer1 = buf2;
 }
