@@ -163,14 +163,14 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         printf("Bitmap channels 3.\n");
         // Allocate memory for the array of pointers (rows) for each pixel in
         // image_size
-        bitmap->imageBuffer3 = init_buffer3(bitmap->image_size);
+        bitmap->imageBuffer3 = init_buffer3(bitmap->height, bitmap->width);
 
         printf("Image buffer3 created.\n");
 
         for (int i = 0; i < bitmap->image_size; i++) {
-            bitmap->imageBuffer3[i][0] = getc(streamIn); // red
-            bitmap->imageBuffer3[i][1] = getc(streamIn); // green
-            bitmap->imageBuffer3[i][2] = getc(streamIn); // blue
+            bitmap->imageBuffer3[i + 0] = getc(streamIn); // red
+            bitmap->imageBuffer3[i + 1] = getc(streamIn); // green
+            bitmap->imageBuffer3[i + 2] = getc(streamIn); // blue
         }
         file_read_completed = true;
         printf("Channels read.\n");
@@ -216,7 +216,7 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == FLIP) {
             flip13(bmp);
         } else if (bmp->output_mode == BLUR) {
-            blur13a(bmp);
+            blur1(bmp);
         }
 
     } else if (bmp->channels == RGB) {
@@ -244,7 +244,7 @@ bool write_image(Bitmap *bmp, char *filename) {
             flip13(bmp);
         } else if (bmp->output_mode == BLUR) {
             printf("L3\n");
-            blur13(bmp);
+            blur3(bmp);
         } else {
             printf("CHANNEL FAIL\n");
             fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
@@ -303,7 +303,7 @@ bool write_image(Bitmap *bmp, char *filename) {
                 // Write equally for each channel.
                 // j: red is 0, g is 1, b is 2
                 for (j = 0; j < 3; ++j) {
-                    putc(bmp->imageBuffer3[i][j], streamOut);
+                    putc(bmp->imageBuffer3[i + j], streamOut);
                 }
             }
         }

@@ -52,7 +52,7 @@ typedef struct {
     bool CT_EXISTS;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
-    unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
+    unsigned char *imageBuffer3; //[imgSize][3], 3 channel for rgb
     enum Dir direction;           // Flip direction, <H>orizontal or <V>ertical
     enum Mode output_mode;
     enum Invert invert;
@@ -60,7 +60,7 @@ typedef struct {
 
 char *mode_to_string(enum Mode mode);
 uint8_t *init_buffer1(uint32_t image_size);
-uint8_t **init_buffer3(uint32_t image_size);
+uint8_t *init_buffer3(uint32_t rows, uint32_t cols);
 void free_mem(Bitmap *bmp);
 void copy13(Bitmap *bmp);
 void gray3(Bitmap *bmp);
@@ -74,6 +74,6 @@ void bright1(Bitmap *bmp);
 void hist1(Bitmap *bmp);
 void hist1_normalized(Bitmap *bmp);
 void equal1(Bitmap *bmp);
-void blur13(Bitmap *bmp);
-void blur13a(Bitmap *bmp);
+void blur1(Bitmap *bmp);
+void blur3(Bitmap *bmp);
 #endif
