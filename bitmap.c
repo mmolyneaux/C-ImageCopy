@@ -593,10 +593,8 @@ void equal1(Bitmap *bmp) {
     if (!bmp->histogram) {
         hist1(bmp);
     }
-    // float_t* hist_n = hist1_normalized(bmp);
-    printf("E1");
-    //   uint8_t *hist = bmp->histogram;
     const uint16_t MAX = bmp->HIST_MAX; // 256
+                                        //
     // cumilative distribution function
     uint32_t *cdf = (uint32_t *)calloc(MAX, sizeof(uint32_t));
     uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
@@ -605,22 +603,12 @@ void equal1(Bitmap *bmp) {
         exit(EXIT_FAILURE);
     }
 
-    printf("E2\n");
-    printf("Hist: %d\n", bmp->histogram[0]);
-
     uint16_t i = 0; // index
     cdf[0] = bmp->histogram[0];
     for (i = 1; i < MAX; i++) {
-        // printf("I   : %d\n", i);
-        // printf("Hist: %d\n", bmp->histogram[i]);
-        // bmp->histogram[i] = bmp->histogram[i] + bmp->histogram[i -
-        // 1];
         cdf[i] = bmp->histogram[i] + cdf[i - 1];
-        // printf("CDF : %d\n", cdf[i]);
     }
-    printf("Hist max: %d\n", MAX);
 
-    printf("E3");
     // Find the minimum (first) non-zero CDF value
     uint32_t min_cdf = cdf[0];
     for (i = 1; min_cdf == 0 && i < MAX; i++) {
@@ -628,14 +616,6 @@ void equal1(Bitmap *bmp) {
             min_cdf = cdf[i];
         }
     }
-
-    printf("E4\n");
-
-    printf("CDF: \n");
-    for (i = 0; i < MAX; i++) {
-        printf("%d ", cdf[i]);
-    }
-    printf("\n");
 
     // Normalize the CDF to map the pixel values to [0, 255]
     for (i = 0; i < MAX; i++) {
@@ -651,16 +631,11 @@ void equal1(Bitmap *bmp) {
     for (int i = 0; i < bmp->HIST_MAX; i++) {
         printf("%d ", equalized[i]);
     }
-    printf(" End output.\n");
-    printf("E5");
-    // exit(1);
     //  Map the equalized values back to image data
     for (size_t i = 0; i < bmp->image_size; i++) {
         bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
     }
 
-    printf("E6");
-    // exit(EXIT_FAILURE);
     free(cdf); //(bmp->histogram)
     cdf = NULL;
     free(equalized);
@@ -700,12 +675,20 @@ void blur1(Bitmap *bmp) {
 
             for (int8_t r1 = -1; r1 <= 1; r1++) {
                 for (int8_t c1 = -1; c1 <= 1; c1++) {
-                    sum += kernal2D[r1 + 1][c1 + 1] * buf2_2D[r + r1][c + c1];
+                    sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
                 }
             }
             buf2_2D[r][c] = (uint8_t)sum;
+            // printf("%d ",buf2_2D[r][c]);
         }
     }
+
+    // for (size_t r = 1; r < rows - 1; r++) {
+    //     for (size_t c = 1; c < cols - 1; c++) {
+    //         printf("%d ",buf2_2D[r][c]);
+    //     }
+    // }
+
 
     // Sides
     // Average 1 pixel + 5 neighbors
@@ -834,7 +817,7 @@ void blur3(Bitmap *bmp) {
 
     uint32_t rows = bmp->height;
     uint32_t cols = bmp->width;
-    uint32_t image_size = rows * cols;
+    //uint32_t image_size = rows * cols;
 
     // height / rows / y
     // width / cols / x

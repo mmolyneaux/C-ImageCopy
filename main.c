@@ -13,7 +13,7 @@
 #include "bitmap.h"
 
 // This is the 5th lesson / repo  of this program.
-#define VERSION "0.10" // "Inverse"
+#define VERSION "0.11 Blur\n" // "Blur"
 
 
 char *dot_bmp = ".bmp";
@@ -445,7 +445,7 @@ int main(int argc, char *argv[]) {
           // getopt_long in getopt.h
     };
 
-    while ((option = getopt(argc, argv, "m:b:gHner:f:i:lhv")) != -1) {
+    while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:lhv", long_options, NULL) != -1)) {
         printf("Optind: %d\n", optind);
         switch (option) { 
         case 'm':
@@ -598,13 +598,29 @@ int main(int argc, char *argv[]) {
             v_flag = true;
             break;
         case 0: // checks for long options not tied to a short option
-            if (strcmp("version", long_options[optind].name) == 0) {
+        // {"help", no_argument, 0, 'h'},
+        // {"verbose", no_argument, 0, 'v'},
+        // {"version", no_argument, 0, 0},
+        // {"hist", no_argument, 0, 0},
+        // {"histn", no_argument, 0, 0},    
+        
+        if (strcmp("version", long_options[optind].name) == 0) {
                 print_version();
                 exit(EXIT_SUCCESS);
+            }else if(strcmp("hist", long_options[optind].name) == 0){
+                printf("hist\n");
+                exit(EXIT_SUCCESS);
+            }else if(strcmp("histn", long_options[optind].name) == 0){
+                printf("histn\n");
+                exit(EXIT_SUCCESS);
+            }else {
+                fprintf(stderr, "Long option --%s not found\n", long_options[optind].name);
+                exit(EXIT_FAILURE);
             }
             break;
         default:
-            print_usage(argv[0]);
+            printf("default\n");
+            //print_usage(argv[0]);
             exit(EXIT_FAILURE);
         }
     }
