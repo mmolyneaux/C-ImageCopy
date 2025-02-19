@@ -1,7 +1,8 @@
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
-//#include <math.h>
+// #include <math.h>
+#include "bitmap.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -10,17 +11,14 @@
 #include <string.h>
 #include <uchar.h>
 #include <unistd.h>
-#include "bitmap.h"
+
 
 // This is the 5th lesson / repo  of this program.
 #define VERSION "0.11 Blur\n" // "Blur"
 
-
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
 char *dot_dat = ".dat";
-
-
 
 char *get_suffix(enum Mode mode) {
     switch (mode) {
@@ -102,8 +100,6 @@ char *get_output_ext(char *filename, enum Mode mode) {
         }
     }
 }
-
-
 
 // returns false early and prints an error message if operation not complete.
 // returns true on success of the operation.
@@ -386,17 +382,14 @@ bool get_valid_int(char *str, int *result) {
     return true;
 }
 
-// check if a char is 0-9, or '.'
-bool is_digit_or_dot(char value) {
-    return ((value >= '0' && value <= '9') || value == '.');
-}
-
 // check if a char is 0-9
 bool is_digit(char value) { return ((value >= '0' && value <= '9')); }
 
+// check if a char is 0-9, or '.'
+bool is_digit_or_dot(char value) { return (is_digit(value) || value == '.'); }
+
 int main(int argc, char *argv[]) {
     enum Mode mode = NO_MODE; // default
-    int option = 0;
 
     char *filename1 = NULL;
     char *filename2 = NULL;
@@ -433,9 +426,10 @@ int main(int argc, char *argv[]) {
     struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"verbose", no_argument, 0, 'v'},
-        {"version", no_argument, 0, 0},
-        {"hist", no_argument, 0, 0},
-        {"histn", no_argument, 0, 0},
+        {"test", no_argument, 0, 0},
+        {"version", no_argument, 0, 1},
+        {"hist", no_argument, 0, 2},
+        {"histn", no_argument, 0, 3},
         {
             0,
             0,
@@ -444,10 +438,13 @@ int main(int argc, char *argv[]) {
         } // sentinal value indicating the end of the array, for
           // getopt_long in getopt.h
     };
+    int option = 0;
+    int long_index = 0;
 
-    while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:lhv", long_options, NULL) != -1)) {
+    while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:lhv", long_options,
+                                 &long_index) != -1)) {
         printf("Optind: %d\n", optind);
-        switch (option) { 
+        switch (option) {
         case 'm':
             m_flag = true;
             // Check both optarg is not null,
@@ -583,9 +580,13 @@ int main(int argc, char *argv[]) {
                     i_flag_input = HSV_INVERT;
                 }
             } else {
+                fprintf(stderr, "-i value error: \"%c\"\n", optarg[0]);
+                fprintf(stderr, "Use \"-i r\" for RGB invert or \"-i h\" for "
+                                "HSV invert.\n");
+
                 // Adjust optind to reconsider the current argument as a
                 // non-option argument
-                optind--;
+                // optind--;
             }
             break;
         case 'l': // blur
@@ -597,30 +598,29 @@ int main(int argc, char *argv[]) {
         case 'v': // verbose
             v_flag = true;
             break;
-        case 0: // checks for long options not tied to a short option
-        // {"help", no_argument, 0, 'h'},
-        // {"verbose", no_argument, 0, 'v'},
-        // {"version", no_argument, 0, 0},
-        // {"hist", no_argument, 0, 0},
-        // {"histn", no_argument, 0, 0},    
-        
-        if (strcmp("version", long_options[optind].name) == 0) {
-                print_version();
-                exit(EXIT_SUCCESS);
-            }else if(strcmp("hist", long_options[optind].name) == 0){
-                printf("hist\n");
-                exit(EXIT_SUCCESS);
-            }else if(strcmp("histn", long_options[optind].name) == 0){
-                printf("histn\n");
-                exit(EXIT_SUCCESS);
-            }else {
-                fprintf(stderr, "Long option --%s not found\n", long_options[optind].name);
-                exit(EXIT_FAILURE);
-            }
+        case 0:
+        if (strcmp(long_options[long_index].name, "test") == 0) {
+        printf("test\n");
+            // print_version();
+            exit(EXIT_SUCCESS);
+        }
+            break;
+        // long options
+   //     case 1: // version
+            printf("version\n");
+            // print_version();
+            exit(EXIT_SUCCESS);
+            break;
+        case 2: // hist
+            printf("hist\n");
+            exit(EXIT_SUCCESS);
+            break;
+        case 3: // histn
+            printf("histn\n");
+            exit(EXIT_SUCCESS);
             break;
         default:
-            printf("default\n");
-            //print_usage(argv[0]);
+            printf("Unknown option: --%s\n", long_options[long_index].name);
             exit(EXIT_FAILURE);
         }
     }
