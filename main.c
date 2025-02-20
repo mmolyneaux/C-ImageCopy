@@ -12,7 +12,6 @@
 #include <uchar.h>
 #include <unistd.h>
 
-
 // This is the 5th lesson / repo  of this program.
 #define VERSION "0.11 Blur\n" // "Blur"
 
@@ -444,7 +443,41 @@ int main(int argc, char *argv[]) {
     while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:lhv", long_options,
                                  &long_index) != -1)) {
         printf("Optind: %d\n", optind);
+        printf("Option: %d\n", option);
+        printf("Long Index: %d, name: %s\n", long_index,
+               long_options[long_index].name);
         switch (option) {
+
+        case 0:
+            printf("This is case 0: %s == %s ?\n",
+                   long_options[long_index].name, "test");
+            if (strcmp(long_options[long_index].name, "test") == 0) {
+                printf("test\n");
+                // print_version();
+                exit(EXIT_SUCCESS);
+            }
+            break;
+
+            case 1: // version
+            printf("version\n");
+            // print_version();
+            exit(EXIT_SUCCESS);
+            break;
+            // long options
+
+            // version
+            printf("version\n");
+            // print_version();
+            exit(EXIT_SUCCESS);
+            break;
+            // hist
+            printf("hist\n");
+            exit(EXIT_SUCCESS);
+            break;
+            // histn
+            printf("histn\n");
+            exit(EXIT_SUCCESS);
+            break;
         case 'm':
             m_flag = true;
             // Check both optarg is not null,
@@ -598,27 +631,7 @@ int main(int argc, char *argv[]) {
         case 'v': // verbose
             v_flag = true;
             break;
-        case 0:
-        if (strcmp(long_options[long_index].name, "test") == 0) {
-        printf("test\n");
-            // print_version();
-            exit(EXIT_SUCCESS);
-        }
-            break;
-        // long options
-   //     case 1: // version
-            printf("version\n");
-            // print_version();
-            exit(EXIT_SUCCESS);
-            break;
-        case 2: // hist
-            printf("hist\n");
-            exit(EXIT_SUCCESS);
-            break;
-        case 3: // histn
-            printf("histn\n");
-            exit(EXIT_SUCCESS);
-            break;
+
         default:
             printf("Unknown option: --%s\n", long_options[long_index].name);
             exit(EXIT_FAILURE);
