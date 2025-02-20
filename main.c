@@ -79,29 +79,38 @@ bool ends_with(char *str, const char *ext) {
     return strcmp(str + len_str - len_ext, ext) == 0;
 }
 
-char *get_output_ext(char *filename, enum Mode mode) {
-    if (filename) {
-        if (mode == HIST) {
-            if (ends_with(filename, dot_txt) || ends_with(filename, dot_dat)) {
-                return dot_txt;
-            }
-        } else { // image
-            if (ends_with(filename, dot_bmp)) {
-                return dot_bmp;
-            }
-        }
-        return NULL;
-    } else {
-        if (mode == HIST) {
+
+char* get_filename_ext(char *filename, enum Mode mode) {
+
+    if (mode == HIST || mode == HIST_N) {
+        if (ends_with(filename, dot_txt)){
             return dot_txt;
-        } else {
+        }else if (ends_with(filename, dot_dat)) {
+            return dot_dat;
+        }
+    } else { // image
+        if (ends_with(filename, dot_bmp)) {
             return dot_bmp;
         }
     }
+    return NULL;
 }
 
-// returns false early and prints an error message if operation not complete.
-// returns true on success of the operation.
+
+char *get_default_mode_ext(enum Mode mode) {
+    if (mode == HIST || mode == HIST_N) {
+        return dot_txt;
+    } else {
+        return dot_bmp;
+    }
+}
+
+
+
+
+
+// returns false early and prints an error message if operation not
+// complete. returns true on success of the operation.
 bool readImage(char *filename1, Bitmap *bitmap) {
     bool file_read_completed = false;
 
@@ -156,8 +165,8 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         file_read_completed = true;
     } else if (bitmap->channels == 3) {
         printf("Bitmap channels 3.\n");
-        // Allocate memory for the array of pointers (rows) for each pixel in
-        // image_size
+        // Allocate memory for the array of pointers (rows) for each pixel
+        // in image_size
         bitmap->imageBuffer3 = init_buffer3(bitmap->height, bitmap->width);
 
         printf("Image buffer3 created.\n");
@@ -423,12 +432,12 @@ int main(int argc, char *argv[]) {
     enum Invert i_flag_input = 0;
 
     struct option long_options[] = {
-        {"help", no_argument, 0, 'h'},
-        {"verbose", no_argument, 0, 'v'},
-        {"test", no_argument, 0, 0},
-        {"version", no_argument, 0, 1},
-        {"hist", no_argument, 0, 2},
-        {"histn", no_argument, 0, 3},
+        {"help", no_argument, NULL, 'h'},
+        {"verbose", no_argument, NULL, 'v'},
+        {"test", no_argument, NULL, 0},
+        {"version", no_argument, NULL, 0},
+        {"hist", no_argument, NULL, 0},
+        {"histn", no_argument, NULL, 0},
         {
             0,
             0,
@@ -441,43 +450,31 @@ int main(int argc, char *argv[]) {
     int long_index = 0;
 
     while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:lhv", long_options,
-                                 &long_index) != -1)) {
-        printf("Optind: %d\n", optind);
-        printf("Option: %d\n", option);
-        printf("Long Index: %d, name: %s\n", long_index,
-               long_options[long_index].name);
+                                 &long_index)) != -1) {
         switch (option) {
 
-        case 0:
-            printf("This is case 0: %s == %s ?\n",
-                   long_options[long_index].name, "test");
-            if (strcmp(long_options[long_index].name, "test") == 0) {
+        case 0: // long options
+
+            printf("This is case 0\n");
+
+            if (strcmp("test", long_options[long_index].name) == 0) {
                 printf("test\n");
-                // print_version();
-                exit(EXIT_SUCCESS);
+            } else if (strcmp("version", long_options[long_index].name) == 0) {
+                printf("version\n");
+                print_version();
+            } else if (strcmp("hist", long_options[long_index].name) ==
+                       0) { // hist
+                printf("hist\n");
+                hist_flag = true;
+            } else if (strcmp("hist", long_options[long_index].name) ==
+                       0) { // histn
+                histn_flag = true;
+                printf("histn\n");
             }
+
+            printf("does this print\n");
             break;
 
-            case 1: // version
-            printf("version\n");
-            // print_version();
-            exit(EXIT_SUCCESS);
-            break;
-            // long options
-
-            // version
-            printf("version\n");
-            // print_version();
-            exit(EXIT_SUCCESS);
-            break;
-            // hist
-            printf("hist\n");
-            exit(EXIT_SUCCESS);
-            break;
-            // histn
-            printf("histn\n");
-            exit(EXIT_SUCCESS);
-            break;
         case 'm':
             m_flag = true;
             // Check both optarg is not null,
@@ -500,143 +497,9 @@ int main(int argc, char *argv[]) {
                 optind--;
             }
             break;
-        case 'b':
-            b_flag = true;
-            bool valid_b_value = false;
-            // Check both optarg is not null,
-            // and optarg[0] starts with char 0-9 or "."
-            if (optarg) {
-                // Negative check.
-                uint_fast8_t check_digit = 0;
-                if (optarg[check_digit] == '-') {
-                    ++check_digit;
-                }
-
-                if (is_digit_or_dot(optarg[check_digit]) &&
-                    strrchr(optarg, '.')) {
-                    float b_float_input = 0.0;
-                    if (get_valid_float(optarg, &b_float_input)) {
-                        if ((b_float_input != 0.0) && (b_float_input >= -1.0) &&
-                            (b_float_input <= 1.0)) {
-                            b_flag_float = b_float_input;
-                            printf("-b float value: %.2f\n", b_flag_float);
-                            valid_b_value = true;
-                        }
-                    }
-                } else if (is_digit(optarg[check_digit])) {
-                    printf("is_digit\n");
-                    int b_int_input = 0;
-                    printf("get_valid_int: %s\n",
-                           get_valid_int(optarg, &b_int_input) ? "true"
-                                                               : "false");
-                    if (get_valid_int(optarg, &b_int_input)) {
-                        printf("get_valid_int\n");
-                        if ((b_int_input != 0) && (b_int_input >= -255) &&
-                            (b_int_input <= 255)) {
-                            b_flag_int = b_int_input;
-                            printf("-b int value: %d\n", b_flag_int);
-                            valid_b_value = true;
-                        }
-                    }
-                }
-            }
-            if (!valid_b_value) {
-
-                fprintf(stderr, "-b value error: \"%s\"\n", optarg);
-                exit(EXIT_FAILURE);
-            }
-            break;
-        case 'g': // mode: GRAY, to grayscale image
-            g_flag = true;
-            break;
-            ;
-        case 'e': // equalize
-            e_flag = true;
-            break;
-        case 'r': // rotate
-            r_flag = true;
-            bool valid_r_value = false;
-            // Check both optarg is not null,
-            // and optarg[0] starts with char 0-9 or "."
-            if (optarg) {
-                // Negative check. Check if the first character is '-'
-                uint8_t check_digit = 0;
-                if (optarg[check_digit] == '-') {
-                    check_digit++;
-                }
-
-                if (is_digit(optarg[check_digit])) {
-                    printf("is_digit\n");
-                    int r_int_input = 0;
-                    printf("get_valid_int: %s\n",
-                           get_valid_int(optarg, &r_int_input) ? "true"
-                                                               : "false");
-                    if (get_valid_int(optarg, &r_int_input)) {
-                        printf("get_valid_int\n");
-                        if ((r_int_input != 0) && (r_int_input >= -270) &&
-                            (r_int_input <= 270 && r_int_input % 90 == 0)) {
-                            r_flag_int = r_int_input;
-                            printf("-r int value: %d\n", r_flag_int);
-                            valid_r_value = true;
-                        }
-                    }
-                }
-            }
-            if (!valid_r_value) {
-                fprintf(stderr, "-r value error: \"%s\"\n", optarg);
-                exit(EXIT_FAILURE);
-            }
-            break;
-
-        case 'f':
-            f_flag = true;
-            if (optarg && optarg[0] && !optarg[1]) {
-                if (optarg[0] == 'h' || optarg[0] == 'H') {
-                    f_flag_input = H;
-                } else if (optarg[0] == 'v' || optarg[0] == 'V') {
-                    f_flag_input = V;
-                }
-            }
-
-            if (f_flag_input != H && f_flag_input != V) {
-                fprintf(stderr, "-f value error: \"%c\"\n", optarg[0]);
-                exit(EXIT_FAILURE);
-            }
-            break;
-
-        case 'i':
-            i_flag = true;
-            if (optarg && !optarg[1]) {
-                if (optarg[0] == 'r' || optarg[0] == 'R') {
-                    i_flag_input = RGB_INVERT;
-                } else if (optarg[0] == 'h' || optarg[0] == 'H') {
-                    i_flag_input = HSV_INVERT;
-                }
-            } else {
-                fprintf(stderr, "-i value error: \"%c\"\n", optarg[0]);
-                fprintf(stderr, "Use \"-i r\" for RGB invert or \"-i h\" for "
-                                "HSV invert.\n");
-
-                // Adjust optind to reconsider the current argument as a
-                // non-option argument
-                // optind--;
-            }
-            break;
-        case 'l': // blur
-            l_flag = true;
-            break;
-        case 'h': // help
-            print_usage(argv[0]);
-            exit(EXIT_SUCCESS);
-        case 'v': // verbose
-            v_flag = true;
-            break;
-
-        default:
-            printf("Unknown option: --%s\n", long_options[long_index].name);
-            exit(EXIT_FAILURE);
         }
     }
+    printf("Option: %d\n", option);
 
     // set the mode and make sure only one mode is true.
     if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
@@ -698,9 +561,9 @@ int main(int argc, char *argv[]) {
     char *ext2;
     // if there is a filename2 but not a valid extension
     if (filename2) {
-        ext2 = get_output_ext(filename2, mode);
-        if (!ext2) { // if (NULL)
-            if (mode == HIST) {
+        ext2 = get_filename_ext(filename2, mode);
+        if (!ext2) { // if incorrect filename extention print message
+            if (mode == HIST || mode == HIST_N) {
                 printf("Error: Output file %s does not end with %s or "
                        "%s\n",
                        filename2, dot_txt, dot_dat);
@@ -715,7 +578,7 @@ int main(int argc, char *argv[]) {
     else { // create filename2 with proper suffix from mode
         // Find the last position of the  '.' in the filename
         char *dot_pos = strrchr(filename1, '.');
-        ext2 = get_output_ext(NULL, mode);
+        ext2 = get_default_mode_ext(mode);
         if (dot_pos == NULL) {
             fprintf(stderr, "\".\" not found in filename: %s\n", filename1);
             exit(EXIT_FAILURE);
