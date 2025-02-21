@@ -39,8 +39,11 @@ char *get_suffix(enum Mode mode) {
     case BRIGHT:
         return "_bright";
         break;
-    case HIST:
-        return "_hist";
+        case HIST:
+        return "_hist_256";
+        break;
+        case HIST_N:
+        return "_hist_0_1";
         break;
     case EQUAL:
         return "_equal";
@@ -97,7 +100,7 @@ char* get_filename_ext(char *filename, enum Mode mode) {
 }
 
 
-char *get_default_mode_ext(enum Mode mode) {
+char *get_default_ext(enum Mode mode) {
     if (mode == HIST || mode == HIST_N) {
         return dot_txt;
     } else {
@@ -208,9 +211,7 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == BRIGHT) {
             bright1(bmp);
         } else if (bmp->output_mode == HIST) {
-            printf("Check3\n");
             hist1(bmp);
-            printf("Check4\n");
         } else if (bmp->output_mode == HIST_N) {
             hist1_normalized(bmp);
         } else if (bmp->output_mode == EQUAL) {
@@ -262,15 +263,17 @@ bool write_image(Bitmap *bmp, char *filename) {
     bool write_succesful = false;
     FILE *streamOut;
 
-    if (bmp->output_mode == HIST || bmp->output_mode == HIST_N) {
-
+    if (bmp->output_mode == HIST) {
         streamOut = fopen(filename, "w");
-        for (int i = 0; i < bmp->HIST_MAX; i++) {
+        for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
             fprintf(streamOut, "%d\n", bmp->histogram[i]);
         }
-        printf("Check5\n");
+    } else if (bmp->output_mode == HIST_N) {
+        streamOut = fopen(filename, "w");
+        for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
+            fprintf(streamOut, "%f\n", bmp->histogram_n[i]);
+        }
     } else {
-
         streamOut = fopen(filename, "wb");
         if (streamOut == NULL) {
             fprintf(stderr, "Error: failed to open output file %s\n", filename);
@@ -466,7 +469,7 @@ int main(int argc, char *argv[]) {
                        0) { // hist
                 printf("hist\n");
                 hist_flag = true;
-            } else if (strcmp("hist", long_options[long_index].name) ==
+            } else if (strcmp("histn", long_options[long_index].name) ==
                        0) { // histn
                 histn_flag = true;
                 printf("histn\n");
@@ -562,7 +565,7 @@ int main(int argc, char *argv[]) {
     // if there is a filename2 but not a valid extension
     if (filename2) {
         ext2 = get_filename_ext(filename2, mode);
-        if (!ext2) { // if incorrect filename extention print message
+        if (!ext2) { // if incorrect filename extention for mode, print message
             if (mode == HIST || mode == HIST_N) {
                 printf("Error: Output file %s does not end with %s or "
                        "%s\n",
@@ -578,7 +581,7 @@ int main(int argc, char *argv[]) {
     else { // create filename2 with proper suffix from mode
         // Find the last position of the  '.' in the filename
         char *dot_pos = strrchr(filename1, '.');
-        ext2 = get_default_mode_ext(mode);
+        ext2 = get_default_ext(mode);
         if (dot_pos == NULL) {
             fprintf(stderr, "\".\" not found in filename: %s\n", filename1);
             exit(EXIT_FAILURE);
@@ -649,7 +652,8 @@ int main(int argc, char *argv[]) {
                      .imageBuffer3 = NULL,
                      .histogram = NULL,
                      .histogram_n = NULL,
-                     .HIST_MAX = 0,
+                     .HIST_RANGE_MAX = 0,
+                     .hist_max_value = 0,
                      .degrees = 0,
                      .direction = 0,
                      .invert = 0,

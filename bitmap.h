@@ -47,7 +47,8 @@ typedef struct {
     uint8_t *histogram; // In the raw color range (hist1) or equalized (equal1),
                         // [0..255]
     float_t *histogram_n; // Normalized to [0..1]
-    uint16_t HIST_MAX;    // 256 for 8 bit images, set by calling hist1
+    uint16_t HIST_RANGE_MAX;    // 256 for 8 bit images, set by calling hist1
+    uint8_t hist_max_value;
     int16_t degrees;
     bool CT_EXISTS;
     unsigned char *colorTable;

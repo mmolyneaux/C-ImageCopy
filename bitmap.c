@@ -137,7 +137,7 @@ void free_mem(Bitmap *bmp) {
         if (bmp->imageBuffer1) {
             free(bmp->imageBuffer1);
             bmp->imageBuffer1 = NULL; // Avoid dangling pointer.
-        if (bmp->imageBuffer3) {
+            if (bmp->imageBuffer3) {
                 free(bmp->imageBuffer3);
             }
             free(bmp->imageBuffer3);
@@ -371,8 +371,9 @@ void rot13(Bitmap *bmp) {
                 for (int c = 0; c < cols; c++) {
 
                     for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[(rows - 1 - r) * cols + (cols - 1 - c) + rgb] =
-                                          bmp->imageBuffer3[r * cols + c + rgb];
+                        output_buffer3[(rows - 1 - r) * cols + (cols - 1 - c) +
+                                       rgb] =
+                            bmp->imageBuffer3[r * cols + c + rgb];
                     }
                 }
             }
@@ -387,7 +388,6 @@ void rot13(Bitmap *bmp) {
                 }
             }
         }
-
 
         free(bmp->imageBuffer3);
 
@@ -547,13 +547,15 @@ void bright1(Bitmap *bmp) {
 }
 
 void hist1(Bitmap *bmp) {
-    // bmp->HIST_MAX = (1 << bmp->bit_depth); // 256 for 8 bit images
-    bmp->HIST_MAX = 256; // 256 for 8 or less bit images
-    printf("HIST_MAX: %d\n", bmp->HIST_MAX);
+    // bmp->HIST_RANGE_MAX = (1 << bmp->bit_depth); // 256 for 8 bit images
+    bmp->HIST_RANGE_MAX = 256; // 256 for 8 or less bit images
+    bmp->hist_max_value = 0;
+    printf("HIST_RANGE_MAX: %d\n", bmp->HIST_RANGE_MAX);
     //  uint_fast8_t *hist_temp = NULL;
     if (!bmp->histogram) {
-        bmp->histogram = (uint8_t *)calloc(bmp->HIST_MAX, sizeof(uint8_t));
-        //(uint_fast32_t *)calloc(bmp->HIST_MAX, sizeof(uint_fast32_t));
+        bmp->histogram =
+            (uint8_t *)calloc(bmp->HIST_RANGE_MAX, sizeof(uint8_t));
+        //(uint_fast32_t *)calloc(bmp->HIST_RANGE_MAX, sizeof(uint_fast32_t));
     } else {
         fprintf(stderr, "Caution: Histogram already populated.\n");
     }
@@ -565,6 +567,9 @@ void hist1(Bitmap *bmp) {
     // Create histogram / count pixels
     for (size_t i = 0; i < bmp->image_size; i++) {
         bmp->histogram[bmp->imageBuffer1[i]]++;
+        if (bmp->histogram[bmp->imageBuffer1[i]] > bmp->hist_max_value) {
+            bmp->hist_max_value = bmp->histogram[bmp->imageBuffer1[i]];
+        }
     }
     // for (int i = 0; i < 256; i++) {
     //     printf("H: %d ", bmp->histogram[i]);
@@ -579,13 +584,11 @@ void hist1_normalized(Bitmap *bmp) {
         hist1(bmp);
     }
 
-    float_t *histogram_normalized =
-        (float_t *)calloc(bmp->HIST_MAX, sizeof(float_t));
-
+    bmp->histogram_n = (float_t *)calloc(bmp->HIST_RANGE_MAX, sizeof(float_t));
     // Normalize [0..1]
-    for (int i = 0; i < bmp->HIST_MAX; i++) {
-        histogram_normalized[i] =
-            (float_t)bmp->histogram[i] / (float_t)bmp->image_size;
+    for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
+        bmp->histogram_n[i] =
+            (float_t)bmp->histogram[i] / (float_t)bmp->hist_max_value;
     }
 }
 
@@ -593,8 +596,8 @@ void equal1(Bitmap *bmp) {
     if (!bmp->histogram) {
         hist1(bmp);
     }
-    const uint16_t MAX = bmp->HIST_MAX; // 256
-                                        //
+    const uint16_t MAX = bmp->HIST_RANGE_MAX; // 256
+                                              //
     // cumilative distribution function
     uint32_t *cdf = (uint32_t *)calloc(MAX, sizeof(uint32_t));
     uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
@@ -628,7 +631,7 @@ void equal1(Bitmap *bmp) {
         }
     }
     printf("Equilizer: \n");
-    for (int i = 0; i < bmp->HIST_MAX; i++) {
+    for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
         printf("%d ", equalized[i]);
     }
     //  Map the equalized values back to image data
@@ -688,7 +691,6 @@ void blur1(Bitmap *bmp) {
     //         printf("%d ",buf2_2D[r][c]);
     //     }
     // }
-
 
     // Sides
     // Average 1 pixel + 5 neighbors
@@ -817,7 +819,7 @@ void blur3(Bitmap *bmp) {
 
     uint32_t rows = bmp->height;
     uint32_t cols = bmp->width;
-    //uint32_t image_size = rows * cols;
+    // uint32_t image_size = rows * cols;
 
     // height / rows / y
     // width / cols / x
@@ -869,7 +871,7 @@ void blur3(Bitmap *bmp) {
 
     // Left side, c = 0
     for (size_t r = 1, c = 0; r < rows - 1; r++) {
-            sum[0] = sum[1] = sum[2] = 0.0;
+        sum[0] = sum[1] = sum[2] = 0.0;
 
         for (int8_t r1 = -1; r1 <= 1; r1++) {
             for (int8_t c1 = 0; c1 <= 1; c1++) {
@@ -940,7 +942,7 @@ void blur3(Bitmap *bmp) {
 
     // Top left
     size_t r = 0, c = 0;
-        sum[0] = sum[1] = sum[2] = 0.0;
+    sum[0] = sum[1] = sum[2] = 0.0;
 
     for (int8_t r1 = 0; r1 <= 1; r1++) {
         for (int8_t c1 = 0; c1 <= 1; c1++) {
@@ -949,13 +951,13 @@ void blur3(Bitmap *bmp) {
             sum[2] += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][2];
         }
     }
-        buf2_2D[r][c][0] = (uint8_t)sum[0];
-        buf2_2D[r][c][1] = (uint8_t)sum[1];
-        buf2_2D[r][c][2] = (uint8_t)sum[2];
+    buf2_2D[r][c][0] = (uint8_t)sum[0];
+    buf2_2D[r][c][1] = (uint8_t)sum[1];
+    buf2_2D[r][c][2] = (uint8_t)sum[2];
 
     // Bottom left
     r = rows - 1, c = 0;
-        sum[0] = sum[1] = sum[2] = 0.0;
+    sum[0] = sum[1] = sum[2] = 0.0;
 
     for (int8_t r1 = -1; r1 <= 0; r1++) {
         for (int8_t c1 = 0; c1 <= 1; c1++) {
@@ -964,13 +966,13 @@ void blur3(Bitmap *bmp) {
             sum[2] += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][2];
         }
     }
-        buf2_2D[r][c][0] = (uint8_t)sum[0];
-        buf2_2D[r][c][1] = (uint8_t)sum[1];
-        buf2_2D[r][c][2] = (uint8_t)sum[2];
+    buf2_2D[r][c][0] = (uint8_t)sum[0];
+    buf2_2D[r][c][1] = (uint8_t)sum[1];
+    buf2_2D[r][c][2] = (uint8_t)sum[2];
 
     // Bottom right
     r = rows - 1, c = cols - 1;
-        sum[0] = sum[1] = sum[2] = 0.0;
+    sum[0] = sum[1] = sum[2] = 0.0;
 
     for (int8_t r1 = -1; r1 <= 0; r1++) {
         for (int8_t c1 = -1; c1 <= 0; c1++) {
@@ -979,13 +981,13 @@ void blur3(Bitmap *bmp) {
             sum[2] += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][2];
         }
     }
-        buf2_2D[r][c][0] = (uint8_t)sum[0];
-        buf2_2D[r][c][1] = (uint8_t)sum[1];
-        buf2_2D[r][c][2] = (uint8_t)sum[2];
+    buf2_2D[r][c][0] = (uint8_t)sum[0];
+    buf2_2D[r][c][1] = (uint8_t)sum[1];
+    buf2_2D[r][c][2] = (uint8_t)sum[2];
 
     // Top right
     r = 0, c = cols - 1;
-        sum[0] = sum[1] = sum[2] = 0.0;
+    sum[0] = sum[1] = sum[2] = 0.0;
 
     for (int8_t r1 = 0; r1 <= 1; r1++) {
         for (int8_t c1 = -1; c1 <= 0; c1++) {
@@ -994,9 +996,9 @@ void blur3(Bitmap *bmp) {
             sum[2] += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][2];
         }
     }
-        buf2_2D[r][c][0] = (uint8_t)sum[0];
-        buf2_2D[r][c][1] = (uint8_t)sum[1];
-        buf2_2D[r][c][2] = (uint8_t)sum[2];
+    buf2_2D[r][c][0] = (uint8_t)sum[0];
+    buf2_2D[r][c][1] = (uint8_t)sum[1];
+    buf2_2D[r][c][2] = (uint8_t)sum[2];
 
     free(bmp->imageBuffer1);
     free(buf1_2D);
