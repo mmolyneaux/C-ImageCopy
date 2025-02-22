@@ -38,7 +38,7 @@ typedef struct {
     unsigned char header[HEADER_SIZE];
     uint32_t height;
     uint32_t width;
-    uint32_t padded_row_size;
+    uint32_t padded_width;
     uint32_t image_size;
     uint8_t bit_depth;
     uint8_t channels;
@@ -62,7 +62,7 @@ typedef struct {
 
 char *mode_to_string(enum Mode mode);
 uint8_t *init_buffer1(uint32_t image_size);
-void init_buffer3(uint8_t **buffer, uint32_t rows, uint32_t cols);
+void init_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols);
 void free_mem(Bitmap *bmp);
 void copy13(Bitmap *bmp);
 void mono1(Bitmap *bmp);

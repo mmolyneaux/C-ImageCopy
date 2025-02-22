@@ -168,16 +168,21 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         // adds 3 to the total number of bytes, then bitwise
         // bitwise AND's NOT 3 (1111100) to round down to the
         // nearest multiple of 4.
-        uint32_t padded_row_size =
+        bitmap->padded_width =
             (bitmap->width * 3 + 3) & (~3);
         
-        init_buffer3(bitmap->imageBuffer3, bitmap->padded_row_size, bitmap->width);
+        init_buffer3(&bitmap->imageBuffer3, bitmap->height, bitmap->padded_width);
         
         printf("Image buffer3 created.\n");
 
         for (int y = 0; y < bitmap->height; y++) {
-           fread(bitmap->imageBuffer3[y], sizeof(uint8_t), padded_row_size, streamIn); 
+           fread(bitmap->imageBuffer3[y], sizeof(uint8_t), bitmap->padded_width, streamIn); 
         }
+
+        for (int x = bitmap->padded_width - 16; x < bitmap->padded_width - 1; x++) {
+            printf("%d ", bitmap->imageBuffer3[bitmap->height -1][x]);
+        }
+        printf("\n");
         
         file_read_completed = true;
         printf("Channels read.\n");
@@ -306,8 +311,12 @@ bool write_image(Bitmap *bmp, char *filename) {
 
             fwrite(bmp->imageBuffer1, sizeof(char), bmp->image_size, streamOut);
         } else if (bmp->channels == RGB) {
+            for (int x = bmp->padded_width - 16; x < bmp->padded_width - 1; x++) {
+                printf("%d ", bmp->imageBuffer3[bmp->height - 1][x]);
+            }
+            printf("\n");
             for (int y = 0; y < bmp->height; y++) {
-                fwrite(bmp->imageBuffer3[y], sizeof(uint8_t), bmp->padded_row_size, streamOut );
+                fwrite(bmp->imageBuffer3[y], sizeof(uint8_t), bmp->padded_width, streamOut );
             }
             
             // for (int i = 0; i < bmp->image_size; ++i) {
@@ -645,7 +654,7 @@ int main(int argc, char *argv[]) {
     Bitmap bitmap = {.header = {0},
                      .width = 0,
                      .height = 0,
-                     .padded_row_size = 0,
+                     .padded_width = 0,
                      .image_size = 0,
                      .bit_depth = 0,
                      .channels = 0,

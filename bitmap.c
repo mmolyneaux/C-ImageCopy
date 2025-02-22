@@ -87,19 +87,22 @@ void buffer1_to_2D(uint8_t *buf1D, uint8_t ***buf2D, uint32_t rows,
     }
 }
 
-void init_buffer3(uint8_t **buffer, uint32_t rows, uint32_t cols) {
+void init_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols) {
     printf("Buffer_init3\n");
-
-    buffer = (uint8_t **)malloc(rows * sizeof(uint8_t*));
-    if (buffer == NULL) {
+    
+    *buffer = (uint8_t **)malloc(rows * sizeof(uint8_t*));
+    if (*buffer == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
         exit(EXIT_FAILURE);
     }
 
-    for (int r = 0; r < rows; r++) {
-        buffer[r] = (uint8_t *)malloc(cols * 3 * sizeof(uint8_t));
+    for (uint32_t r = 0; r < rows; r++) {
+        (*buffer)[r] = (uint8_t *)calloc(cols,   sizeof(uint8_t));
     }
-    // return buffer;
+    if((*buffer) == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for image buffer.");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
@@ -363,7 +366,7 @@ void rot13(Bitmap *bmp) {
         bmp->imageBuffer1 = output_buffer1;
 
     } else if (bmp->channels == 3) {
-        init_buffer3(output_buffer3, rows, cols);
+        init_buffer3(&output_buffer3, rows, cols);
         // straight forward (normal), left in for completeness/reference.
         if (degrees == 0) {
             for (int r = 0; r < rows; r++) {
@@ -456,7 +459,7 @@ void flip13(Bitmap *bmp) {
         bmp->imageBuffer1 = output_buffer1;
 
     } else if (bmp->channels == 3) {
-        init_buffer3(output_buffer3, rows, cols);
+        init_buffer3(&output_buffer3, rows, cols);
         // straight forward (normal), left in for
         // completeness/reference.
         if (dir == H) {
@@ -853,7 +856,7 @@ void blur3(Bitmap *bmp) {
     // buffer3_to_3D(buf1, &buf1_2D, rows, cols);
 
     uint8_t **buf2 = NULL;
-    init_buffer3(buf2, rows, cols);
+    init_buffer3(&buf2, rows, cols);
     // uint8_t ***buf2_2D = NULL;
     // buffer3_to_3D(buf2, &buf2_2D, rows, cols);
 
