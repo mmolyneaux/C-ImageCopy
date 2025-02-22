@@ -126,6 +126,11 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         fread(bitmap->header,1,HEADER_SIZE, streamIn);
         
     bitmap->width = *(int *)&bitmap->header[18];
+    bitmap->height = *(int *)&bitmap->header[22];
+    bitmap->bit_depth = *(int *)&bitmap->header[28];
+    bitmap->image_size = bitmap->width * bitmap->height;
+
+    // if the bit depth is 1 to 8 then it has a
     // color table. 16-32 bit do not.
     // The read content is going to be stored in colorTable.
     printf("bit_depth: %d\n", bitmap->bit_depth);
