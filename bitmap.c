@@ -87,20 +87,22 @@ void buffer1_to_2D(uint8_t *buf1D, uint8_t ***buf2D, uint32_t rows,
     }
 }
 
-uint8_t *init_buffer3(uint32_t rows, uint32_t cols) {
+void init_buffer3(uint8_t **buffer, uint32_t rows, uint32_t cols) {
     printf("Buffer_init3\n");
-    uint32_t image_size = rows * cols * 3; // 3 channels (RGB)
 
-    uint8_t *buffer = (uint8_t *)malloc(image_size * sizeof(uint8_t));
+    buffer = (uint8_t **)malloc(rows * sizeof(uint8_t*));
     if (buffer == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
         exit(EXIT_FAILURE);
     }
 
-    return buffer;
+    for (int r = 0; r < rows; r++) {
+        buffer[r] = (uint8_t *)malloc(cols * 3 * sizeof(uint8_t));
+    }
+    // return buffer;
 }
 
-void buffer3_to_3D(uint8_t *buffer1D, uint8_t ****buffer3D, uint32_t rows,
+void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
                    uint32_t cols) {
     buffer3D = (uint8_t ****)malloc(rows * sizeof(uint8_t **));
     for (uint32_t r = 0; r < rows; r++) {
@@ -109,8 +111,8 @@ void buffer3_to_3D(uint8_t *buffer1D, uint8_t ****buffer3D, uint32_t rows,
             fprintf(stderr, "Error: Failed to allocate memory for columns.\n");
             exit(EXIT_FAILURE);
         }
-        for (int32_t c = 0; c < cols; c++) {
-            (*buffer3D)[r][c] = &buffer1D[r * cols + c * 3];
+        for (int32_t c = 0; c < cols; c += 3) {
+            (*buffer3D)[r][c] = &buffer1D[r][cols + c * 3];
         }
     }
 }
@@ -157,12 +159,15 @@ void gray3(Bitmap *bmp) {
     float b = 0.11;
 
     uint32_t temp = 0;
-    for (int i = 0, rgb = 0; i < bmp->image_size; ++i) {
-        temp = (bmp->imageBuffer3[i + 0] * r) + (bmp->imageBuffer3[i + 1] * g) +
-               (bmp->imageBuffer3[i + 2] * b);
-        for (rgb = 0; rgb < 3; rgb++) {
-            // Write equally for each channel.
-            bmp->imageBuffer3[i + rgb] = temp;
+    for (size_t y = 0; y < bmp->height; y++) {
+        for (size_t x = 0; x < bmp->width * 3; x += 3) {
+            temp = (bmp->imageBuffer3[y][x + 0] * r) +
+                   (bmp->imageBuffer3[y][x + 1] * g) +
+                   (bmp->imageBuffer3[y][x + 2] * b);
+            for (uint8_t rgb = 0; rgb < 3; rgb++) {
+                // Write equally for each channel.
+                bmp->imageBuffer3[y][x + rgb] = temp;
+            }
         }
     }
 }
@@ -208,23 +213,28 @@ void mono3(Bitmap *bmp) {
     uint8_t threshold = WHITE * bmp->mono_threshold;
 
     if (threshold >= WHITE) {
-        for (int i = 0, j = 0; i < bmp->image_size; ++i) {
-            for (j = 0; j < 3; j++) {
-                bmp->imageBuffer3[i + j] = WHITE;
+        for (size_t y = 0; y < bmp->height; y++) {
+            for (size_t x = 0; x < bmp->width * 3; x += 3) {
+                for (uint8_t rgb = 0; rgb < 3; rgb++) {
+                    bmp->imageBuffer3[y][x + rgb] = WHITE;
+                }
             }
         }
     } else if (threshold <= BLACK) {
-        for (int i = 0, j = 0; i < bmp->image_size; ++i) {
-            for (j = 0; j < 3; ++j) {
-                bmp->imageBuffer3[i + j] = BLACK;
+        for (size_t y = 0; y < bmp->height; y++) {
+            for (size_t x = 0; x < bmp->width * 3; x += 3) {
+                for (uint8_t rgb = 0; rgb < 3; rgb++) {
+                    bmp->imageBuffer3[y][x + rgb] = BLACK;
+                }
             }
         }
     } else {
         // Black and White converter
-        for (int i = 0, j = 0; i < bmp->image_size; ++i) {
-            for (j = 0; j < 3; j++) {
-                bmp->imageBuffer3[i + j] =
-                    (bmp->imageBuffer3[i + j] >= threshold) ? WHITE : BLACK;
+        for (size_t y = 0; y < bmp->height; y++) {
+            for (size_t x = 0; x < bmp->width * 3; x += 3) {
+                bmp->imageBuffer3[y][x] = bmp->imageBuffer3[y][x + 1] =
+                    bmp->imageBuffer3[y][x + 2] =
+                        (bmp->imageBuffer3[y][x] >= threshold) ? WHITE : BLACK;
             }
         }
     }
@@ -236,36 +246,44 @@ void bright3(Bitmap *bmp) {
     const uint8_t WHITE = (1 << (bmp->bit_depth / bmp->channels)) - 1;
     printf("White: %d\n", WHITE);
     if (bmp->bright_value) {
-        int value = 0;
-        int j = 0;
-        for (int i = 0; i < bmp->image_size; i++) {
-            // Adds the positive or negative value with black and white
-            // bounds.
-            for (j = 0; j < 3; ++j) {
-                value = bmp->imageBuffer3[i + j] + bmp->bright_value;
-                if (value <= BLACK) {
-                    bmp->imageBuffer3[i + j] = BLACK;
-                } else if (value >= WHITE) {
-                    bmp->imageBuffer3[i + j] = WHITE;
-                } else {
-                    bmp->imageBuffer3[i + j] = value;
+        int temp = 0;
+
+        for (uint32_t y = 0; y < bmp->height; y++) {
+            for (uint32_t x = 0; x < bmp->width * 3; x += 3) {
+
+                // Adds the positive or negative value with black and white
+                // bounds.
+                for (uint8_t rgb = 0; rgb < 3; rgb++) {
+                    temp = bmp->imageBuffer3[y][x + rgb] + bmp->bright_value;
+                    if (temp <= BLACK) {
+                        bmp->imageBuffer3[y][x + rgb] = BLACK;
+                    } else if (temp >= WHITE) {
+                        bmp->imageBuffer3[y][x + rgb] = WHITE;
+                    } else {
+                        bmp->imageBuffer3[y][x + rgb] = temp;
+                    }
                 }
             }
         }
 
     } else { // bmp->bright_percent
+        // relative to the percentage * pixel
         printf("Bright3 - Percent\n");
-        int value = 0;
-        int j = 0;
+        int temp = 0;
 
-        for (int i = 0; i < bmp->image_size; ++i) {
-            for (j = 0; j < 3; ++j) {
-                value = bmp->imageBuffer3[i + j] +
-                        (int)(bmp->bright_percent * bmp->imageBuffer3[i + j]);
-                if (value >= WHITE) {
-                    bmp->imageBuffer3[i + j] = WHITE;
-                } else {
-                    bmp->imageBuffer3[i + j] = value;
+        for (uint32_t y = 0; y < bmp->height; y++) {
+            for (uint32_t x = 0; x < bmp->width * 3; x += 3) {
+                for (uint8_t rgb = 0; rgb < 3; rgb++) {
+
+                    temp = bmp->imageBuffer3[y][x + rgb] +
+                           (int)(bmp->bright_percent *
+                                 bmp->imageBuffer3[y][x + rgb]);
+
+                    if (temp >= WHITE) {
+                        bmp->imageBuffer3[y][x + rgb] = WHITE;
+                    } else {
+                        bmp->imageBuffer3[y][x + rgb] = temp;
+                    }
                 }
             }
         }
@@ -305,7 +323,7 @@ void rot13(Bitmap *bmp) {
     // height / rows / y
     // width / cols / x
     uint8_t *output_buffer1 = NULL;
-    uint8_t *output_buffer3 = NULL;
+    uint8_t **output_buffer3 = NULL;
 
     if (bmp->channels == 1) {
         output_buffer1 = init_buffer1(image_size);
@@ -345,7 +363,7 @@ void rot13(Bitmap *bmp) {
         bmp->imageBuffer1 = output_buffer1;
 
     } else if (bmp->channels == 3) {
-        output_buffer3 = init_buffer3(rows, cols);
+        init_buffer3(output_buffer3, rows, cols);
         // straight forward (normal), left in for completeness/reference.
         if (degrees == 0) {
             for (int r = 0; r < rows; r++) {
@@ -412,7 +430,7 @@ void flip13(Bitmap *bmp) {
     // height / rows / y / v
     // width / cols / x / h
     uint8_t *output_buffer1 = NULL;
-    uint8_t *output_buffer3 = NULL;
+    uint8_t **output_buffer3 = NULL;
 
     if (bmp->channels == 1) {
         output_buffer1 = init_buffer1(image_size);
@@ -438,7 +456,7 @@ void flip13(Bitmap *bmp) {
         bmp->imageBuffer1 = output_buffer1;
 
     } else if (bmp->channels == 3) {
-        output_buffer3 = init_buffer3(rows, cols);
+        init_buffer3(output_buffer3, rows, cols);
         // straight forward (normal), left in for
         // completeness/reference.
         if (dir == H) {
@@ -480,32 +498,37 @@ void inv13(Bitmap *bmp) {
     } else if (bmp->channels == 3) {
         // RGB Simple invert for each RGB value and also the DEFAULT mode.
         if (bmp->invert == 0 || bmp->invert == RGB_INVERT) {
-            for (int i = 0; i < bmp->image_size; i++) {
-                for (int j = 0; j < 3; j++) {
-                    bmp->imageBuffer3[i + j] = 255 - bmp->imageBuffer3[i + j];
+            for (int y = 0; y < bmp->height; y++) {
+                for (int x = 0; x < bmp->width * 3; x += 3) {
+                    for (uint8_t rgb = 0; rgb <= 3; rgb++) {
+                        bmp->imageBuffer3[y][x + rgb] =
+                            255 - bmp->imageBuffer3[y][x + rgb];
+                    }
                 }
             }
             // HSV based invert
         } else if (bmp->invert == HSV_INVERT) {
 
             float r, g, b, max, v, scale;
-            for (int i = 0; i < bmp->image_size; i++) {
+            for (int y = 0; y < bmp->height; y++) {
+                for (int x = 0; x < bmp->width * 3; x += 3) {
 
-                r = bmp->imageBuffer3[i + 0] / 255.0;
-                g = bmp->imageBuffer3[i + 1] / 255.0;
-                b = bmp->imageBuffer3[i + 2] / 255.0;
+                    r = bmp->imageBuffer3[y][x + 0] / 255.0;
+                    g = bmp->imageBuffer3[y][x + 1] / 255.0;
+                    b = bmp->imageBuffer3[y][x + 2] / 255.0;
 
-                // Convert RGB to HSV
-                max = fmaxf(fmaxf(r, g), b);
-                // v = max, invert the value v
-                v = 1.0 - max;
+                    // Convert RGB to HSV
+                    max = fmaxf(fmaxf(r, g), b);
+                    // v = max, invert the value v
+                    v = 1.0 - max;
 
-                // Convert back to RGB
-                scale = v / max;
+                    // Convert back to RGB
+                    scale = v / max;
 
-                bmp->imageBuffer3[i + 0] = (uint8_t)(r * scale * 255);
-                bmp->imageBuffer3[i + 1] = (uint8_t)(g * scale * 255);
-                bmp->imageBuffer3[i + 2] = (uint8_t)(b * scale * 255);
+                    bmp->imageBuffer3[y][x + 0] = (uint8_t)(r * scale * 255);
+                    bmp->imageBuffer3[y][x + 1] = (uint8_t)(g * scale * 255);
+                    bmp->imageBuffer3[y][x + 2] = (uint8_t)(b * scale * 255);
+                }
             }
         }
     }
@@ -555,7 +578,8 @@ void hist1(Bitmap *bmp) {
     if (!bmp->histogram) {
         bmp->histogram =
             (uint8_t *)calloc(bmp->HIST_RANGE_MAX, sizeof(uint8_t));
-        //(uint_fast32_t *)calloc(bmp->HIST_RANGE_MAX, sizeof(uint_fast32_t));
+        //(uint_fast32_t *)calloc(bmp->HIST_RANGE_MAX,
+        // sizeof(uint_fast32_t));
     } else {
         fprintf(stderr, "Caution: Histogram already populated.\n");
     }
@@ -824,43 +848,37 @@ void blur3(Bitmap *bmp) {
     // height / rows / y
     // width / cols / x
 
-    uint8_t *buf1 = bmp->imageBuffer3;
-    uint8_t ***buf1_2D = NULL;
-    buffer3_to_3D(buf1, &buf1_2D, rows, cols);
+    uint8_t **buf1 = bmp->imageBuffer3;
+    // uint8_t ***buf1_2D = NULL;
+    // buffer3_to_3D(buf1, &buf1_2D, rows, cols);
 
-    uint8_t *buf2 = init_buffer3(rows, cols);
-    uint8_t ***buf2_2D = NULL;
-    buffer3_to_3D(buf2, &buf2_2D, rows, cols);
+    uint8_t **buf2 = NULL;
+    init_buffer3(buf2, rows, cols);
+    // uint8_t ***buf2_2D = NULL;
+    // buffer3_to_3D(buf2, &buf2_2D, rows, cols);
 
     float sum[3];
 
     // Center/main area, average 1 pixel + 8 neighbors.
     for (size_t r = 1; r < rows - 1; r++) {
-        for (size_t c = 1; c < cols - 1; c++) {
+        for (size_t c = 1; c < (cols - 1)*3; c+=3) {
             sum[0] = sum[1] = sum[2] = 0.0;
 
             for (int8_t r1 = -1; r1 <= 1; r1++) {
                 for (int8_t c1 = -1; c1 <= 1; c1++) {
                     sum[0] +=
-                        kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][0];
+                        kernal2D[r1 + 1][c1 + 1] * buf1[r + r1][c + c1*3 + 0];
                     sum[1] +=
-                        kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][1];
+                        kernal2D[r1 + 1][c1 + 1] * buf1[r + r1][c + c1*3 + 1];
                     sum[2] +=
-                        kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][2];
+                        kernal2D[r1 + 1][c1 + 1] * buf1[r + r1][c + c1*3 + 2];
                 }
             }
-            buf2_2D[r][c][0] = (uint8_t)sum[0];
-            buf2_2D[r][c][1] = (uint8_t)sum[1];
-            buf2_2D[r][c][2] = (uint8_t)sum[2];
+            buf2[r][c + 0] = (uint8_t)sum[0];
+            buf2[r][c + 1] = (uint8_t)sum[1];
+            buf2[r][c + 2] = (uint8_t)sum[2];
         }
     }
-
-    /*
-        for (size_t r = 1; r < rows - 1; r++) {
-            for (size_t c = 1; c < cols - 1; c++) {
-            }
-        }
-     */
 
     // Sides
     // Average 1 pixel + 5 neighbors
@@ -875,14 +893,14 @@ void blur3(Bitmap *bmp) {
 
         for (int8_t r1 = -1; r1 <= 1; r1++) {
             for (int8_t c1 = 0; c1 <= 1; c1++) {
-                sum[0] += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][0];
-                sum[1] += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][1];
-                sum[2] += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1][2];
+                sum[0] += kernal2D[r1 + 1][c1 + 1] * buf1[r + r1][(c + c1)*3 + 0];
+                sum[1] += kernal2D[r1 + 1][c1 + 1] * buf1[r + r1][(c + c1)*3 + 1];
+                sum[2] += kernal2D[r1 + 1][c1 + 1] * buf1[r + r1][(c + c1)*3 + 2];
             }
         }
-        buf2_2D[r][c][0] = (uint8_t)sum[0];
-        buf2_2D[r][c][1] = (uint8_t)sum[1];
-        buf2_2D[r][c][2] = (uint8_t)sum[2];
+        buf2[r][c*3 + 0] = (uint8_t)sum[0];
+        buf2[r][c*3 + 1] = (uint8_t)sum[1];
+        buf2[r][c*3 + 2] = (uint8_t)sum[2];
     }
 
     // Right side, c = cols - 1

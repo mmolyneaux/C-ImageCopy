@@ -122,20 +122,10 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         printf("Error opening file or file not found!\n");
         return false;
     }
-    for (int i = 0; i < HEADER_SIZE; i++) {
-        bitmap->header[i] = getc(streamIn);
-    }
-
-    // width starts at address of byte(char) 18, which is then cast to an
-    // int*, so it can be dereferenced into an int, so it is cast to a 4
-    // byte int instead stead of a single byte from the char header array.
-    // Then the height can be retreived from the next 4 byts and so on.
+    
+        fread(bitmap->header,1,HEADER_SIZE, streamIn);
+        
     bitmap->width = *(int *)&bitmap->header[18];
-    bitmap->height = *(int *)&bitmap->header[22];
-    bitmap->bit_depth = *(int *)&bitmap->header[28];
-    bitmap->image_size = bitmap->width * bitmap->height;
-
-    // if the bit depth is 1 to 8 then it has a
     // color table. 16-32 bit do not.
     // The read content is going to be stored in colorTable.
     printf("bit_depth: %d\n", bitmap->bit_depth);
@@ -167,18 +157,23 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 
         file_read_completed = true;
     } else if (bitmap->channels == 3) {
-        printf("Bitmap channels 3.\n");
-        // Allocate memory for the array of pointers (rows) for each pixel
-        // in image_size
-        bitmap->imageBuffer3 = init_buffer3(bitmap->height, bitmap->width);
-
+        
+        // BMP files stor pixel data in rows that must be 
+        // padded to multiples of 4 bytes. This
+        // adds 3 to the total number of bytes, then bitwise
+        // bitwise AND's NOT 3 (1111100) to round down to the
+        // nearest multiple of 4.
+        uint32_t padded_row_size =
+            (bitmap->width * 3 + 3) & (~3);
+        
+        init_buffer3(bitmap->imageBuffer3, bitmap->padded_row_size, bitmap->width);
+        
         printf("Image buffer3 created.\n");
 
-        for (int i = 0; i < bitmap->image_size; i++) {
-            bitmap->imageBuffer3[i + 0] = getc(streamIn); // red
-            bitmap->imageBuffer3[i + 1] = getc(streamIn); // green
-            bitmap->imageBuffer3[i + 2] = getc(streamIn); // blue
+        for (int y = 0; y < bitmap->height; y++) {
+           fread(bitmap->imageBuffer3[y], sizeof(uint8_t), padded_row_size, streamIn); 
         }
+        
         file_read_completed = true;
         printf("Channels read.\n");
     } else if (bitmap->channels == 4) {
@@ -306,13 +301,15 @@ bool write_image(Bitmap *bmp, char *filename) {
 
             fwrite(bmp->imageBuffer1, sizeof(char), bmp->image_size, streamOut);
         } else if (bmp->channels == RGB) {
-            for (int i = 0, j = 0; i < bmp->image_size; ++i) {
-                // Write equally for each channel.
-                // j: red is 0, g is 1, b is 2
-                for (j = 0; j < 3; ++j) {
-                    putc(bmp->imageBuffer3[i + j], streamOut);
-                }
+            for (int y = 0; y < bmp->height; y++) {
+                fwrite(bmp->imageBuffer3[y], sizeof(uint8_t), bmp->padded_row_size, streamOut );
             }
+            
+            // for (int i = 0; i < bmp->image_size; ++i) {
+            //     // Write equally for each channel.
+            //     // j: red is 0, g is 1, b is 2
+            //         putc(bmp->imageBuffer3[i], streamOut);
+            // }
         }
     }
     fclose(streamOut);
@@ -478,6 +475,9 @@ int main(int argc, char *argv[]) {
             printf("does this print\n");
             break;
 
+    case 'g': // mode: GRAY, to grayscale image
+        g_flag = true;
+        break;
         case 'm':
             m_flag = true;
             // Check both optarg is not null,
@@ -640,6 +640,7 @@ int main(int argc, char *argv[]) {
     Bitmap bitmap = {.header = {0},
                      .width = 0,
                      .height = 0,
+                     .padded_row_size = 0,
                      .image_size = 0,
                      .bit_depth = 0,
                      .channels = 0,
