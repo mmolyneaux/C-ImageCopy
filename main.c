@@ -39,10 +39,10 @@ char *get_suffix(enum Mode mode) {
     case BRIGHT:
         return "_bright";
         break;
-        case HIST:
+    case HIST:
         return "_hist_256";
         break;
-        case HIST_N:
+    case HIST_N:
         return "_hist_0_1";
         break;
     case EQUAL:
@@ -82,13 +82,12 @@ bool ends_with(char *str, const char *ext) {
     return strcmp(str + len_str - len_ext, ext) == 0;
 }
 
-
-char* get_filename_ext(char *filename, enum Mode mode) {
+char *get_filename_ext(char *filename, enum Mode mode) {
 
     if (mode == HIST || mode == HIST_N) {
-        if (ends_with(filename, dot_txt)){
+        if (ends_with(filename, dot_txt)) {
             return dot_txt;
-        }else if (ends_with(filename, dot_dat)) {
+        } else if (ends_with(filename, dot_dat)) {
             return dot_dat;
         }
     } else { // image
@@ -99,7 +98,6 @@ char* get_filename_ext(char *filename, enum Mode mode) {
     return NULL;
 }
 
-
 char *get_default_ext(enum Mode mode) {
     if (mode == HIST || mode == HIST_N) {
         return dot_txt;
@@ -107,10 +105,6 @@ char *get_default_ext(enum Mode mode) {
         return dot_bmp;
     }
 }
-
-
-
-
 
 // returns false early and prints an error message if operation not
 // complete. returns true on success of the operation.
@@ -122,9 +116,9 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         printf("Error opening file or file not found!\n");
         return false;
     }
-    
-        fread(bitmap->header,1,HEADER_SIZE, streamIn);
-        
+
+    fread(bitmap->header, 1, HEADER_SIZE, streamIn);
+
     bitmap->width = *(int *)&bitmap->header[18];
     bitmap->height = *(int *)&bitmap->header[22];
     bitmap->bit_depth = *(int *)&bitmap->header[28];
@@ -162,28 +156,30 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 
         file_read_completed = true;
     } else if (bitmap->channels == 3) {
-        
-        // BMP files stor pixel data in rows that must be 
+
+        // BMP files stor pixel data in rows that must be
         // padded to multiples of 4 bytes. This
         // adds 3 to the total number of bytes, then bitwise
         // bitwise AND's NOT 3 (1111100) to round down to the
         // nearest multiple of 4.
-        bitmap->padded_width =
-            (bitmap->width * 3 + 3) & (~3);
-        
-        init_buffer3(&bitmap->imageBuffer3, bitmap->height, bitmap->padded_width);
-        
+        bitmap->padded_width = (bitmap->width * 3 + 3) & (~3);
+
+        init_buffer3(&bitmap->imageBuffer3, bitmap->height,
+                     bitmap->padded_width);
+
         printf("Image buffer3 created.\n");
 
         for (int y = 0; y < bitmap->height; y++) {
-           fread(bitmap->imageBuffer3[y], sizeof(uint8_t), bitmap->padded_width, streamIn); 
+            fread(bitmap->imageBuffer3[y], sizeof(uint8_t),
+                  bitmap->padded_width, streamIn);
         }
 
-        for (int x = bitmap->padded_width - 16; x < bitmap->padded_width - 1; x++) {
-            printf("%d ", bitmap->imageBuffer3[bitmap->height -1][x]);
+        for (int x = bitmap->padded_width - 16; x < bitmap->padded_width - 1;
+             x++) {
+            printf("%d ", bitmap->imageBuffer3[bitmap->height - 1][x]);
         }
         printf("\n");
-        
+
         file_read_completed = true;
         printf("Channels read.\n");
     } else if (bitmap->channels == 4) {
@@ -311,14 +307,16 @@ bool write_image(Bitmap *bmp, char *filename) {
 
             fwrite(bmp->imageBuffer1, sizeof(char), bmp->image_size, streamOut);
         } else if (bmp->channels == RGB) {
-            for (int x = bmp->padded_width - 16; x < bmp->padded_width - 1; x++) {
+            for (int x = bmp->padded_width - 16; x < bmp->padded_width - 1;
+                 x++) {
                 printf("%d ", bmp->imageBuffer3[bmp->height - 1][x]);
             }
             printf("\n");
             for (int y = 0; y < bmp->height; y++) {
-                fwrite(bmp->imageBuffer3[y], sizeof(uint8_t), bmp->padded_width, streamOut );
+                fwrite(bmp->imageBuffer3[y], sizeof(uint8_t), bmp->padded_width,
+                       streamOut);
             }
-            
+
             // for (int i = 0; i < bmp->image_size; ++i) {
             //     // Write equally for each channel.
             //     // j: red is 0, g is 1, b is 2
@@ -489,9 +487,9 @@ int main(int argc, char *argv[]) {
             printf("does this print\n");
             break;
 
-    case 'g': // mode: GRAY, to grayscale image
-        g_flag = true;
-        break;
+        case 'g': // mode: GRAY, to grayscale image
+            g_flag = true;
+            break;
         case 'm':
             m_flag = true;
             // Check both optarg is not null,
@@ -514,7 +512,56 @@ int main(int argc, char *argv[]) {
                 optind--;
             }
             break;
+
+        case 'b':
+            b_flag = true;
+            bool valid_b_value = false;
+            // Check both optarg is not null,
+            // and optarg[0] starts with char 0-9 or "."
+            if (optarg) {
+                // Negative check.
+                uint_fast8_t check_digit = 0;
+                if (optarg[check_digit] == '-') {
+                    ++check_digit;
+                }
+
+                if (is_digit_or_dot(optarg[check_digit]) &&
+                    strrchr(optarg, '.')) {
+                    float b_float_input = 0.0;
+                    if (get_valid_float(optarg, &b_float_input)) {
+                        if ((b_float_input != 0.0) && (b_float_input >= -1.0) &&
+                            (b_float_input <= 1.0)) {
+                            b_flag_float = b_float_input;
+                            printf("-b float value: %.2f\n", b_flag_float);
+                            valid_b_value = true;
+                        }
+                    }
+                } else if (is_digit(optarg[check_digit])) {
+                    printf("is_digit\n");
+                    int b_int_input = 0;
+                    printf("get_valid_int: %s\n",
+                           get_valid_int(optarg, &b_int_input) ? "true"
+                                                               : "false");
+                    if (get_valid_int(optarg, &b_int_input)) {
+                        printf("get_valid_int\n");
+                        if ((b_int_input != 0) && (b_int_input >= -255) &&
+                            (b_int_input <= 255)) {
+                            b_flag_int = b_int_input;
+                            printf("-b int value: %d\n", b_flag_int);
+                            valid_b_value = true;
+                        }
+                    }
+                }
+            }
+            if (!valid_b_value) {
+
+                fprintf(stderr, "-b value error: \"%s\"\n", optarg);
+                exit(EXIT_FAILURE);
+            }
+            break;
         }
+
+        // End getopt while loop
     }
     printf("Option: %d\n", option);
 

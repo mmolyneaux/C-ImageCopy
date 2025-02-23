@@ -242,7 +242,40 @@ void mono3(Bitmap *bmp) {
         }
     }
 }
+void bright1(Bitmap *bmp) {
+    printf("Bright1\n");
+    const uint8_t WHITE = (1 << bmp->bit_depth) - 1;
 
+    if (bmp->bright_value) {
+        for (int i = 0, value = 0; i < bmp->image_size; i++) {
+            // Adds the positive or negative value with black and white
+            // bounds.
+
+            value = bmp->imageBuffer1[i] + bmp->bright_value;
+
+            if (value <= BLACK) {
+                bmp->imageBuffer1[i] = BLACK;
+            } else if (value >= WHITE) {
+                bmp->imageBuffer1[i] = WHITE;
+            } else {
+                bmp->imageBuffer1[i] = value;
+            }
+        }
+    } else { // bmp->bright_percent
+             // if (bmp->bright_percent) {
+        for (int i = 0, value = 0; i < bmp->image_size; i++) {
+            // Adds the positive or negative value with black and white
+            // bounds.
+            value = bmp->imageBuffer1[i] +
+                    (int)(bmp->bright_percent * bmp->imageBuffer1[i]);
+            if (value >= WHITE) {
+                bmp->imageBuffer1[i] = WHITE;
+            } else {
+                bmp->imageBuffer1[i] = value;
+            }
+        }
+    }
+}
 void bright3(Bitmap *bmp) {
     printf("Bright3\n");
 
@@ -537,40 +570,7 @@ void inv13(Bitmap *bmp) {
     }
 }
 
-void bright1(Bitmap *bmp) {
-    printf("Bright1\n");
-    const uint8_t WHITE = (1 << bmp->bit_depth) - 1;
 
-    if (bmp->bright_value) {
-        for (int i = 0, value = 0; i < bmp->image_size; i++) {
-            // Adds the positive or negative value with black and white
-            // bounds.
-
-            value = bmp->imageBuffer1[i] + bmp->bright_value;
-
-            if (value <= BLACK) {
-                bmp->imageBuffer1[i] = BLACK;
-            } else if (value >= WHITE) {
-                bmp->imageBuffer1[i] = WHITE;
-            } else {
-                bmp->imageBuffer1[i] = value;
-            }
-        }
-    } else { // bmp->bright_percent
-             // if (bmp->bright_percent) {
-        for (int i = 0, value = 0; i < bmp->image_size; i++) {
-            // Adds the positive or negative value with black and white
-            // bounds.
-            value = bmp->imageBuffer1[i] +
-                    (int)(bmp->bright_percent * bmp->imageBuffer1[i]);
-            if (value >= WHITE) {
-                bmp->imageBuffer1[i] = WHITE;
-            } else {
-                bmp->imageBuffer1[i] = value;
-            }
-        }
-    }
-}
 
 void hist1(Bitmap *bmp) {
     // bmp->HIST_RANGE_MAX = (1 << bmp->bit_depth); // 256 for 8 bit images
