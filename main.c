@@ -1,7 +1,7 @@
+#include "bitmap.h"
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
-#include "bitmap.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -33,6 +33,12 @@ char *get_suffix(enum Mode mode) {
         break;
     case INV:
         return "_inv";
+        break;
+    case INV_RGB:
+        return "_inv_rgb";
+        break;
+    case INV_HSV:
+        return "_inv_hsv";
         break;
     case BRIGHT:
         return "_bright";
@@ -214,7 +220,7 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == EQUAL) {
             equal1(bmp);
         } else if (bmp->output_mode == INV) {
-            inv13(bmp);
+            inv1(bmp);
         } else if (bmp->output_mode == ROT) {
             rot13(bmp);
         } else if (bmp->output_mode == FLIP) {
@@ -240,9 +246,12 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == EQUAL) {
             printf("E3\n");
             equal3(bmp);
-        } else if (bmp->output_mode == INV) {
-            printf("I3\n");
-            inv13(bmp);
+        } else if (bmp->output_mode == INV_RGB) {
+            printf("I3_RGB\n");
+            inv_rgb3(bmp);
+        } else if (bmp->output_mode == INV_HSV) {
+            printf("I3_HSV\n");
+            inv_hsv3(bmp);
         } else if (bmp->output_mode == ROT) {
             printf("R3\n");
             rot13(bmp);
@@ -441,8 +450,8 @@ int main(int argc, char *argv[]) {
     float b_flag_float = 0.0;
     int b_flag_int = 0;
     int r_flag_int = 0;
-    enum Dir f_flag_input = 0;
-    enum Invert i_flag_input = 0;
+    enum Dir flip_dir = 0;
+    enum Invert invert_mode = 0;
 
     struct option long_options[] = {
         {"help", no_argument, NULL, 'h'},
@@ -566,18 +575,19 @@ int main(int argc, char *argv[]) {
             i_flag = true;
             if (optarg && !optarg[1]) {
                 if (optarg[0] == 'r' || optarg[0] == 'R') {
-                    i_flag_input = RGB_INVERT;
+                    invert_mode = RGB_INVERT;
                 } else if (optarg[0] == 'h' || optarg[0] == 'H') {
-                    i_flag_input = HSV_INVERT;
+                    invert_mode = HSV_INVERT;
+                } else {
+                    fprintf(stderr, "-i value error: \"%c\"\n", optarg[0]);
+                    fprintf(stderr,
+                            "Use \"-i r\" for RGB invert or \"-i h\" for "
+                            "HSV invert.\n");
                 }
             } else {
-                fprintf(stderr, "-i value error: \"%c\"\n", optarg[0]);
-                fprintf(stderr, "Use \"-i r\" for RGB invert or \"-i h\" for "
-                                "HSV invert.\n");
-
                 // Adjust optind to reconsider the current argument as a
                 // non-option argument
-                // optind--;
+                optind--;
             }
             break;
         } // end of switch
@@ -599,7 +609,13 @@ int main(int argc, char *argv[]) {
     } else if (m_flag) {
         mode = MONO;
     } else if (i_flag) {
-        mode = INV;
+        if (invert_mode == 0) {
+            mode = INV;
+        } else if (invert_mode == RGB_INVERT) {
+            mode = INV_RGB;
+        } else if (invert_mode == HSV_INVERT) {
+            mode = INV_HSV;
+        }
     } else if (b_flag) {
         mode = BRIGHT;
     } else if (hist_flag) {
@@ -767,7 +783,12 @@ int main(int argc, char *argv[]) {
         break;
     case INV:
         bitmapPtr->output_mode = mode;
-        bitmapPtr->invert = i_flag_input; // enum Invert
+        break;
+    case INV_RGB:
+        bitmapPtr->output_mode = mode;
+        break;
+    case INV_HSV:
+        bitmapPtr->output_mode = mode;
         break;
     case BRIGHT:
         bitmapPtr->output_mode = mode;
@@ -791,7 +812,7 @@ int main(int argc, char *argv[]) {
         break;
     case FLIP:
         bitmapPtr->output_mode = mode;
-        bitmapPtr->direction = f_flag_input; // enum Dir
+        bitmapPtr->direction = flip_dir; // enum Dir
         break;
     case BLUR:
         bitmapPtr->output_mode = mode;

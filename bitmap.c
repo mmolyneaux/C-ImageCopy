@@ -436,7 +436,7 @@ void equal1(Bitmap *bmp) {
 
 void hist3(Bitmap *bmp) {
 
-    bmp->HIST_RANGE_MAX = 256; 
+    bmp->HIST_RANGE_MAX = 256;
     bmp->hist_max_value3[0] = bmp->hist_max_value3[1] =
         bmp->hist_max_value3[2] = 0;
 
@@ -468,7 +468,7 @@ void equal3(Bitmap *bmp) {
         hist3(bmp);
     }
     const uint16_t MAX = bmp->HIST_RANGE_MAX; // 256
-                                              
+
     // cumilative distribution function
     uint32_t *cdf = (uint32_t *)calloc(MAX, sizeof(uint32_t));
     uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
@@ -521,6 +521,54 @@ void equal3(Bitmap *bmp) {
     cdf = NULL;
     free(equalized);
     equalized = NULL;
+}
+
+void inv1(Bitmap *bmp) {
+    printf("inv13\n");
+
+    // simple grayscale invert, 255 - color, ignores invert mode setting.
+    if (bmp->channels == 1) {
+        for (int i = 0; i < bmp->image_size; i++) {
+            bmp->imageBuffer1[i] = 255 - bmp->imageBuffer1[i];
+        }
+    }
+}
+
+void inv_rgb3(Bitmap *bmp) {
+    // RGB Simple invert for each RGB value and also the DEFAULT mode.
+    for (int y = 0; y < bmp->height; y++) {
+        for (int x = 0; x < bmp->width * 3; x += 3) {
+            for (uint8_t rgb = 0; rgb <= 3; rgb++) {
+                bmp->imageBuffer3[y][x + rgb] =
+                    255 - bmp->imageBuffer3[y][x + rgb];
+            }
+        }
+    }
+
+} // HSV based invert
+
+void inv_hsv3(Bitmap *bmp) {
+    float r, g, b, max, v, scale;
+    for (int y = 0; y < bmp->height; y++) {
+        for (int x = 0; x < bmp->width * 3; x += 3) {
+
+            r = bmp->imageBuffer3[y][x + 0] / 255.0;
+            g = bmp->imageBuffer3[y][x + 1] / 255.0;
+            b = bmp->imageBuffer3[y][x + 2] / 255.0;
+
+            // Convert RGB to HSV
+            max = fmaxf(fmaxf(r, g), b);
+            // v = max, invert the value v
+            v = 1.0 - max;
+
+            // Convert back to RGB
+            scale = v / max;
+
+            bmp->imageBuffer3[y][x + 0] = (uint8_t)(r * scale * 255);
+            bmp->imageBuffer3[y][x + 1] = (uint8_t)(g * scale * 255);
+            bmp->imageBuffer3[y][x + 2] = (uint8_t)(b * scale * 255);
+        }
+    }
 }
 
 void rot13(Bitmap *bmp) {
@@ -717,53 +765,6 @@ void flip13(Bitmap *bmp) {
     } else {
         fprintf(stderr, "Error: Flip buffer initialization.\n");
         exit(EXIT_FAILURE);
-    }
-}
-
-void inv13(Bitmap *bmp) {
-    printf("inv13\n");
-
-    // simple grayscale invert, 255 - color, ignores invert mode setting.
-    if (bmp->channels == 1) {
-        for (int i = 0; i < bmp->image_size; i++) {
-            bmp->imageBuffer1[i] = 255 - bmp->imageBuffer1[i];
-        }
-    } else if (bmp->channels == 3) {
-        // RGB Simple invert for each RGB value and also the DEFAULT mode.
-        if (bmp->invert == 0 || bmp->invert == RGB_INVERT) {
-            for (int y = 0; y < bmp->height; y++) {
-                for (int x = 0; x < bmp->width * 3; x += 3) {
-                    for (uint8_t rgb = 0; rgb <= 3; rgb++) {
-                        bmp->imageBuffer3[y][x + rgb] =
-                            255 - bmp->imageBuffer3[y][x + rgb];
-                    }
-                }
-            }
-            // HSV based invert
-        } else if (bmp->invert == HSV_INVERT) {
-
-            float r, g, b, max, v, scale;
-            for (int y = 0; y < bmp->height; y++) {
-                for (int x = 0; x < bmp->width * 3; x += 3) {
-
-                    r = bmp->imageBuffer3[y][x + 0] / 255.0;
-                    g = bmp->imageBuffer3[y][x + 1] / 255.0;
-                    b = bmp->imageBuffer3[y][x + 2] / 255.0;
-
-                    // Convert RGB to HSV
-                    max = fmaxf(fmaxf(r, g), b);
-                    // v = max, invert the value v
-                    v = 1.0 - max;
-
-                    // Convert back to RGB
-                    scale = v / max;
-
-                    bmp->imageBuffer3[y][x + 0] = (uint8_t)(r * scale * 255);
-                    bmp->imageBuffer3[y][x + 1] = (uint8_t)(g * scale * 255);
-                    bmp->imageBuffer3[y][x + 2] = (uint8_t)(b * scale * 255);
-                }
-            }
-        }
     }
 }
 
