@@ -1,7 +1,6 @@
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
-// #include <math.h>
 #include "bitmap.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -12,7 +11,6 @@
 #include <uchar.h>
 #include <unistd.h>
 
-// This is the 5th lesson / repo  of this program.
 #define VERSION "0.11 Blur\n" // "Blur"
 
 char *dot_bmp = ".bmp";
@@ -207,8 +205,6 @@ bool write_image(Bitmap *bmp, char *filename) {
 
         } else if (bmp->output_mode == MONO) {
             mono1(bmp);
-        } else if (bmp->output_mode == INV) {
-            inv13(bmp);
         } else if (bmp->output_mode == BRIGHT) {
             bright1(bmp);
         } else if (bmp->output_mode == HIST) {
@@ -217,6 +213,8 @@ bool write_image(Bitmap *bmp, char *filename) {
             hist1_normalized(bmp);
         } else if (bmp->output_mode == EQUAL) {
             equal1(bmp);
+        } else if (bmp->output_mode == INV) {
+            inv13(bmp);
         } else if (bmp->output_mode == ROT) {
             rot13(bmp);
         } else if (bmp->output_mode == FLIP) {
@@ -236,12 +234,15 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == MONO) {
             printf("M3\n");
             mono3(bmp);
-        } else if (bmp->output_mode == INV) {
-            printf("I3\n");
-            inv13(bmp);
         } else if (bmp->output_mode == BRIGHT) {
             printf("B3\n");
             bright3(bmp);
+        } else if (bmp->output_mode == EQUAL) {
+            printf("E3\n");
+            equal3(bmp);
+        } else if (bmp->output_mode == INV) {
+            printf("I3\n");
+            inv13(bmp);
         } else if (bmp->output_mode == ROT) {
             printf("R3\n");
             rot13(bmp);
@@ -267,7 +268,7 @@ bool write_image(Bitmap *bmp, char *filename) {
     if (bmp->output_mode == HIST) {
         streamOut = fopen(filename, "w");
         for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
-            fprintf(streamOut, "%d\n", bmp->histogram[i]);
+            fprintf(streamOut, "%d\n", bmp->histogram1[i]);
         }
     } else if (bmp->output_mode == HIST_N) {
         streamOut = fopen(filename, "w");
@@ -484,7 +485,6 @@ int main(int argc, char *argv[]) {
                 printf("histn\n");
             }
 
-            printf("does this print\n");
             break;
 
         case 'g': // mode: GRAY, to grayscale image
