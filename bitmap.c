@@ -131,23 +131,34 @@ uint8_t **buffer3_to_2Dbu(uint8_t *buf1, uint32_t rows, uint32_t cols) {
 // free memory allocated for bitmap structs.
 void free_mem(Bitmap *bmp) {
     if (bmp) {
-        if (bmp->histogram) {
-            free(bmp->histogram);
-            bmp->histogram = NULL;
+        if (bmp->histogram1) {
+            free(bmp->histogram1);
+            bmp->histogram1 = NULL;
         }
         if (bmp->histogram_n) {
             free(bmp->histogram_n);
             bmp->histogram_n = NULL;
         }
+        if (bmp->histogram3) {
+            for (int i = 0; i < 3; i++) {
+                free(bmp->histogram3[i]);
+            }
+            free(bmp->histogram3);
+            bmp->histogram1 = NULL;
+        }
+
         if (bmp->imageBuffer1) {
             free(bmp->imageBuffer1);
             bmp->imageBuffer1 = NULL; // Avoid dangling pointer.
-            if (bmp->imageBuffer3) {
-                free(bmp->imageBuffer3);
+        }
+        if (bmp->imageBuffer3) {
+            for (int i = 0; i < 3; i++) {
+                free(bmp->imageBuffer3[i]);
             }
             free(bmp->imageBuffer3);
-            bmp->imageBuffer3 = NULL; // Avoid dangling pointer.
         }
+        free(bmp->imageBuffer3);
+        bmp->imageBuffer3 = NULL; // Avoid dangling pointer.
     }
 }
 
@@ -326,6 +337,187 @@ void bright3(Bitmap *bmp) {
             }
         }
     }
+}
+
+void hist1(Bitmap *bmp) {
+    // bmp->HIST_RANGE_MAX = (1 << bmp->bit_depth); // 256 for 8 bit images
+    bmp->HIST_RANGE_MAX = 256; // 256 for 8 or less bit images
+    bmp->hist_max_value1 = 0;
+    printf("HIST_RANGE_MAX: %d\n", bmp->HIST_RANGE_MAX);
+    //  uint_fast8_t *hist_temp = NULL;
+    if (!bmp->histogram1) {
+        bmp->histogram1 =
+            (uint8_t *)calloc(bmp->HIST_RANGE_MAX, sizeof(uint8_t));
+        //(uint_fast32_t *)calloc(bmp->HIST_RANGE_MAX,
+        // sizeof(uint_fast32_t));
+    } else {
+        fprintf(stderr, "Caution: Histogram already populated.\n");
+    }
+    if (bmp->histogram1 == NULL) {
+        fprintf(stderr, "Error: Could not allocate memory for histogram.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Create histogram / count pixels
+    for (size_t i = 0; i < bmp->image_size; i++) {
+        bmp->histogram1[bmp->imageBuffer1[i]]++;
+        if (bmp->histogram1[bmp->imageBuffer1[i]] > bmp->hist_max_value1) {
+            bmp->hist_max_value1 = bmp->histogram1[bmp->imageBuffer1[i]];
+        }
+    }
+    // for (int i = 0; i < 256; i++) {
+    //     printf("H: %d ", bmp->histogram[i]);
+    // }
+    printf("Hist1 finished.\n");
+}
+
+// Creates a Creates a normalized histogram [0.0..1.0], from a histogram
+// [0..255] Takes a histogram or calculates it from bmp if hist is NULL
+void hist1_normalized(Bitmap *bmp) {
+    if (!bmp->histogram1) {
+        hist1(bmp);
+    }
+
+    bmp->histogram_n = (float_t *)calloc(bmp->HIST_RANGE_MAX, sizeof(float_t));
+    // Normalize [0..1]
+    for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
+        bmp->histogram_n[i] =
+            (float_t)bmp->histogram1[i] / (float_t)bmp->hist_max_value1;
+    }
+}
+
+void hist3(Bitmap *bmp) {
+    // bmp->HIST_RANGE_MAX = (1 << bmp->bit_depth); // 256 for 8 bit images
+    bmp->HIST_RANGE_MAX = 256; // 256 for 8 or less bit images
+    bmp->hist_max_value3[0] = bmp->hist_max_value3[1] = bmp->hist_max_value3[2] = 0;
+    
+    if (!bmp->histogram3) {
+        init_buffer3(&bmp->histogram3, 3, bmp->HIST_RANGE_MAX);
+    }
+     
+    uint8_t val = 0;
+
+    for (uint8_t rgb = 0; rgb < 3; rgb++) {
+        // Create histogram / count pixels
+    
+        for (size_t y = 0; y < bmp->height; y++) {
+            for (size_t x = 0; x < bmp->height; x+=3) {
+        
+            val = bmp->imageBuffer3[y][x + rgb];
+            bmp->histogram3[rgb][val]++;
+            
+            if (val > bmp->hist_max_value3[rgb]) {
+                bmp->hist_max_value3[rgb] = val;
+            }
+           }
+        }
+    
+    }
+    printf("Hist3 finished.\n");
+}
+
+void equal1(Bitmap *bmp) {
+    if (!bmp->histogram1) {
+        hist1(bmp);
+    }
+    const uint16_t MAX = bmp->HIST_RANGE_MAX; // 256
+                                              //
+    // cumilative distribution function
+    uint32_t *cdf = (uint32_t *)calloc(MAX, sizeof(uint32_t));
+    uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
+    if (!cdf || !equalized) {
+        printf("cdf or equalized not initialized.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    uint16_t i = 0; // index
+    cdf[0] = bmp->histogram1[0];
+    for (i = 1; i < MAX; i++) {
+        cdf[i] = bmp->histogram1[i] + cdf[i - 1];
+    }
+
+    // Find the minimum (first) non-zero CDF value
+    uint32_t min_cdf = cdf[0];
+    for (i = 1; min_cdf == 0 && i < MAX; i++) {
+        if (cdf[i] != 0) {
+            min_cdf = cdf[i];
+        }
+    }
+
+    // Normalize the CDF to map the pixel values to [0, 255]
+    for (i = 0; i < MAX; i++) {
+        if (cdf[i] >= min_cdf) {
+            equalized[i] =
+                (uint8_t)(((float_t)(MAX - 1.0) * (cdf[i] - min_cdf)) /
+                          (cdf[MAX - 1] - min_cdf));
+        } else {
+            equalized[i] = 0;
+        }
+    }
+    printf("Equilizer: \n");
+    for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
+        printf("%d ", equalized[i]);
+    }
+    //  Map the equalized values back to image data
+    for (size_t i = 0; i < bmp->image_size; i++) {
+        bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
+    }
+
+    free(cdf); //(bmp->histogram)
+    cdf = NULL;
+    free(equalized);
+}
+
+void equal3(Bitmap *bmp) {
+    if (!bmp->histogram3) {
+        hist1(bmp);
+    }
+    const uint16_t MAX = bmp->HIST_RANGE_MAX; // 256
+                                              //
+    // cumilative distribution function
+    uint32_t *cdf = (uint32_t *)calloc(MAX, sizeof(uint32_t));
+    uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
+    if (!cdf || !equalized) {
+        printf("cdf or equalized not initialized.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    uint16_t i = 0; // index
+    cdf[0] = bmp->histogram3[0];
+    for (i = 1; i < MAX; i++) {
+        cdf[i] = bmp->histogram3[i] + cdf[i - 1];
+    }
+
+    // Find the minimum (first) non-zero CDF value
+    uint32_t min_cdf = cdf[0];
+    for (i = 1; min_cdf == 0 && i < MAX; i++) {
+        if (cdf[i] != 0) {
+            min_cdf = cdf[i];
+        }
+    }
+
+    // Normalize the CDF to map the pixel values to [0, 255]
+    for (i = 0; i < MAX; i++) {
+        if (cdf[i] >= min_cdf) {
+            equalized[i] =
+                (uint8_t)(((float_t)(MAX - 1.0) * (cdf[i] - min_cdf)) /
+                          (cdf[MAX - 1] - min_cdf));
+        } else {
+            equalized[i] = 0;
+        }
+    }
+    printf("Equilizer: \n");
+    for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
+        printf("%d ", equalized[i]);
+    }
+    //  Map the equalized values back to image data
+    for (size_t i = 0; i < bmp->image_size; i++) {
+        bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
+    }
+
+    free(cdf); //(bmp->histogram)
+    cdf = NULL;
+    free(equalized);
 }
 
 void rot13(Bitmap *bmp) {
@@ -570,105 +762,6 @@ void inv13(Bitmap *bmp) {
             }
         }
     }
-}
-
-void hist1(Bitmap *bmp) {
-    // bmp->HIST_RANGE_MAX = (1 << bmp->bit_depth); // 256 for 8 bit images
-    bmp->HIST_RANGE_MAX = 256; // 256 for 8 or less bit images
-    bmp->hist_max_value = 0;
-    printf("HIST_RANGE_MAX: %d\n", bmp->HIST_RANGE_MAX);
-    //  uint_fast8_t *hist_temp = NULL;
-    if (!bmp->histogram) {
-        bmp->histogram =
-            (uint8_t *)calloc(bmp->HIST_RANGE_MAX, sizeof(uint8_t));
-        //(uint_fast32_t *)calloc(bmp->HIST_RANGE_MAX,
-        // sizeof(uint_fast32_t));
-    } else {
-        fprintf(stderr, "Caution: Histogram already populated.\n");
-    }
-    if (bmp->histogram == NULL) {
-        fprintf(stderr, "Error: Could not allocate memory for histogram.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // Create histogram / count pixels
-    for (size_t i = 0; i < bmp->image_size; i++) {
-        bmp->histogram[bmp->imageBuffer1[i]]++;
-        if (bmp->histogram[bmp->imageBuffer1[i]] > bmp->hist_max_value) {
-            bmp->hist_max_value = bmp->histogram[bmp->imageBuffer1[i]];
-        }
-    }
-    // for (int i = 0; i < 256; i++) {
-    //     printf("H: %d ", bmp->histogram[i]);
-    // }
-    printf("Hist1 finished.\n");
-}
-
-// Creates a Creates a normalized histogram [0.0..1.0], from a histogram
-// [0..255] Takes a histogram or calculates it from bmp if hist is NULL
-void hist1_normalized(Bitmap *bmp) {
-    if (!bmp->histogram) {
-        hist1(bmp);
-    }
-
-    bmp->histogram_n = (float_t *)calloc(bmp->HIST_RANGE_MAX, sizeof(float_t));
-    // Normalize [0..1]
-    for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
-        bmp->histogram_n[i] =
-            (float_t)bmp->histogram[i] / (float_t)bmp->hist_max_value;
-    }
-}
-
-void equal1(Bitmap *bmp) {
-    if (!bmp->histogram) {
-        hist1(bmp);
-    }
-    const uint16_t MAX = bmp->HIST_RANGE_MAX; // 256
-                                              //
-    // cumilative distribution function
-    uint32_t *cdf = (uint32_t *)calloc(MAX, sizeof(uint32_t));
-    uint8_t *equalized = (uint8_t *)calloc(MAX, sizeof(uint8_t));
-    if (!cdf || !equalized) {
-        printf("cdf or equalized not initialized.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    uint16_t i = 0; // index
-    cdf[0] = bmp->histogram[0];
-    for (i = 1; i < MAX; i++) {
-        cdf[i] = bmp->histogram[i] + cdf[i - 1];
-    }
-
-    // Find the minimum (first) non-zero CDF value
-    uint32_t min_cdf = cdf[0];
-    for (i = 1; min_cdf == 0 && i < MAX; i++) {
-        if (cdf[i] != 0) {
-            min_cdf = cdf[i];
-        }
-    }
-
-    // Normalize the CDF to map the pixel values to [0, 255]
-    for (i = 0; i < MAX; i++) {
-        if (cdf[i] >= min_cdf) {
-            equalized[i] =
-                (uint8_t)(((float_t)(MAX - 1.0) * (cdf[i] - min_cdf)) /
-                          (cdf[MAX - 1] - min_cdf));
-        } else {
-            equalized[i] = 0;
-        }
-    }
-    printf("Equilizer: \n");
-    for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
-        printf("%d ", equalized[i]);
-    }
-    //  Map the equalized values back to image data
-    for (size_t i = 0; i < bmp->image_size; i++) {
-        bmp->imageBuffer1[i] = equalized[bmp->imageBuffer1[i]];
-    }
-
-    free(cdf); //(bmp->histogram)
-    cdf = NULL;
-    free(equalized);
 }
 
 void blur1(Bitmap *bmp) {

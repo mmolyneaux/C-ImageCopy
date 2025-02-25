@@ -45,11 +45,13 @@ typedef struct {
     float_t mono_threshold; // 0.0 to 1.0 inclusive
     int16_t bright_value;   // -255 to 255 inclusive
     float_t bright_percent; // -1.0 to 1.0 inclusive
-    uint8_t *histogram; // In the raw color range (hist1) or equalized (equal1),
+    uint8_t *histogram1; // In the raw color range (hist1) or equalized (equal1),
+    uint8_t **histogram3; // In the raw color range (hist1) or equalized (equal1),
                         // [0..255]
     float_t *histogram_n; // Normalized to [0..1]
     uint16_t HIST_RANGE_MAX;    // 256 for 8 bit images, set by calling hist1
-    uint8_t hist_max_value;
+    uint8_t hist_max_value1;
+    uint8_t hist_max_value3[3];
     int16_t degrees;
     bool CT_EXISTS;
     unsigned char *colorTable;
@@ -65,17 +67,23 @@ uint8_t *init_buffer1(uint32_t image_size);
 void init_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols);
 void free_mem(Bitmap *bmp);
 void copy13(Bitmap *bmp);
+void gray3(Bitmap *bmp);
 void mono1(Bitmap *bmp);
 void mono3(Bitmap *bmp);
 void bright1(Bitmap *bmp);
 void bright3(Bitmap *bmp);
-void gray3(Bitmap *bmp);
+
 void hist1(Bitmap *bmp);
 void hist1_normalized(Bitmap *bmp);
+void hist3(Bitmap *bmp);
+
+void equal1(Bitmap *bmp);
+void equal3(Bitmap *bmp);
+
 void rot13(Bitmap *bmp);
 void flip13(Bitmap *bmp);
 void inv13(Bitmap *bmp);
-void equal1(Bitmap *bmp);
+
 void blur1(Bitmap *bmp);
 void blur3(Bitmap *bmp);
 #endif

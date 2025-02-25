@@ -559,10 +559,30 @@ int main(int argc, char *argv[]) {
                 exit(EXIT_FAILURE);
             }
             break;
-        }
+        case 'e': // equalize
+            e_flag = true;
+            break;
+        case 'i':
+            i_flag = true;
+            if (optarg && !optarg[1]) {
+                if (optarg[0] == 'r' || optarg[0] == 'R') {
+                    i_flag_input = RGB_INVERT;
+                } else if (optarg[0] == 'h' || optarg[0] == 'H') {
+                    i_flag_input = HSV_INVERT;
+                }
+            } else {
+                fprintf(stderr, "-i value error: \"%c\"\n", optarg[0]);
+                fprintf(stderr, "Use \"-i r\" for RGB invert or \"-i h\" for "
+                                "HSV invert.\n");
 
-        // End getopt while loop
-    }
+                // Adjust optind to reconsider the current argument as a
+                // non-option argument
+                // optind--;
+            }
+            break;
+        } // end of switch
+
+    } // End getopt while loop
     printf("Option: %d\n", option);
 
     // set the mode and make sure only one mode is true.
@@ -712,10 +732,12 @@ int main(int argc, char *argv[]) {
                      .colorTable = NULL,
                      .imageBuffer1 = NULL,
                      .imageBuffer3 = NULL,
-                     .histogram = NULL,
+                     .histogram1 = NULL,
+                     .histogram3 = NULL,
                      .histogram_n = NULL,
                      .HIST_RANGE_MAX = 0,
-                     .hist_max_value = 0,
+                     .hist_max_value1 = 0,
+                     .hist_max_value3 = {0, 0, 0},
                      .degrees = 0,
                      .direction = 0,
                      .invert = 0,
