@@ -716,7 +716,6 @@ void flip13(Bitmap *bmp) {
     if (bmp->channels == 1) {
         output_buffer1 = init_buffer1(image_size);
 
-        // straight forward (normal), left in for completeness/reference.
         if (dir == H) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
@@ -737,30 +736,34 @@ void flip13(Bitmap *bmp) {
         bmp->imageBuffer1 = output_buffer1;
 
     } else if (bmp->channels == 3) {
-        init_buffer3(&output_buffer3, rows, cols);
-        // straight forward (normal), left in for
-        // completeness/reference.
+        init_buffer3(&output_buffer3, height, bmp->padded_width);
+
         if (dir == H) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width * 3; x += 3) {
                     for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[r * cols + (cols - 1 - c) + rgb] =
-                            bmp->imageBuffer3[r * cols + c + rgb];
+                        output_buffer3[y][x + rgb] =
+                            bmp->imageBuffer3[y][bmp->padded_width - (x + 3) +
+                                                 rgb];
                     }
                 }
             }
         } else if (dir == V) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width * 3; x += 3) {
                     for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[(rows - 1 - r) * cols + c + rgb] =
-                            bmp->imageBuffer3[r * cols + c + rgb];
+                        output_buffer3[y][x + rgb] =
+                            bmp->imageBuffer3[height - (y + 1)][x + rgb];
                     }
                 }
             }
         }
 
+        for (int y = 0; y < height; y++) {
+            free(bmp->imageBuffer3[y]);
+        }
         free(bmp->imageBuffer3);
+
         bmp->imageBuffer3 = output_buffer3;
     } else {
         fprintf(stderr, "Error: Flip buffer initialization.\n");

@@ -178,12 +178,6 @@ bool readImage(char *filename1, Bitmap *bitmap) {
                   bitmap->padded_width, streamIn);
         }
 
-        for (int x = bitmap->padded_width - 16; x < bitmap->padded_width - 1;
-             x++) {
-            printf("%d ", bitmap->imageBuffer3[bitmap->height - 1][x]);
-        }
-        printf("\n");
-
         file_read_completed = true;
         printf("Channels read.\n");
     } else if (bitmap->channels == 4) {
@@ -588,6 +582,21 @@ int main(int argc, char *argv[]) {
                 // Adjust optind to reconsider the current argument as a
                 // non-option argument
                 optind--;
+            }
+            break;
+        case 'f':
+            f_flag = true;
+            if (optarg && optarg[0] && !optarg[1]) {
+                if (optarg[0] == 'h' || optarg[0] == 'H') {
+                    flip_dir = H;
+                } else if (optarg[0] == 'v' || optarg[0] == 'V') {
+                    flip_dir = V;
+                }
+            }
+
+            if (flip_dir != H && flip_dir != V) {
+                fprintf(stderr, "-f value error: \"%c\"\n", optarg[0]);
+                exit(EXIT_FAILURE);
             }
             break;
         } // end of switch
