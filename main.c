@@ -599,6 +599,42 @@ int main(int argc, char *argv[]) {
                 exit(EXIT_FAILURE);
             }
             break;
+
+        case 'r': // rotate
+            r_flag = true;
+            bool valid_r_value = false;
+            // Check both optarg is not null,
+            // and optarg[0] starts with char 0-9 or "."
+            if (optarg) {
+                // Negative check. Check if the first character is '-'
+                uint8_t check_digit = 0;
+                if (optarg[check_digit] == '-') {
+                    check_digit++;
+                }
+
+                if (is_digit(optarg[check_digit])) {
+                    printf("is_digit\n");
+                    int r_int_input = 0;
+                    printf("get_valid_int: %s\n",
+                           get_valid_int(optarg, &r_int_input) ? "true"
+                                                               : "false");
+                    if (get_valid_int(optarg, &r_int_input)) {
+                        printf("get_valid_int\n");
+                        if (//(r_int_input != 0) && 
+                        (r_int_input >= -270) &&
+                            (r_int_input <= 270 && r_int_input % 90 == 0)) {
+                            r_flag_int = r_int_input;
+                            printf("-r int value: %d\n", r_flag_int);
+                            valid_r_value = true;
+                        }
+                    }
+                }
+            }
+            if (!valid_r_value) {
+                fprintf(stderr, "-r value error: \"%s\"\n", optarg);
+                exit(EXIT_FAILURE);
+            }
+            break;
         } // end of switch
 
     } // End getopt while loop

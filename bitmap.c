@@ -570,134 +570,6 @@ void inv_hsv3(Bitmap *bmp) {
         }
     }
 }
-
-void rot13(Bitmap *bmp) {
-
-    uint32_t width = 0;
-    uint32_t height = 0;
-
-    int16_t degrees = bmp->degrees;
-
-    // if we are rotating into a plane the flips the width and height.
-    // else width and height are the same
-    if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
-        height = bmp->height;
-        width = bmp->width;
-        bmp->width = height; // rotated dimensions
-        bmp->height = width;
-
-        // Update header with rotated dimensions for output
-        *(int *)&bmp->header[18] = (uint32_t)bmp->width;
-        *(int *)&bmp->header[22] = (uint32_t)bmp->height;
-
-    } else if (degrees == 180 || degrees == -180) {
-        width = bmp->width; // Read in normal values for local variables
-        height = bmp->height;
-    } else {
-        return;
-    }
-    // For transformation algorithm, pre-transform.
-    uint32_t image_size = bmp->image_size;
-    uint32_t rows = height;
-    uint32_t cols = width;
-
-    // height / rows / y
-    // width / cols / x
-    uint8_t *output_buffer1 = NULL;
-    uint8_t **output_buffer3 = NULL;
-
-    if (bmp->channels == 1) {
-        output_buffer1 = init_buffer1(image_size);
-
-        // straight forward (normal), left in for completeness/reference.
-        if (degrees == 0) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-                    output_buffer1[r * cols + c] =
-                        bmp->imageBuffer1[r * cols + c];
-                }
-            }
-        } else if (degrees == -90 || degrees == 270) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-                    output_buffer1[c * rows + (rows - 1 - r)] =
-                        bmp->imageBuffer1[r * cols + c];
-                }
-            }
-        } else if (degrees == 180 || degrees == -180) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-                    output_buffer1[(rows - 1 - r) * cols + (cols - 1 - c)] =
-                        bmp->imageBuffer1[r * cols + c];
-                }
-            }
-        } else if (degrees == -270 || degrees == 90) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-                    output_buffer1[(cols - 1 - c) * rows + r] =
-                        bmp->imageBuffer1[r * cols + c];
-                }
-            }
-        }
-
-        free(bmp->imageBuffer1);
-        bmp->imageBuffer1 = output_buffer1;
-
-    } else if (bmp->channels == 3) {
-        init_buffer3(&output_buffer3, rows, cols);
-        // straight forward (normal), left in for completeness/reference.
-        if (degrees == 0) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-                    for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[r * cols + c + rgb] =
-                            bmp->imageBuffer3[r * cols + c + rgb];
-                    }
-                }
-            }
-        } else if (degrees == -90 || degrees == 270) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-
-                    for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[c * rows + (rows - 1 - r) + rgb] =
-                            bmp->imageBuffer3[r * cols + c + rgb];
-                    }
-                }
-            }
-        } else if (degrees == 180 || degrees == -180) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-
-                    for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[(rows - 1 - r) * cols + (cols - 1 - c) +
-                                       rgb] =
-                            bmp->imageBuffer3[r * cols + c + rgb];
-                    }
-                }
-            }
-        } else if (degrees == -270 || degrees == 90) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-
-                    for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[(cols - 1 - c) * rows + r + rgb] =
-                            bmp->imageBuffer3[r * cols + c + rgb];
-                    }
-                }
-            }
-        }
-
-        free(bmp->imageBuffer3);
-
-        bmp->imageBuffer3 = output_buffer3;
-
-    } else {
-        fprintf(stderr, "Error: Rotation buffer initialization.\n");
-        exit(EXIT_FAILURE);
-    }
-}
-
 void flip13(Bitmap *bmp) {
 
     enum Dir dir = bmp->direction;
@@ -767,6 +639,151 @@ void flip13(Bitmap *bmp) {
         bmp->imageBuffer3 = output_buffer3;
     } else {
         fprintf(stderr, "Error: Flip buffer initialization.\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void rot13(Bitmap *bmp) {
+
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t padded_width = 0;
+    const int16_t degrees = bmp->degrees;
+
+    // if we are rotating into a plane the flips the width and height.
+    // else width and height are the same
+    if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
+        width = bmp->height;
+        height = bmp->width; // swap width and height dimensions
+        bmp->width = width;
+        bmp->height = height;
+        bmp->padded_width = padded_width =
+            (width * 3 + 3) & ~3; // new padded width
+
+        // Update header with rotated dimensions for output
+        *(int *)&bmp->header[18] = (uint32_t)bmp->width;
+        *(int *)&bmp->header[22] = (uint32_t)bmp->height;
+
+    } else if (degrees == 180 || degrees == -180) {
+        width = bmp->width; // Read in normal values for local variables
+        height = bmp->height;
+        padded_width = bmp->padded_width;
+    } else {
+        return;
+    }
+    // For transformation algorithm, pre-transform.
+    uint32_t image_size = bmp->image_size;
+    uint32_t rows = height;
+    uint32_t cols = width;
+
+    // height / rows / y
+    // width / cols / x
+    uint8_t *output_buffer1 = NULL;
+    uint8_t **output_buffer3 = NULL;
+
+    if (bmp->channels == 1) {
+        output_buffer1 = init_buffer1(image_size);
+
+        // straight forward (normal), left in for completeness/reference.
+        if (degrees == 0) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[r * cols + c] =
+                        bmp->imageBuffer1[r * cols + c];
+                }
+            }
+        } else if (degrees == -90 || degrees == 270) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[c * rows + (rows - 1 - r)] =
+                        bmp->imageBuffer1[r * cols + c];
+                }
+            }
+        } else if (degrees == 180 || degrees == -180) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[(rows - 1 - r) * cols + (cols - 1 - c)] =
+                        bmp->imageBuffer1[r * cols + c];
+                }
+            }
+        } else if (degrees == -270 || degrees == 90) {
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    output_buffer1[(cols - 1 - c) * rows + r] =
+                        bmp->imageBuffer1[r * cols + c];
+                }
+            }
+        }
+
+        free(bmp->imageBuffer1);
+        bmp->imageBuffer1 = output_buffer1;
+
+    } else if (bmp->channels == 3) {
+        init_buffer3(&output_buffer3, padded_width, padded_width);
+        // 0 degrees test
+        if (degrees == 0) {
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < 3 * width; x += 3) {
+                    //      for (int rgb = 0; rgb < 3; rgb++) {
+                    output_buffer3[y][x] = bmp->imageBuffer3[y][x];
+
+                    //    }
+                }
+            }
+        }
+        // image1(y,x) = image2(x, height - y, )
+        else if (degrees == 90 || degrees == -270) {
+            printf("debug 1\n");
+            for (int y = 0; y < 1; y++) {
+                for (int x = 0; x < 5; x++) {
+                    for (int rgb = 0; rgb < 3; rgb++) {
+
+                         printf("%d:%d ",
+                               output_buffer3[x][(height - y - 1) * 3 + rgb],
+                                bmp->imageBuffer3[y][x * 3 + rgb]);
+                    }
+                }
+            }
+            printf("debug 1\n");
+
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    for (int rgb = 0; rgb < 3; rgb++) {
+                        output_buffer3[x][(height - y - 1) * 3 + rgb] =
+                            bmp->imageBuffer3[y][x * 3 + rgb];
+                    }
+                }
+            }
+        } else if (degrees == 180 || degrees == -180) {
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    for (int rgb = 0; rgb < 3; rgb++) {
+                        output_buffer3[bmp->height - 1 - y]
+                                      [(bmp->width - 1 - x) * 3 + rgb] =
+                                          bmp->imageBuffer3[y][x * 3 + rgb];
+                    }
+                }
+            }
+        } else if (degrees == 270 || degrees == -90) {
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < 3 * width; x++) {
+                    for (int rgb = 0; rgb < 3; rgb++) {
+                        output_buffer3[bmp->width - 1 - x][y * 3 + rgb] =
+                            bmp->imageBuffer3[y][x * 3 + rgb];
+                    }
+                }
+            }
+        }
+
+        for (int y = 0; y < height; y++) {
+            free(bmp->imageBuffer3[y]);
+        }
+        free(bmp->imageBuffer3);
+
+        bmp->imageBuffer3 = output_buffer3;
+
+    } else {
+        fprintf(stderr, "Error: Rotation buffer initialization.\n");
         exit(EXIT_FAILURE);
     }
 }
