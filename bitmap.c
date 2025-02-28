@@ -653,13 +653,14 @@ void rot13(Bitmap *bmp) {
     // if we are rotating into a plane the flips the width and height.
     // else width and height are the same
     if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
-        width = bmp->height;
-        height = bmp->width; // swap width and height dimensions
+        height = bmp->width;
+        width = bmp->height; // swap width and height dimensions
         bmp->width = width;
         bmp->height = height;
         bmp->padded_width = padded_width =
             (width * 3 + 3) & ~3; // new padded width
-
+            height = bmp->width;
+            width = bmp->height;
         // Update header with rotated dimensions for output
         *(int *)&bmp->header[18] = (uint32_t)bmp->width;
         *(int *)&bmp->header[22] = (uint32_t)bmp->height;
@@ -733,24 +734,19 @@ void rot13(Bitmap *bmp) {
         }
         // image1(y,x) = image2(x, height - y, )
         else if (degrees == 90 || degrees == -270) {
-            printf("debug 1\n");
-            for (int y = 0; y < 1; y++) {
-                for (int x = 0; x < 5; x++) {
-                    for (int rgb = 0; rgb < 3; rgb++) {
-
-                         printf("%d:%d ",
-                               output_buffer3[x][(height - y - 1) * 3 + rgb],
-                                bmp->imageBuffer3[y][x * 3 + rgb]);
-                    }
-                }
-            }
-            printf("debug 1\n");
-
+            printf("height: %d, width: %d\n", height, width);
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                     for (int rgb = 0; rgb < 3; rgb++) {
                         output_buffer3[x][(height - y - 1) * 3 + rgb] =
                             bmp->imageBuffer3[y][x * 3 + rgb];
+                            
+                            if( x > 478 && x < 480 && y > 510 && y < 512){
+                            printf("(x%d:y%d:r%d)", x , y, rgb);
+                            printf("%d:%d ",
+                                output_buffer3[x][(height - y - 1) * 3 + rgb],
+                                 bmp->imageBuffer3[y][x * 3 + rgb]);
+                            }
                     }
                 }
             }
