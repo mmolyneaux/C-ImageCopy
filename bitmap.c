@@ -654,8 +654,8 @@ void rot13(Bitmap *bmp) {
     // else width and height are the same
     if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
         org_height = bmp->height;
-        org_width = bmp->width; 
-        bmp->width = org_height;// swap width and height dimensions
+        org_width = bmp->width;
+        bmp->width = org_height; // swap width and height dimensions
         bmp->height = org_width;
 
         bmp->padded_width = padded_width =
@@ -685,7 +685,6 @@ void rot13(Bitmap *bmp) {
     if (bmp->channels == 1) {
         output_buffer1 = init_buffer1(image_size);
 
-        // straight forward (normal), left in for completeness/reference.
         if (degrees == 0) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
@@ -721,19 +720,13 @@ void rot13(Bitmap *bmp) {
 
     } else if (bmp->channels == 3) {
 
-        printf("org h: %d, org w: %d, pad w: %d\n", org_height, org_width, padded_width);
         init_buffer3(&output_buffer3, bmp->height, bmp->padded_width);
         // 0 degrees test
-        
-        int height_max=0, width_max=0;
-        
         if (degrees == 0) {
             for (int y = 0; y < org_height; y++) {
                 for (int x = 0; x < 3 * org_width; x += 3) {
                     //      for (int rgb = 0; rgb < 3; rgb++) {
                     output_buffer3[y][x] = bmp->imageBuffer3[y][x];
-
-                    //    }
                 }
             }
         }
@@ -747,7 +740,6 @@ void rot13(Bitmap *bmp) {
                     }
                 }
             }
- 
         } else if (degrees == 180 || degrees == -180) {
             for (int y = 0; y < org_height; y++) {
                 for (int x = 0; x < org_width; x++) {
@@ -760,9 +752,9 @@ void rot13(Bitmap *bmp) {
             }
         } else if (degrees == 270 || degrees == -90) {
             for (int y = 0; y < org_height; y++) {
-                for (int x = 0; x < 3 * org_width; x++) {
+                for (int x = 0; x < org_width; x++) {
                     for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[bmp->width - 1 - x][y * 3 + rgb] =
+                        output_buffer3[org_width - 1 - x][y * 3 + rgb] =
                             bmp->imageBuffer3[y][x * 3 + rgb];
                     }
                 }
