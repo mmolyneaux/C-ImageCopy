@@ -645,37 +645,37 @@ void flip13(Bitmap *bmp) {
 
 void rot13(Bitmap *bmp) {
 
-    uint32_t width = 0;
-    uint32_t height = 0;
+    uint32_t org_width = 0;
+    uint32_t org_height = 0;
     uint32_t padded_width = 0;
     const int16_t degrees = bmp->degrees;
 
     // if we are rotating into a plane the flips the width and height.
     // else width and height are the same
     if (degrees == 90 || degrees == -270 || degrees == 270 || degrees == -90) {
-        height = bmp->width;
-        width = bmp->height; // swap width and height dimensions
-        bmp->width = width;
-        bmp->height = height;
+        org_height = bmp->height;
+        org_width = bmp->width; 
+        bmp->width = org_height;// swap width and height dimensions
+        bmp->height = org_width;
+
         bmp->padded_width = padded_width =
-            (width * 3 + 3) & ~3; // new padded width
-            height = bmp->width;
-            width = bmp->height;
+            (bmp->width * 3 + 3) & ~3; // new padded width
+
         // Update header with rotated dimensions for output
         *(int *)&bmp->header[18] = (uint32_t)bmp->width;
         *(int *)&bmp->header[22] = (uint32_t)bmp->height;
 
     } else if (degrees == 180 || degrees == -180) {
-        width = bmp->width; // Read in normal values for local variables
-        height = bmp->height;
+        org_width = bmp->width; // Read in normal values for local variables
+        org_height = bmp->height;
         padded_width = bmp->padded_width;
     } else {
         return;
     }
     // For transformation algorithm, pre-transform.
     uint32_t image_size = bmp->image_size;
-    uint32_t rows = height;
-    uint32_t cols = width;
+    uint32_t rows = org_height;
+    uint32_t cols = org_width;
 
     // height / rows / y
     // width / cols / x
@@ -720,11 +720,16 @@ void rot13(Bitmap *bmp) {
         bmp->imageBuffer1 = output_buffer1;
 
     } else if (bmp->channels == 3) {
-        init_buffer3(&output_buffer3, padded_width, padded_width);
+
+        printf("org h: %d, org w: %d, pad w: %d\n", org_height, org_width, padded_width);
+        init_buffer3(&output_buffer3, bmp->height, bmp->padded_width);
         // 0 degrees test
+        
+        int height_max=0, width_max=0;
+        
         if (degrees == 0) {
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < 3 * width; x += 3) {
+            for (int y = 0; y < org_height; y++) {
+                for (int x = 0; x < 3 * org_width; x += 3) {
                     //      for (int rgb = 0; rgb < 3; rgb++) {
                     output_buffer3[y][x] = bmp->imageBuffer3[y][x];
 
@@ -734,25 +739,18 @@ void rot13(Bitmap *bmp) {
         }
         // image1(y,x) = image2(x, height - y, )
         else if (degrees == 90 || degrees == -270) {
-            printf("height: %d, width: %d\n", height, width);
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
+            for (int y = 0; y < org_height; y++) {
+                for (int x = 0; x < org_width; x++) {
                     for (int rgb = 0; rgb < 3; rgb++) {
-                        output_buffer3[x][(height - y - 1) * 3 + rgb] =
+                        output_buffer3[x][(org_height - y - 1) * 3 + rgb] =
                             bmp->imageBuffer3[y][x * 3 + rgb];
-                            
-                            if( x > 478 && x < 480 && y > 510 && y < 512){
-                            printf("(x%d:y%d:r%d)", x , y, rgb);
-                            printf("%d:%d ",
-                                output_buffer3[x][(height - y - 1) * 3 + rgb],
-                                 bmp->imageBuffer3[y][x * 3 + rgb]);
-                            }
                     }
                 }
             }
+ 
         } else if (degrees == 180 || degrees == -180) {
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
+            for (int y = 0; y < org_height; y++) {
+                for (int x = 0; x < org_width; x++) {
                     for (int rgb = 0; rgb < 3; rgb++) {
                         output_buffer3[bmp->height - 1 - y]
                                       [(bmp->width - 1 - x) * 3 + rgb] =
@@ -761,8 +759,8 @@ void rot13(Bitmap *bmp) {
                 }
             }
         } else if (degrees == 270 || degrees == -90) {
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < 3 * width; x++) {
+            for (int y = 0; y < org_height; y++) {
+                for (int x = 0; x < 3 * org_width; x++) {
                     for (int rgb = 0; rgb < 3; rgb++) {
                         output_buffer3[bmp->width - 1 - x][y * 3 + rgb] =
                             bmp->imageBuffer3[y][x * 3 + rgb];
@@ -771,7 +769,7 @@ void rot13(Bitmap *bmp) {
             }
         }
 
-        for (int y = 0; y < height; y++) {
+        for (int y = 0; y < org_height; y++) {
             free(bmp->imageBuffer3[y]);
         }
         free(bmp->imageBuffer3);
