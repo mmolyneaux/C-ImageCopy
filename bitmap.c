@@ -775,7 +775,7 @@ void rot13(Bitmap *bmp) {
 }
 
 void blur1(Bitmap *bmp) {
-    printf("Blur13a\n");
+    printf("Inside blur1\n");
     float v = 1.0 / 9.0;
 
     float kernal2D[3][3];
@@ -938,7 +938,7 @@ void blur1(Bitmap *bmp) {
 //---
 
 void blur3(Bitmap *bmp) {
-    printf("Blur13a\n");
+    printf("Inside blur3\n");
     float v = 1.0 / 9.0;
 
     float kernal2D[3][3];
@@ -959,7 +959,7 @@ void blur3(Bitmap *bmp) {
     // buffer3_to_3D(buf1, &buf1_2D, rows, cols);
 
     uint8_t **buf2 = NULL;
-    init_buffer3(&buf2, rows, cols);
+    init_buffer3(&buf2, rows, bmp->padded_width);
     // uint8_t ***buf2_2D = NULL;
     // buffer3_to_3D(buf2, &buf2_2D, rows, cols);
 
@@ -1136,16 +1136,11 @@ void blur3(Bitmap *bmp) {
     buf2[r][c + 1] = (uint8_t)sum[1];
     buf2[r][c + 2] = (uint8_t)sum[2];
 
+    
+    for (int i = 0; i < rows; i ++){
+        free(bmp->imageBuffer3[i]);
+    }
     free(bmp->imageBuffer3);
 
     bmp->imageBuffer3 = buf2;
-    // Copy blurred image back to the original image buffer
-    // for (uint32_t i = 0; i < rows; i++) {
-    //     for (uint32_t j = 0; j < cols * 3; j++) {
-    //         buf1[i][j] = buf2[i][j];
-    //     }
-    //     free(buf2[i]);
-    // }
-    // free(buf2);
-    // }
 }

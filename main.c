@@ -620,8 +620,8 @@ int main(int argc, char *argv[]) {
                                                                : "false");
                     if (get_valid_int(optarg, &r_int_input)) {
                         printf("get_valid_int\n");
-                        if (//(r_int_input != 0) && 
-                        (r_int_input >= -270) &&
+                        if ( //(r_int_input != 0) &&
+                            (r_int_input >= -270) &&
                             (r_int_input <= 270 && r_int_input % 90 == 0)) {
                             r_flag_int = r_int_input;
                             printf("-r int value: %d\n", r_flag_int);
@@ -635,6 +635,17 @@ int main(int argc, char *argv[]) {
                 exit(EXIT_FAILURE);
             }
             break;
+
+        case 'l': // blur
+            l_flag = true;
+            break;
+        case 'h': // help
+            print_usage(argv[0]);
+            exit(EXIT_SUCCESS);
+        case 'v': // verbose
+            v_flag = true;
+            break;
+
         } // end of switch
 
     } // End getopt while loop

@@ -81,12 +81,12 @@ void hist3(Bitmap *bmp);
 
 void equal1(Bitmap *bmp);
 void equal3(Bitmap *bmp);
-
-void rot13(Bitmap *bmp);
 void flip13(Bitmap *bmp);
 void inv1(Bitmap *bmp);
 void inv_rgb3(Bitmap *bmp);
 void inv_hsv3(Bitmap *bmp);
+void rot13(Bitmap *bmp);
+
 void blur1(Bitmap *bmp);
 void blur3(Bitmap *bmp);
 #endif
