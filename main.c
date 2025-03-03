@@ -467,9 +467,8 @@ int main(int argc, char *argv[]) {
 
     while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:lhv", long_options,
                                  &long_index)) != -1) {
-        
-        
-                                    switch (option) {
+
+        switch (option) {
 
         case 0: // long options
 
@@ -665,11 +664,38 @@ int main(int argc, char *argv[]) {
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
     }
+    Bitmap bitmap = {.header = {0},
+                     .width = 0,
+                     .height = 0,
+                     .padded_width = 0,
+                     .image_size = 0,
+                     .bit_depth = 0,
+                     .channels = 0,
+                     .mono_threshold = 0.0,
+                     .bright_value = 0,
+                     .bright_percent = 0.0,
+                     .CT_EXISTS = false,
+                     .colorTable = NULL,
+                     .imageBuffer1 = NULL,
+                     .imageBuffer3 = NULL,
+                     .histogram1 = NULL,
+                     .histogram3 = NULL,
+                     .histogram_n = NULL,
+                     .HIST_RANGE_MAX = 0,
+                     .hist_max_value1 = 0,
+                     .hist_max_value3 = {0, 0, 0},
+                     .degrees = 0,
+                     .direction = 0,
+                     .invert = 0,
+                     .output_mode = NO_MODE};
+    Bitmap *bitmapPtr = &bitmap;
 
     if (g_flag) {
         mode = GRAY;
+        bitmapPtr->output_mode = mode;
     } else if (m_flag) {
         mode = MONO;
+        bitmapPtr->mono_threshold = m_flag_value;
     } else if (i_flag) {
         if (invert_mode == 0) {
             mode = INV;
@@ -680,6 +706,9 @@ int main(int argc, char *argv[]) {
         }
     } else if (b_flag) {
         mode = BRIGHT;
+        bitmapPtr->bright_percent = b_flag_float;
+        bitmapPtr->bright_value = b_flag_int;
+
     } else if (hist_flag) {
         mode = HIST;
     } else if (histn_flag) {
@@ -688,22 +717,25 @@ int main(int argc, char *argv[]) {
         mode = EQUAL;
     } else if (r_flag) {
         mode = ROT;
+        bitmapPtr->degrees = r_flag_int;
     } else if (f_flag) {
         mode = FLIP;
+        bitmapPtr->direction = flip_dir;
     } else if (l_flag) {
         mode = BLUR;
     } else {
         mode = COPY;
+        bitmapPtr->output_mode = mode;
     }
+    bitmapPtr->output_mode = mode;
 
     // Check for required filename argument
     if (optind < argc) {
         filename1 = argv[optind];
         optind++;
-    }
-    else {
-         print_usage(argv[0]);
-         exit(EXIT_FAILURE);
+    } else {
+        print_usage(argv[0]);
+        exit(EXIT_FAILURE);
     }
 
     // Check for optional filename argument
@@ -797,32 +829,6 @@ int main(int argc, char *argv[]) {
         printf("mode: %s\n", mode_to_string(mode));
     }
 
-    Bitmap bitmap = {.header = {0},
-                     .width = 0,
-                     .height = 0,
-                     .padded_width = 0,
-                     .image_size = 0,
-                     .bit_depth = 0,
-                     .channels = 0,
-                     .mono_threshold = 0.0,
-                     .bright_value = 0,
-                     .bright_percent = 0.0,
-                     .CT_EXISTS = false,
-                     .colorTable = NULL,
-                     .imageBuffer1 = NULL,
-                     .imageBuffer3 = NULL,
-                     .histogram1 = NULL,
-                     .histogram3 = NULL,
-                     .histogram_n = NULL,
-                     .HIST_RANGE_MAX = 0,
-                     .hist_max_value1 = 0,
-                     .hist_max_value3 = {0, 0, 0},
-                     .degrees = 0,
-                     .direction = 0,
-                     .invert = 0,
-                     .output_mode = NO_MODE};
-    Bitmap *bitmapPtr = &bitmap;
-
     bool imageRead = readImage(filename1, bitmapPtr);
     if (!imageRead) {
         fprintf(stderr, "Image read failed.\n");
@@ -833,57 +839,6 @@ int main(int argc, char *argv[]) {
     printf("height: %d\n", bitmapPtr->height);
     printf("bit_depth: %d\n", bitmapPtr->bit_depth);
 
-    switch (mode) {
-    case COPY:
-        bitmapPtr->output_mode = mode;
-        break;
-    case GRAY:
-        bitmapPtr->output_mode = mode;
-        break;
-    case MONO:
-        bitmapPtr->output_mode = mode;
-        bitmapPtr->mono_threshold = m_flag_value;
-        break;
-    case INV:
-        bitmapPtr->output_mode = mode;
-        break;
-    case INV_RGB:
-        bitmapPtr->output_mode = mode;
-        break;
-    case INV_HSV:
-        bitmapPtr->output_mode = mode;
-        break;
-    case BRIGHT:
-        bitmapPtr->output_mode = mode;
-        bitmapPtr->bright_percent = b_flag_float;
-        bitmapPtr->bright_value = b_flag_int;
-        printf("bitmapPtr->bright_percent = %.2f\n", bitmapPtr->bright_percent);
-        printf("bitmapPtr->bright_value = %d\n", bitmapPtr->bright_value);
-        break;
-    case HIST:
-        bitmapPtr->output_mode = mode;
-        break;
-    case HIST_N:
-        bitmapPtr->output_mode = mode;
-        break;
-    case EQUAL:
-        bitmapPtr->output_mode = mode;
-        break;
-    case ROT:
-        bitmapPtr->output_mode = mode;
-        bitmapPtr->degrees = r_flag_int;
-        break;
-    case FLIP:
-        bitmapPtr->output_mode = mode;
-        bitmapPtr->direction = flip_dir; // enum Dir
-        break;
-    case BLUR:
-        bitmapPtr->output_mode = mode;
-        break;
-    default:
-        fprintf(stderr, "No output mode matched.\n");
-        exit(EXIT_FAILURE);
-    }
     write_image(bitmapPtr, filename2);
 
     printf("width: %d\n", bitmapPtr->width);
