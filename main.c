@@ -467,17 +467,21 @@ int main(int argc, char *argv[]) {
 
     while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:lhv", long_options,
                                  &long_index)) != -1) {
-        switch (option) {
+        
+        
+                                    switch (option) {
 
         case 0: // long options
 
             printf("This is case 0\n");
 
             if (strcmp("test", long_options[long_index].name) == 0) {
-                printf("test\n");
+                printf("TEST\n");
+                exit(EXIT_SUCCESS);
             } else if (strcmp("version", long_options[long_index].name) == 0) {
-                printf("version\n");
+                printf("VERSION\n");
                 print_version();
+                exit(EXIT_SUCCESS);
             } else if (strcmp("hist", long_options[long_index].name) ==
                        0) { // hist
                 printf("hist\n");
@@ -645,7 +649,9 @@ int main(int argc, char *argv[]) {
         case 'v': // verbose
             v_flag = true;
             break;
-
+        default:
+            printf("Unknown option: --%s\n", long_options[long_index].name);
+            exit(EXIT_FAILURE);
         } // end of switch
 
     } // End getopt while loop
@@ -694,9 +700,10 @@ int main(int argc, char *argv[]) {
     if (optind < argc) {
         filename1 = argv[optind];
         optind++;
-    } else {
-        print_usage(argv[0]);
-        exit(EXIT_FAILURE);
+    }
+    else {
+         print_usage(argv[0]);
+         exit(EXIT_FAILURE);
     }
 
     // Check for optional filename argument
