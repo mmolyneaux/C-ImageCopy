@@ -89,4 +89,5 @@ void rot13(Bitmap *bmp);
 
 void blur1(Bitmap *bmp);
 void blur3(Bitmap *bmp);
+void sepia3(Bitmap *bmp);
 #endif

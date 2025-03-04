@@ -1144,3 +1144,31 @@ void blur3(Bitmap *bmp) {
 
     bmp->imageBuffer3 = buf2;
 }
+
+void sepia3(Bitmap *bmp){
+    printf("Sepia\n");
+    const uint8_t WHITE = 255;
+    
+    // sepia kernal
+    float sepia[3][3] = {{0.272, 0.534, 0.131},
+                         {0.349, 0.686, 0.168},
+                         {0.393, 0.769, 0.189}};
+    
+    float r = 0.0; float g = 0.0; float b = 0.0;
+
+    for (size_t y = 0; y < bmp->height; y++) {
+        for (size_t x = 0; x < bmp->width * 3; x += 3) {
+            r = g = b = 0.0;
+            
+            r = bmp->imageBuffer3[y][x + 0] * sepia[0][0] + bmp->imageBuffer3[y][x + 1] * sepia[0][1] + bmp->imageBuffer3[y][x + 2] * sepia[0][2];
+            g = bmp->imageBuffer3[y][x + 0] * sepia[1][0] + bmp->imageBuffer3[y][x + 1] * sepia[1][1] + bmp->imageBuffer3[y][x + 2] * sepia[1][2];
+            b = bmp->imageBuffer3[y][x + 0] * sepia[2][0] + bmp->imageBuffer3[y][x + 1] * sepia[2][1] + bmp->imageBuffer3[y][x + 2] * sepia[2][2];
+                
+            bmp->imageBuffer3[y][x + 0] = (r > WHITE)? WHITE : r; 
+            bmp->imageBuffer3[y][x + 1] = (g > WHITE)? WHITE : g; 
+            bmp->imageBuffer3[y][x + 2] = (b > WHITE)? WHITE : b; 
+                
+        }
+    }
+
+}
