@@ -5,6 +5,58 @@
 #include <stdlib.h>
 #include <string.h>
 
+char *get_suffix(enum Mode mode) {
+    switch (mode) {
+    case NO_MODE:
+        return "_none"; // not used currently besides initializaton
+        break;
+    case COPY:
+        return "_copy";
+        break;
+    case GRAY:
+        return "_gray";
+        break;
+    case MONO:
+        return "_mono";
+        break;
+    case INV:
+        return "_inv";
+        break;
+    case INV_RGB:
+        return "_inv_rgb";
+        break;
+    case INV_HSV:
+        return "_inv_hsv";
+        break;
+    case BRIGHT:
+        return "_bright";
+        break;
+    case HIST:
+        return "_hist_256";
+        break;
+    case HIST_N:
+        return "_hist_0_1";
+        break;
+    case EQUAL:
+        return "_equal";
+        break;
+    case ROT:
+        return "_rot";
+        break;
+    case FLIP:
+        return "_flip";
+        break;
+    case BLUR:
+        return "_blur";
+        break;
+    case SEPIA:
+        return "_sepia";
+        break;
+    default:
+        return "_suffix";
+    }
+}
+
 char *mode_to_string(enum Mode mode) {
     switch (mode) {
     case NO_MODE:
