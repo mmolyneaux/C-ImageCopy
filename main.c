@@ -11,7 +11,7 @@
 #include <uchar.h>
 #include <unistd.h>
 
-#define VERSION "0.11 Blur\n" // "Blur"
+#define VERSION "0.12 Sepia\n"
 
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
@@ -60,6 +60,9 @@ char *get_suffix(enum Mode mode) {
         break;
     case BLUR:
         return "_blur";
+        break;
+    case SEPIA:
+        return "_sepia";
         break;
     default:
         return "_suffix";
@@ -255,6 +258,9 @@ bool write_image(Bitmap *bmp, char *filename) {
         } else if (bmp->output_mode == BLUR) {
             printf("L3\n");
             blur3(bmp);
+        } else if (bmp->output_mode == SEPIA) {
+            printf("S3\n");
+            sepia3(bmp);
         } else {
             printf("CHANNEL FAIL\n");
             fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
@@ -436,6 +442,7 @@ int main(int argc, char *argv[]) {
         f_flag = false,       // flip h, v
         i_flag = false,       // invert v
         l_flag = false,       // blur
+        s_flag = false,       // sepia
         v_flag = false,       // verbose
         version_flag = false; // version
 
@@ -465,7 +472,7 @@ int main(int argc, char *argv[]) {
     int option = 0;
     int long_index = 0;
 
-    while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:lhv", long_options,
+    while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:lshv", long_options,
                                  &long_index)) != -1) {
 
         switch (option) {
@@ -642,6 +649,9 @@ int main(int argc, char *argv[]) {
         case 'l': // blur
             l_flag = true;
             break;
+        case 's': // sepia
+            s_flag = true;
+            break;
         case 'h': // help
             print_usage(argv[0]);
             exit(EXIT_SUCCESS);
@@ -658,8 +668,7 @@ int main(int argc, char *argv[]) {
 
     // set the mode and make sure only one mode is true.
     if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
-            r_flag + f_flag + l_flag >
-        1) {
+            r_flag + f_flag + l_flag + s_flag > 1 ) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
@@ -708,7 +717,6 @@ int main(int argc, char *argv[]) {
         mode = BRIGHT;
         bitmapPtr->bright_percent = b_flag_float;
         bitmapPtr->bright_value = b_flag_int;
-
     } else if (hist_flag) {
         mode = HIST;
     } else if (histn_flag) {
@@ -723,9 +731,10 @@ int main(int argc, char *argv[]) {
         bitmapPtr->direction = flip_dir;
     } else if (l_flag) {
         mode = BLUR;
+    } else if (s_flag) {
+        mode = SEPIA;
     } else {
         mode = COPY;
-        bitmapPtr->output_mode = mode;
     }
     bitmapPtr->output_mode = mode;
 
@@ -811,11 +820,13 @@ int main(int argc, char *argv[]) {
         } else {
             printf("-m (monochrome): %s\n", m_flag ? "true" : "false");
         }
+
         printf("-i (invert):        %s\n", i_flag ? "true" : "false");
         printf("-e (equalize):      %s\n", e_flag ? "true" : "false");
         printf("-r (rotate):        %s\n", r_flag ? "true" : "false");
         printf("-f (flip):          %s\n", f_flag ? "true" : "false");
         printf("-l (blur):          %s\n", l_flag ? "true" : "false");
+        printf("-s (sepia):         %s\n", s_flag ? "true" : "false");
         printf("-h (help):          %s\n", hist_flag ? "true" : "false");
         printf("-v (verbose):       %s\n", v_flag ? "true" : "false");
         printf("--hist (histogram 0..255):     %s\n",

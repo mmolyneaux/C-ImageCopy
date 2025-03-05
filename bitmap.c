@@ -43,6 +43,9 @@ char *mode_to_string(enum Mode mode) {
     case BLUR:
         return "Blur";
         break;
+    case SEPIA:
+        return "Sepia";
+        break;
     default:
         return "default: mode string not found";
     }

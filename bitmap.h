@@ -31,7 +31,8 @@ enum Mode {
     EQUAL,
     ROT,
     FLIP,
-    BLUR
+    BLUR,
+    SEPIA
 };
 enum Invert { RGB_INVERT = 1, HSV_INVERT = 2 };
 enum Dir { H = 1, V = 2 };
