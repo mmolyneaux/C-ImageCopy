@@ -5,6 +5,35 @@
 #include <stdlib.h>
 #include <string.h>
 
+void init_bitmap(Bitmap *bitmap) {
+    if(!bitmap) return; 
+memset(bitmap->header, 0, sizeof(bitmap->header)); 
+bitmap->width = 0;
+bitmap->height = 0;
+bitmap->padded_width = 0;
+bitmap->image_size = 0;
+bitmap->bit_depth = 0;
+bitmap->channels = 0;
+bitmap->mono_threshold = 0.0f;
+bitmap->bright_value = 0;
+bitmap->bright_percent = 0.0f;
+bitmap->CT_EXISTS = false;
+bitmap->colorTable = NULL;
+bitmap->imageBuffer1 = NULL;
+bitmap->imageBuffer3 = NULL;
+bitmap->histogram1 = NULL;
+bitmap->histogram3 = NULL;
+bitmap->histogram_n = NULL;
+bitmap->HIST_RANGE_MAX = 0;
+bitmap->hist_max_value1 = 0;
+memset(bitmap->hist_max_value3, 0 , sizeof(bitmap->hist_max_value3));
+bitmap->degrees = 0;
+bitmap->direction = 0;
+bitmap->invert = 0;
+bitmap->output_mode = NO_MODE;
+}
+
+
 char *get_suffix(enum Mode mode) {
     switch (mode) {
     case NO_MODE:

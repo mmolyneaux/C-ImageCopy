@@ -17,11 +17,9 @@ char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
 char *dot_dat = ".dat";
 
-
-
-// helper function, verify a filename ends with dot_bmp.
-// returns true if str ends with the correct ext,
-// returns false otherwise.
+/**  Returns true if a filename ends with the given extension,
+ *   false otherwise.
+ */
 bool ends_with(char *str, const char *ext) {
 
     // Check for NULL;
@@ -618,37 +616,16 @@ int main(int argc, char *argv[]) {
 
     // set the mode and make sure only one mode is true.
     if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
-            r_flag + f_flag + l_flag + s_flag > 1 ) {
+            r_flag + f_flag + l_flag + s_flag >
+        1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
     }
-    Bitmap bitmap = {.header = {0},
-                     .width = 0,
-                     .height = 0,
-                     .padded_width = 0,
-                     .image_size = 0,
-                     .bit_depth = 0,
-                     .channels = 0,
-                     .mono_threshold = 0.0,
-                     .bright_value = 0,
-                     .bright_percent = 0.0,
-                     .CT_EXISTS = false,
-                     .colorTable = NULL,
-                     .imageBuffer1 = NULL,
-                     .imageBuffer3 = NULL,
-                     .histogram1 = NULL,
-                     .histogram3 = NULL,
-                     .histogram_n = NULL,
-                     .HIST_RANGE_MAX = 0,
-                     .hist_max_value1 = 0,
-                     .hist_max_value3 = {0, 0, 0},
-                     .degrees = 0,
-                     .direction = 0,
-                     .invert = 0,
-                     .output_mode = NO_MODE};
+    Bitmap bitmap;
     Bitmap *bitmapPtr = &bitmap;
-
+    init_bitmap(bitmapPtr);
+   
     if (g_flag) {
         mode = GRAY;
         bitmapPtr->output_mode = mode;

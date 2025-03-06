@@ -67,6 +67,7 @@ typedef struct {
 
 char *get_suffix(enum Mode mode);
 char *mode_to_string(enum Mode mode);
+void init_bitmap(Bitmap *bitmap);
 uint8_t *init_buffer1(uint32_t image_size);
 void init_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols);
 void free_mem(Bitmap *bmp);
