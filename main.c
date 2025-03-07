@@ -605,29 +605,23 @@ int main(int argc, char *argv[]) {
             l_flag = true;
             bool valid_l_value = false;
 
-            if (optarg) {
-                if (is_digit(optarg[0])) {
-                    printf("is_digit\n");
-                    int l_int_input = 0;
-                    printf("get_valid_int: %s\n",
-                           get_valid_int(optarg, &l_int_input) ? "true"
-                                                               : "false");
-                    if (get_valid_int(optarg, &l_int_input)) {
-                        printf("get_valid_int\n");
-                        if ((l_int_input >= 1) && (l_int_input <= 255)) {
-                            l_flag_int = l_int_input;
-                            printf("-l int value: %d\n", l_flag_int);
-                            valid_l_value = true;
-                        } else {
-                            fprintf(stderr, "-l value error: \"%d\"\n",
-                                    l_int_input);
-                        }
+            if (optarg && is_digit(optarg[0])) {
+                printf("is_digit\n");
+                int l_int_input = 0;
+                printf("get_valid_int: %s\n",
+                       get_valid_int(optarg, &l_int_input) ? "true" : "false");
+                if (get_valid_int(optarg, &l_int_input)) {
+                    printf("get_valid_int\n");
+                    if ((l_int_input >= 1) && (l_int_input <= 255)) {
+                        l_flag_int = l_int_input;
+                        printf("-l int value: %d\n", l_flag_int);
+                        valid_l_value = true;
                     }
-                } else {
-                    // Adjust optind to reconsider the current argument as a
-                    // non-option argument
-                    optind--;
                 }
+            } else {
+                // Adjust optind to reconsider the current argument as a
+                // non-option argument
+                optind--;
             }
 
             if (!valid_l_value) {
@@ -645,13 +639,17 @@ int main(int argc, char *argv[]) {
         case 'v': // verbose
             v_flag = true;
             break;
-        default:
-            printf("Unknown option: --%s\n", long_options[long_index].name);
+        
+        case '?':
+        printf("Unknown option: -%s\n", argv[optind]);
+        break;
+            default: // Handle unkown options
+            printf("Unknown option: -%s\n", long_options[long_index].name);
             exit(EXIT_FAILURE);
         } // end of switch
 
     } // End getopt while loop
-    printf("Option: %d\n", option);
+    //printf("Option: %d\n", option);
 
     // set the mode and make sure only one mode is true.
     if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
