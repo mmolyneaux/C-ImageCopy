@@ -6,33 +6,34 @@
 #include <string.h>
 
 void init_bitmap(Bitmap *bitmap) {
-    if(!bitmap) return; 
-memset(bitmap->header, 0, sizeof(bitmap->header)); 
-bitmap->width = 0;
-bitmap->height = 0;
-bitmap->padded_width = 0;
-bitmap->image_size = 0;
-bitmap->bit_depth = 0;
-bitmap->channels = 0;
-bitmap->mono_threshold = 0.0f;
-bitmap->bright_value = 0;
-bitmap->bright_percent = 0.0f;
-bitmap->CT_EXISTS = false;
-bitmap->colorTable = NULL;
-bitmap->imageBuffer1 = NULL;
-bitmap->imageBuffer3 = NULL;
-bitmap->histogram1 = NULL;
-bitmap->histogram3 = NULL;
-bitmap->histogram_n = NULL;
-bitmap->HIST_RANGE_MAX = 0;
-bitmap->hist_max_value1 = 0;
-memset(bitmap->hist_max_value3, 0 , sizeof(bitmap->hist_max_value3));
-bitmap->degrees = 0;
-bitmap->direction = 0;
-bitmap->invert = 0;
-bitmap->output_mode = NO_MODE;
+    if (!bitmap)
+        return;
+    memset(bitmap->header, 0, sizeof(bitmap->header));
+    bitmap->width = 0;
+    bitmap->height = 0;
+    bitmap->padded_width = 0;
+    bitmap->image_size = 0;
+    bitmap->bit_depth = 0;
+    bitmap->channels = 0;
+    bitmap->mono_threshold = 0.0f;
+    bitmap->bright_value = 0;
+    bitmap->bright_percent = 0.0f;
+    bitmap->CT_EXISTS = false;
+    bitmap->colorTable = NULL;
+    bitmap->imageBuffer1 = NULL;
+    bitmap->imageBuffer3 = NULL;
+    bitmap->histogram1 = NULL;
+    bitmap->histogram3 = NULL;
+    bitmap->histogram_n = NULL;
+    bitmap->HIST_RANGE_MAX = 0;
+    bitmap->hist_max_value1 = 0;
+    memset(bitmap->hist_max_value3, 0, sizeof(bitmap->hist_max_value3));
+    bitmap->degrees = 0;
+    bitmap->direction = 0;
+    bitmap->invert = 0;
+    bitmap->blur_level = 0;
+    bitmap->output_mode = NO_MODE;
 }
-
 
 char *get_suffix(enum Mode mode) {
     switch (mode) {
@@ -860,13 +861,19 @@ void rot13(Bitmap *bmp) {
 
 void blur1(Bitmap *bmp) {
     printf("Inside blur1\n");
+    
+    
     float v = 1.0 / 9.0;
+
+    
 
     float kernal2D[3][3];
 
     for (int i = 0; i < 9; i++) {
         kernal2D[i / 3][i % 3] = v;
     }
+
+    
 
     uint32_t rows = bmp->height;
     uint32_t cols = bmp->width;
@@ -875,9 +882,9 @@ void blur1(Bitmap *bmp) {
     // height / rows / y
     // width / cols / x
 
-    uint8_t *buf1 = bmp->imageBuffer1;
+    //uint8_t *buf1 = bmp->imageBuffer1;
     uint8_t **buf1_2D = NULL;
-    buffer1_to_2D(buf1, &buf1_2D, rows, cols);
+    buffer1_to_2D(bmp->imageBuffer1, &buf1_2D, rows, cols);
 
     uint8_t *buf2 = init_buffer1(image_size);
     uint8_t **buf2_2D = NULL;
@@ -885,138 +892,148 @@ void blur1(Bitmap *bmp) {
 
     float sum;
 
-    // Center/main area, average 1 pixel + 8 neighbors.
-    for (size_t r = 1; r < rows - 1; r++) {
-        for (size_t c = 1; c < cols - 1; c++) {
+    for (int blur = 0; blur < bmp->blur_level; blur++) {
+        printf("Blur %d\n", blur);
+        
+
+        // Center/main area, average 1 pixel + 8 neighbors.
+        for (size_t r = 1; r < rows - 1; r++) {
+            for (size_t c = 1; c < cols - 1; c++) {
+                sum = 0.0;
+
+                for (int8_t r1 = -1; r1 <= 1; r1++) {
+                    for (int8_t c1 = -1; c1 <= 1; c1++) {
+                        sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
+                       // sum += v*buf1_2D[r + r1][c + c1];
+                    }
+                }
+                
+                //sum = sum * (1.0/9.0);
+                buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
+
+            }
+        }
+/*
+        // Sides
+        // Average 1 pixel + 5 neighbors
+        v = 1.0 / 6.0;
+        for (int i = 0; i < 9; i++) {
+            kernal2D[i / 3][i % 3] = v;
+        }
+
+     
+        
+        // Left side, c = 0
+        for (size_t r = 1, c = 0; r < rows - 1; r++) {
             sum = 0.0;
 
             for (int8_t r1 = -1; r1 <= 1; r1++) {
+                for (int8_t c1 = 0; c1 <= 1; c1++) {
+                    sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
+                }
+            }
+            buf2_2D[r][c] = (uint16_t)sum;
+        }
+*/
+
+        /*
+
+
+        // Right side, c = cols - 1
+        for (size_t r = 1, c = cols - 1; r < rows - 1; r++) {
+            sum = 0.0;
+
+            for (int8_t r1 = -1; r1 <= 1; r1++) {
+                for (int8_t c1 = -1; c1 <= 0; c1++) {
+                    sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
+                }
+            }
+            buf2_2D[r][c] = (uint8_t)sum;
+        }
+
+        // Top side, r = 0
+        for (size_t r = 0, c = 1; c < cols - 1; c++) {
+            sum = 0.0;
+
+            for (int8_t r1 = 0; r1 <= 1; r1++) {
                 for (int8_t c1 = -1; c1 <= 1; c1++) {
                     sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
                 }
             }
             buf2_2D[r][c] = (uint8_t)sum;
-            // printf("%d ",buf2_2D[r][c]);
         }
-    }
 
-    // for (size_t r = 1; r < rows - 1; r++) {
-    //     for (size_t c = 1; c < cols - 1; c++) {
-    //         printf("%d ",buf2_2D[r][c]);
-    //     }
-    // }
+        // Bottom side, r = rows - 1
+        for (size_t r = rows - 1, c = 1; c < cols - 1; c++) {
+            sum = 0.0;
 
-    // Sides
-    // Average 1 pixel + 5 neighbors
-    v = 1.0 / 6.0;
-    for (int i = 0; i < 9; i++) {
-        kernal2D[i / 3][i % 3] = v;
-    }
+            for (int8_t r1 = -1; r1 <= 0; r1++) {
+                for (int8_t c1 = -1; c1 <= 1; c1++) {
+                    sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
+                }
+            }
+            buf2_2D[r][c] = (uint8_t)sum;
+        }
 
-    // Left side, c = 0
-    for (size_t r = 1, c = 0; r < rows - 1; r++) {
+        // Corners
+        // Average 1 pixel + 3 neighbors
+        v = 1.0 / 4.0;
+        for (int i = 0; i < 9; i++) {
+            kernal2D[i / 3][i % 3] = v;
+        }
+
+        // Top left
+        size_t r = 0, c = 0;
         sum = 0.0;
 
-        for (int8_t r1 = -1; r1 <= 1; r1++) {
+        for (int8_t r1 = 0; r1 <= 1; r1++) {
             for (int8_t c1 = 0; c1 <= 1; c1++) {
                 sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
             }
         }
         buf2_2D[r][c] = (uint8_t)sum;
-    }
 
-    // Right side, c = cols - 1
-    for (size_t r = 1, c = cols - 1; r < rows - 1; r++) {
+        // Bottom left
+        r = rows - 1, c = 0;
         sum = 0.0;
 
-        for (int8_t r1 = -1; r1 <= 1; r1++) {
+        for (int8_t r1 = -1; r1 <= 0; r1++) {
+            for (int8_t c1 = 0; c1 <= 1; c1++) {
+                sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
+            }
+        }
+        buf2_2D[r][c] = (uint8_t)sum;
+
+        // Bottom right
+        r = rows - 1, c = cols - 1;
+        sum = 0.0;
+
+        for (int8_t r1 = -1; r1 <= 0; r1++) {
             for (int8_t c1 = -1; c1 <= 0; c1++) {
                 sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
             }
         }
         buf2_2D[r][c] = (uint8_t)sum;
-    }
 
-    // Top side, r = 0
-    for (size_t r = 0, c = 1; c < cols - 1; c++) {
+        // Top right
+        r = 0, c = cols - 1;
         sum = 0.0;
 
         for (int8_t r1 = 0; r1 <= 1; r1++) {
-            for (int8_t c1 = -1; c1 <= 1; c1++) {
+            for (int8_t c1 = -1; c1 <= 0; c1++) {
                 sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
             }
         }
         buf2_2D[r][c] = (uint8_t)sum;
+*/
+
+        // Dst, Src
+        memcpy(bmp->imageBuffer1,buf2, image_size);
     }
 
-    // Bottom side, r = rows - 1
-    for (size_t r = rows - 1, c = 1; c < cols - 1; c++) {
-        sum = 0.0;
-
-        for (int8_t r1 = -1; r1 <= 0; r1++) {
-            for (int8_t c1 = -1; c1 <= 1; c1++) {
-                sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
-            }
-        }
-        buf2_2D[r][c] = (uint8_t)sum;
-    }
-
-    // Corners
-    // Average 1 pixel + 3 neighbors
-    v = 1.0 / 4.0;
-    for (int i = 0; i < 9; i++) {
-        kernal2D[i / 3][i % 3] = v;
-    }
-
-    // Top left
-    size_t r = 0, c = 0;
-    sum = 0.0;
-
-    for (int8_t r1 = 0; r1 <= 1; r1++) {
-        for (int8_t c1 = 0; c1 <= 1; c1++) {
-            sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
-        }
-    }
-    buf2_2D[r][c] = (uint8_t)sum;
-
-    // Bottom left
-    r = rows - 1, c = 0;
-    sum = 0.0;
-
-    for (int8_t r1 = -1; r1 <= 0; r1++) {
-        for (int8_t c1 = 0; c1 <= 1; c1++) {
-            sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
-        }
-    }
-    buf2_2D[r][c] = (uint8_t)sum;
-
-    // Bottom right
-    r = rows - 1, c = cols - 1;
-    sum = 0.0;
-
-    for (int8_t r1 = -1; r1 <= 0; r1++) {
-        for (int8_t c1 = -1; c1 <= 0; c1++) {
-            sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
-        }
-    }
-    buf2_2D[r][c] = (uint8_t)sum;
-
-    // Top right
-    r = 0, c = cols - 1;
-    sum = 0.0;
-
-    for (int8_t r1 = 0; r1 <= 1; r1++) {
-        for (int8_t c1 = -1; c1 <= 0; c1++) {
-            sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
-        }
-    }
-    buf2_2D[r][c] = (uint8_t)sum;
-
-    free(bmp->imageBuffer1);
-    free(buf1_2D);
-    free(buf2_2D);
-
-    bmp->imageBuffer1 = buf2;
+     free(buf2);
+     free(buf1_2D);
+     free(buf2_2D);
 }
 
 //---
@@ -1220,8 +1237,7 @@ void blur3(Bitmap *bmp) {
     buf2[r][c + 1] = (uint8_t)sum[1];
     buf2[r][c + 2] = (uint8_t)sum[2];
 
-    
-    for (int i = 0; i < rows; i ++){
+    for (int i = 0; i < rows; i++) {
         free(bmp->imageBuffer3[i]);
     }
     free(bmp->imageBuffer3);
@@ -1229,30 +1245,35 @@ void blur3(Bitmap *bmp) {
     bmp->imageBuffer3 = buf2;
 }
 
-void sepia3(Bitmap *bmp){
+void sepia3(Bitmap *bmp) {
     printf("Sepia\n");
     const uint8_t WHITE = 255;
-    
+
     // sepia kernal
-    float sepia[3][3] = {{0.272, 0.534, 0.131},
-                         {0.349, 0.686, 0.168},
-                         {0.393, 0.769, 0.189}};
-    
-    float r = 0.0; float g = 0.0; float b = 0.0;
+    float sepia[3][3] = {
+        {0.272, 0.534, 0.131}, {0.349, 0.686, 0.168}, {0.393, 0.769, 0.189}};
+
+    float r = 0.0;
+    float g = 0.0;
+    float b = 0.0;
 
     for (size_t y = 0; y < bmp->height; y++) {
         for (size_t x = 0; x < bmp->width * 3; x += 3) {
             r = g = b = 0.0;
-            
-            r = bmp->imageBuffer3[y][x + 0] * sepia[0][0] + bmp->imageBuffer3[y][x + 1] * sepia[0][1] + bmp->imageBuffer3[y][x + 2] * sepia[0][2];
-            g = bmp->imageBuffer3[y][x + 0] * sepia[1][0] + bmp->imageBuffer3[y][x + 1] * sepia[1][1] + bmp->imageBuffer3[y][x + 2] * sepia[1][2];
-            b = bmp->imageBuffer3[y][x + 0] * sepia[2][0] + bmp->imageBuffer3[y][x + 1] * sepia[2][1] + bmp->imageBuffer3[y][x + 2] * sepia[2][2];
-                
-            bmp->imageBuffer3[y][x + 0] = (r > WHITE)? WHITE : r; 
-            bmp->imageBuffer3[y][x + 1] = (g > WHITE)? WHITE : g; 
-            bmp->imageBuffer3[y][x + 2] = (b > WHITE)? WHITE : b; 
-                
+
+            r = bmp->imageBuffer3[y][x + 0] * sepia[0][0] +
+                bmp->imageBuffer3[y][x + 1] * sepia[0][1] +
+                bmp->imageBuffer3[y][x + 2] * sepia[0][2];
+            g = bmp->imageBuffer3[y][x + 0] * sepia[1][0] +
+                bmp->imageBuffer3[y][x + 1] * sepia[1][1] +
+                bmp->imageBuffer3[y][x + 2] * sepia[1][2];
+            b = bmp->imageBuffer3[y][x + 0] * sepia[2][0] +
+                bmp->imageBuffer3[y][x + 1] * sepia[2][1] +
+                bmp->imageBuffer3[y][x + 2] * sepia[2][2];
+
+            bmp->imageBuffer3[y][x + 0] = (r > WHITE) ? WHITE : r;
+            bmp->imageBuffer3[y][x + 1] = (g > WHITE) ? WHITE : g;
+            bmp->imageBuffer3[y][x + 2] = (b > WHITE) ? WHITE : b;
         }
     }
-
 }

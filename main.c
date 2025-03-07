@@ -695,6 +695,7 @@ int main(int argc, char *argv[]) {
         bitmapPtr->direction = flip_dir;
     } else if (l_flag) {
         mode = BLUR;
+        bitmapPtr->blur_level = l_flag_int;
     } else if (s_flag) {
         mode = SEPIA;
     } else {
