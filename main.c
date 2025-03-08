@@ -639,17 +639,17 @@ int main(int argc, char *argv[]) {
         case 'v': // verbose
             v_flag = true;
             break;
-        
+
         case '?':
-        printf("Unknown option: -%s\n", argv[optind]);
-        break;
-            default: // Handle unkown options
+            printf("Unknown option: -%s\n", argv[optind]);
+            break;
+        default: // Handle unkown options
             printf("Unknown option: -%s\n", long_options[long_index].name);
             exit(EXIT_FAILURE);
         } // end of switch
 
     } // End getopt while loop
-    //printf("Option: %d\n", option);
+    // printf("Option: %d\n", option);
 
     // set the mode and make sure only one mode is true.
     if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
@@ -753,7 +753,21 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
-        const char *suffix = get_suffix(mode);
+        // char *suffix_temp = NULL;
+        char *suffix = NULL;
+
+        if ((mode == BLUR) && (l_flag_int > 0)) {
+            char *suffix_temp = get_suffix(mode);
+            size_t size =
+                snprintf(NULL, 0, "%s_%d", suffix_temp, l_flag_int) + 1;
+            suffix = malloc(size);
+            if (!suffix){
+                fprintf(stderr, "Error: Could not create blur suffix.");
+            }
+            snprintf(suffix, size, "%s_%d", suffix_temp, l_flag_int);
+        } else {
+            suffix = get_suffix(mode);
+        }
 
         // Calculate the length of the parts to create filename2
         size_t base_len = dot_pos - filename1;
