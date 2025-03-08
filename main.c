@@ -11,7 +11,7 @@
 #include <uchar.h>
 #include <unistd.h>
 
-#define VERSION "0.12 Sepia\n"
+#define VERSION "0.13 Multi-level blur\n"
 
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";

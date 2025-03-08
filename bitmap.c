@@ -861,19 +861,6 @@ void rot13(Bitmap *bmp) {
 
 void blur1(Bitmap *bmp) {
     printf("Inside blur1\n");
-    
-    
-    float v = 1.0 / 9.0;
-
-    
-
-    float kernal2D[3][3];
-
-    for (int i = 0; i < 9; i++) {
-        kernal2D[i / 3][i % 3] = v;
-    }
-
-    
 
     uint32_t rows = bmp->height;
     uint32_t cols = bmp->width;
@@ -882,7 +869,7 @@ void blur1(Bitmap *bmp) {
     // height / rows / y
     // width / cols / x
 
-    //uint8_t *buf1 = bmp->imageBuffer1;
+    // uint8_t *buf1 = bmp->imageBuffer1;
     uint8_t **buf1_2D = NULL;
     buffer1_to_2D(bmp->imageBuffer1, &buf1_2D, rows, cols);
 
@@ -890,11 +877,17 @@ void blur1(Bitmap *bmp) {
     uint8_t **buf2_2D = NULL;
     buffer1_to_2D(buf2, &buf2_2D, rows, cols);
 
+    float kernal2D[3][3];
+    float v;
     float sum;
 
     for (int blur = 0; blur < bmp->blur_level; blur++) {
         printf("Blur %d\n", blur);
-        
+
+        v = 1.0 / 9.0;
+        for (int i = 0; i < 9; i++) {
+            kernal2D[i / 3][i % 3] = v;
+        }
 
         // Center/main area, average 1 pixel + 8 neighbors.
         for (size_t r = 1; r < rows - 1; r++) {
@@ -903,17 +896,18 @@ void blur1(Bitmap *bmp) {
 
                 for (int8_t r1 = -1; r1 <= 1; r1++) {
                     for (int8_t c1 = -1; c1 <= 1; c1++) {
-                        sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
-                       // sum += v*buf1_2D[r + r1][c + c1];
+                        sum +=
+                            kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
+                        // sum += v*buf1_2D[r + r1][c + c1];
                     }
                 }
-                
-                //sum = sum * (1.0/9.0);
-                buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
 
+                // sum = sum * (1.0/9.0);
+                buf2_2D[r][c] =
+                    (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
             }
         }
-/*
+
         // Sides
         // Average 1 pixel + 5 neighbors
         v = 1.0 / 6.0;
@@ -921,8 +915,6 @@ void blur1(Bitmap *bmp) {
             kernal2D[i / 3][i % 3] = v;
         }
 
-     
-        
         // Left side, c = 0
         for (size_t r = 1, c = 0; r < rows - 1; r++) {
             sum = 0.0;
@@ -930,14 +922,11 @@ void blur1(Bitmap *bmp) {
             for (int8_t r1 = -1; r1 <= 1; r1++) {
                 for (int8_t c1 = 0; c1 <= 1; c1++) {
                     sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
+                    // sum += v * buf1_2D[r + r1][c + c1];
                 }
             }
-            buf2_2D[r][c] = (uint16_t)sum;
+            buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
         }
-*/
-
-        /*
-
 
         // Right side, c = cols - 1
         for (size_t r = 1, c = cols - 1; r < rows - 1; r++) {
@@ -948,7 +937,7 @@ void blur1(Bitmap *bmp) {
                     sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
                 }
             }
-            buf2_2D[r][c] = (uint8_t)sum;
+            buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
         }
 
         // Top side, r = 0
@@ -960,7 +949,7 @@ void blur1(Bitmap *bmp) {
                     sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
                 }
             }
-            buf2_2D[r][c] = (uint8_t)sum;
+            buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
         }
 
         // Bottom side, r = rows - 1
@@ -972,7 +961,7 @@ void blur1(Bitmap *bmp) {
                     sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
                 }
             }
-            buf2_2D[r][c] = (uint8_t)sum;
+            buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
         }
 
         // Corners
@@ -982,7 +971,7 @@ void blur1(Bitmap *bmp) {
             kernal2D[i / 3][i % 3] = v;
         }
 
-        // Top left
+        // Bottom left
         size_t r = 0, c = 0;
         sum = 0.0;
 
@@ -991,9 +980,9 @@ void blur1(Bitmap *bmp) {
                 sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
             }
         }
-        buf2_2D[r][c] = (uint8_t)sum;
+        buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
 
-        // Bottom left
+        // Top left
         r = rows - 1, c = 0;
         sum = 0.0;
 
@@ -1002,9 +991,9 @@ void blur1(Bitmap *bmp) {
                 sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
             }
         }
-        buf2_2D[r][c] = (uint8_t)sum;
+        buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
 
-        // Bottom right
+        // Top right
         r = rows - 1, c = cols - 1;
         sum = 0.0;
 
@@ -1013,9 +1002,9 @@ void blur1(Bitmap *bmp) {
                 sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
             }
         }
-        buf2_2D[r][c] = (uint8_t)sum;
+        buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
 
-        // Top right
+        // Bottom right
         r = 0, c = cols - 1;
         sum = 0.0;
 
@@ -1024,16 +1013,15 @@ void blur1(Bitmap *bmp) {
                 sum += kernal2D[r1 + 1][c1 + 1] * buf1_2D[r + r1][c + c1];
             }
         }
-        buf2_2D[r][c] = (uint8_t)sum;
-*/
+        buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
 
         // Dst, Src
-        memcpy(bmp->imageBuffer1,buf2, image_size);
+        memcpy(bmp->imageBuffer1, buf2, image_size);
     }
 
-     free(buf2);
-     free(buf1_2D);
-     free(buf2_2D);
+    free(buf2);
+    free(buf1_2D);
+    free(buf2_2D);
 }
 
 //---
