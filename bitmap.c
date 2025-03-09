@@ -1,4 +1,5 @@
 #include "bitmap.h"
+#include "convolution.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
