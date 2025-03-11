@@ -11,7 +11,7 @@
 #include <uchar.h>
 #include <unistd.h>
 
-#define VERSION "0.13 Multi-level blur\n"
+#define VERSION "0.14 Discrete Convolution\n"
 
 char *dot_bmp = ".bmp";
 char *dot_txt = ".txt";
@@ -392,6 +392,7 @@ int main(int argc, char *argv[]) {
         l_flag = false,       // blur
         s_flag = false,       // sepia
         v_flag = false,       // verbose
+        c_flag = false,       // convolution 
         version_flag = false; // version
 
     // Monochrome value with default
