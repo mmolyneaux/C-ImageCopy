@@ -392,7 +392,7 @@ int main(int argc, char *argv[]) {
         l_flag = false,       // blur
         s_flag = false,       // sepia
         v_flag = false,       // verbose
-        c_flag = false,       // convolution 
+        filter_flag = false,  // filter
         version_flag = false; // version
 
     // Monochrome value with default
@@ -401,6 +401,7 @@ int main(int argc, char *argv[]) {
     int b_flag_int = 0;
     int l_flag_int = 0;
     int r_flag_int = 0;
+    char *filter_value = NULL;
     enum Dir flip_dir = 0;
     enum Invert invert_mode = 0;
 
@@ -411,6 +412,7 @@ int main(int argc, char *argv[]) {
         {"version", no_argument, NULL, 0},
         {"hist", no_argument, NULL, 0},
         {"histn", no_argument, NULL, 0},
+        {"filter", required_argument, NULL, 0},
         {
             0,
             0,
@@ -450,6 +452,15 @@ int main(int argc, char *argv[]) {
                        0) { // histn
                 histn_flag = true;
                 printf("histn\n");
+            } else if (strcmp("filter", long_options[long_index].name) ==
+                       0) { // histn
+                filter_flag = true;
+                filter_value = optarg;
+                // if (strcmp("blur", optarg)) {
+
+                    printf("filter: %s\n", filter_value);
+                    exit(EXIT_SUCCESS);
+                // }
             }
 
             break;
@@ -654,7 +665,7 @@ int main(int argc, char *argv[]) {
 
     // set the mode and make sure only one mode is true.
     if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
-            r_flag + f_flag + l_flag + s_flag >
+            r_flag + f_flag + l_flag + s_flag + filter_flag>
         1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
@@ -762,7 +773,7 @@ int main(int argc, char *argv[]) {
             size_t size =
                 snprintf(NULL, 0, "%s_%d", suffix_temp, l_flag_int) + 1;
             suffix = malloc(size);
-            if (!suffix){
+            if (!suffix) {
                 fprintf(stderr, "Error: Could not create blur suffix.");
             }
             snprintf(suffix, size, "%s_%d", suffix_temp, l_flag_int);
