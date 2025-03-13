@@ -9,76 +9,89 @@
  * kernel_weight: Sum of all kernel values, used for normalization.
  */
 
- // 
+//
 
- // 3x3, Smoothes the image by averaging neighboring pixels
- int8_t box_blur_kernel[9] =
- {1,1,1,
-  1,1,1,
-  1,1,1};
+// 3x3, Smoothes the image by averaging neighboring pixels
+const int8_t box_blur_kernel[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-  // 3x3, Weighted blur gives more importance the center pixel.
-  int8_t gaussian_blur_kernel[9] =
-  {1,2,1,
-   2,4,2,
-   1,2,1};
+// 3x3, Weighted blur gives more importance the center pixel.
+const int8_t gaussian_blur_kernel[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
 
-   // 3x3, Enhances edges and details in the image.
-   int8_t sharpen_kernel[9] =
-    {0,-1,0,
-    -1,5, -1,
-    0,-1,0};
+// 3x3, Enhances edges and details in the image.
+const int8_t sharpen_kernel[9] = {0, -1, 0, -1, 5, -1, 0, -1, 0};
 
+// 3x3, Highlights edges by detecting intensity changes
+// Horizontal
+const int8_t edge_sobel_kernel[9] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
 
+// 3x3, Laplaction detection
+const int8_t edge_laplacion_kernel[9] = {0, -1, 0, -1, 4, -1, 0, -1, 0};
 
-int8_t edge_kernel1[9] = {-1, -1, -1, -1, 8, -1, -1, -1, -1};
+// Creates a 3D-like effect by emphasizing edges in a specific direction.
+const int8_t emboss_kernel[9] = {-2, -1, 0, -1, 1, 1, 0, 1, 2};
 
-int8_t sharpen_kernel1[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
+const int8_t edge_kernel[9] = {-1, -1, -1, -1, 8, -1, -1, -1, -1};
 
 typedef struct {
-    int *array;
-    int size;
-    int weight;
+    const char *name;
+    const int8_t *array;
+    const uint8_t size;
 } Kernel;
 
-Kernel edge = {
-    .array = edge_kernel, // Point to the array
-    .size = 3,   // Kernel size (3x3
-    .weight = 9  // Kernel weight (sum of values)
+
+Kernel kernel_list[] = {
+    {"edge", edge_kernel, 3}
+
 
 };
+
+
 
 typedef struct {
     uint8_t *input;  // Pointer to the input image buffer
     uint8_t *output; // Pointer to the output image buffer
-    int height;      // Image height
-    int width;       // Image width
+    uint32_t height;      // Image height
+    uint32_t width;       // Image width
     Kernel kernel;   // Pointer to the convolution kernel
     //    int kernel_size;      // Size of the kernel (eg., 3 for a 3x3 kernel)
     //    int kernel_weight;    // Normalization factor (sum of kernel elements)
 } Convolution;
 
+
 void conv1(Convolution *conv);
+
+
+int32_t get_kernel_weight(Kernel *kernel){
+    uint8_t size = get_kernel_size(kernel);
+    int32_t weight = 0;
+    for (int i = 0; i < size; i++) {
+        weight += kernel->array[i];
+    }
+    return weight;
+}
+
+
+
 
 // Convolution function
 void conv1(Convolution *conv) {
     uint8_t *input = conv->input;     // Input buffer (grayscale)
     uint8_t *output = conv->output;   // Output buffer
-    int height = conv->height;        // Image height
-    int width = conv->width;          // Image width
-    int *kernel = conv->kernel.array; // Convolution kernel (flattened 2D array)
-    int kernel_size = conv->kernel.size; // Kernel width or height
-    int kernel_weight = conv->kernel.weight;
+    uint32_t height = conv->height;        // Image height
+    uint32_t width = conv->width;          // Image width
+    int8_t *kernel = conv->kernel.array; // Convolution kernel (flattened 2D array)
+    uint8_t kernel_size = get_kernel_size(&conv->kernel); // Kernel width or height
+    int32_t kernel_weight = get_kernel_weight(&conv->kernel);
 
     // Half-size of the kernel
-    uint8_t kernel_radius = conv->kernel.size / 2;
+    uint8_t kernel_radius = kernel_size / 2;
 
     int x, y, x1, y1, pixel_x, pixel_y, sum, image_index, kernel_index;
     x = y = x1 = y1 = pixel_x = pixel_y = sum = image_index = kernel_index = 0;
 
     // Iterate over each pixel in the image
-    for (y = 0; y < conv->height; y++) {
-        for (x = 0; x < conv->width; x++) {
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
             sum = 0;
 
             // Apply the kernal
