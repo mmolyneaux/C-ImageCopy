@@ -1,3 +1,4 @@
+#include "convolution.h"
 #include "bitmap.h"
 #include <errno.h>
 #include <getopt.h>
@@ -172,7 +173,12 @@ bool write_image(Bitmap *bmp, char *filename) {
             flip13(bmp);
         } else if (bmp->output_mode == BLUR) {
             blur1(bmp);
+        } else if (bmp->output_mode == FILTER) {
+            filter1(bmp);
         }
+        fprintf(stderr, "%s mode not available for 1 channel grayscale.\n",
+                mode_to_string(bmp->output_mode));
+        exit(EXIT_FAILURE);
 
     } else if (bmp->channels == RGB) {
         printf("RGB_CHANNEL\n");
@@ -401,7 +407,9 @@ int main(int argc, char *argv[]) {
     int b_flag_int = 0;
     int l_flag_int = 0;
     int r_flag_int = 0;
-    char *filter_value = NULL;
+
+    char *filter_name = NULL;
+    int8_t filter_index = -1;
     enum Dir flip_dir = 0;
     enum Invert invert_mode = 0;
 
@@ -455,12 +463,29 @@ int main(int argc, char *argv[]) {
             } else if (strcmp("filter", long_options[long_index].name) ==
                        0) { // histn
                 filter_flag = true;
-                filter_value = optarg;
-                // if (strcmp("blur", optarg)) {
 
-                    printf("filter: %s\n", filter_value);
-                    exit(EXIT_SUCCESS);
-                // }
+       
+                uint8_t filter_list_size = 0;
+                char **filter_list =
+                    get_filter_list(kernel_list, &filter_list_size);
+                for (int i = 0; (i < filter_list_size) && filter_index == -1;
+                     i++) {
+                    if (strcmp(optarg, filter_list[i]) == 0) {
+                        printf("Filter %s found at %d.", filter_list[i], i);
+                        filter_name = filter_list[i];
+                        filter_index = i;
+                    }
+                }
+                if (filter_index == -1) {
+                    printf("Filter not found. Available filters:\n");
+                    
+                    for (int i = 0; i < filter_list_size; i++){
+                        printf(" %s\n", filter_list[i]);
+                    }
+                }
+
+                free(filter_list);
+                exit(EXIT_FAILURE);
             }
 
             break;
@@ -665,12 +690,13 @@ int main(int argc, char *argv[]) {
 
     // set the mode and make sure only one mode is true.
     if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
-            r_flag + f_flag + l_flag + s_flag + filter_flag>
+            r_flag + f_flag + l_flag + s_flag + filter_flag >
         1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
     }
+
     Bitmap bitmap;
     Bitmap *bitmapPtr = &bitmap;
     init_bitmap(bitmapPtr);
@@ -710,6 +736,10 @@ int main(int argc, char *argv[]) {
         bitmapPtr->blur_level = l_flag_int;
     } else if (s_flag) {
         mode = SEPIA;
+    } else if (filter_flag) {
+        mode = FILTER;
+        bitmapPtr->filter_name = filter_name;
+        bitmapPtr->filter_index =  filter_index;
     } else {
         mode = COPY;
     }

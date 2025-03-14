@@ -30,7 +30,8 @@ enum Mode {
     ROT,
     FLIP,
     BLUR,
-    SEPIA
+    SEPIA,
+    FILTER
 };
 enum Invert { RGB_INVERT = 1, HSV_INVERT = 2 };
 enum Dir { H = 1, V = 2 };
@@ -62,6 +63,9 @@ typedef struct {
     enum Dir direction;           // Flip direction, <H>orizontal or <V>ertical
     enum Mode output_mode;
     enum Invert invert;
+    char* filter_name;
+    int8_t filter_index;
+
 } Bitmap;
 
 char *get_suffix(enum Mode mode);
@@ -92,4 +96,5 @@ void rot13(Bitmap *bmp);
 void blur1(Bitmap *bmp);
 void blur3(Bitmap *bmp);
 void sepia3(Bitmap *bmp);
+void filter1(Bitmap *bmp);
 #endif

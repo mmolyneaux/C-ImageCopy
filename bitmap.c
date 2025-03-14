@@ -1,5 +1,4 @@
 #include "bitmap.h"
-#include "convolution.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -34,6 +33,9 @@ void init_bitmap(Bitmap *bitmap) {
     bitmap->invert = 0;
     bitmap->blur_level = 0;
     bitmap->output_mode = NO_MODE;
+    bitmap->filter_name = NULL;
+    bitmap->filter_index = -1;
+    
 }
 
 char *get_suffix(enum Mode mode) {
@@ -1303,4 +1305,8 @@ void sepia3(Bitmap *bmp) {
             bmp->imageBuffer3[y][x + 2] = (b > WHITE) ? WHITE : b;
         }
     }
+}
+
+void filter1(Bitmap *bmp){
+
 }

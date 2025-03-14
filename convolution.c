@@ -1,5 +1,11 @@
+#ifndef CONVOLUTION_C
+#define CONVOLUTION_C
+
+
 #include "convolution.h"
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*
  * input: A flattened 1D array containing the pixel values of the input image.
@@ -32,18 +38,45 @@ const int8_t emboss_kernel[9] = {-2, -1, 0, -1, 1, 1, 0, 1, 2};
 
 const int8_t edge_kernel[9] = {-1, -1, -1, -1, 8, -1, -1, -1, -1};
 
-typedef struct {
-    const char *name;
-    const int8_t *array;
-    const uint8_t size;
-} Kernel;
 
 
-Kernel kernel_list[] = {
-    {"edge", edge_kernel, 3}
+
+ Kernel kernel_list[] = {
+    {"emboss", emboss_kernel,9},
+    {"edge", edge_kernel, 9},
+    {"laplacion", edge_laplacion_kernel, 9},
+    {NULL, NULL, 0}
 
 
 };
+
+// Function to retrieve the names of all kernels
+extern char **get_filter_list(Kernel *kernel_list, uint8_t *name_count) {
+    // Count the number of kernels (ignore the sentinel value at the end)
+    int count = 0;
+    while (kernel_list[count].name != NULL) {
+        count++;
+    }
+
+    // Allocate memory for the array of string pointers
+    char ** names = (char **)malloc(count * sizeof(char *));
+    if (!names) {
+        perror("Failed to allocate memory.\n");
+        return NULL;
+    }
+
+    // Populate the array with kernel names
+    for (int i = 0; i < count; i++) {
+        names[i] = (char *) kernel_list[i].name;
+    }
+
+    // Return the count of names throught *name_count
+    if (name_count){
+        *name_count = count;
+    }
+
+    return names;
+}
 
 
 
@@ -62,13 +95,18 @@ void conv1(Convolution *conv);
 
 
 int32_t get_kernel_weight(Kernel *kernel){
-    uint8_t size = get_kernel_size(kernel);
+    uint8_t size = kernel->size;
     int32_t weight = 0;
     for (int i = 0; i < size; i++) {
         weight += kernel->array[i];
     }
     return weight;
 }
+
+
+// int get_filter_list_size(){
+//     return sizeof(kernel_list) / sizeof(Kernel);
+// }
 
 
 
@@ -79,8 +117,8 @@ void conv1(Convolution *conv) {
     uint8_t *output = conv->output;   // Output buffer
     uint32_t height = conv->height;        // Image height
     uint32_t width = conv->width;          // Image width
-    int8_t *kernel = conv->kernel.array; // Convolution kernel (flattened 2D array)
-    uint8_t kernel_size = get_kernel_size(&conv->kernel); // Kernel width or height
+    const int8_t *kernel = conv->kernel.array; // Convolution kernel (flattened 2D array)
+    uint8_t kernel_size = conv->kernel.size; // Kernel width or height
     int32_t kernel_weight = get_kernel_weight(&conv->kernel);
 
     // Half-size of the kernel
@@ -123,3 +161,5 @@ void conv1(Convolution *conv) {
         }
     }
 }
+
+#endif
