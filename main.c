@@ -1,5 +1,5 @@
-#include "convolution.h"
 #include "bitmap.h"
+#include "convolution.h"
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
@@ -11,6 +11,7 @@
 #include <string.h>
 #include <uchar.h>
 #include <unistd.h>
+
 
 #define VERSION "0.14 Discrete Convolution\n"
 
@@ -420,7 +421,7 @@ int main(int argc, char *argv[]) {
         {"version", no_argument, NULL, 0},
         {"hist", no_argument, NULL, 0},
         {"histn", no_argument, NULL, 0},
-        {"filter", required_argument, NULL, 0},
+        {"filter", optional_argument, NULL, 0},
         {
             0,
             0,
@@ -464,28 +465,41 @@ int main(int argc, char *argv[]) {
                        0) { // histn
                 filter_flag = true;
 
-       
                 uint8_t filter_list_size = 0;
                 char **filter_list =
                     get_filter_list(kernel_list, &filter_list_size);
-                for (int i = 0; (i < filter_list_size) && filter_index == -1;
-                     i++) {
-                    if (strcmp(optarg, filter_list[i]) == 0) {
-                        printf("Filter %s found at %d.", filter_list[i], i);
-                        filter_name = filter_list[i];
-                        filter_index = i;
+
+                    printf("Optarg: %s\n", optarg);
+                if (optarg) {
+                    for (int i = 0;
+                         (i < filter_list_size) && filter_index == -1; i++) {
+                        if (strcmp(optarg, filter_list[i]) == 0) {
+                            printf("Filter %s found at %d.", filter_list[i], i);
+                            filter_name = filter_list[i];
+                            filter_index = i;
+                        }
                     }
-                }
-                if (filter_index == -1) {
-                    printf("Filter not found. Available filters:\n");
+                    if (filter_index == -1) {
                     
-                    for (int i = 0; i < filter_list_size; i++){
+                    } else printf("Filter set: %s\n", filter_name);
+                }
+                
+                if (filter_index == -1) {
+                    printf("Usage:\n");
+                    printf(">%s --filter=filter_name <input_filename> [opt_output_filename]\n", argv[0]);
+                    printf("Available filter names:\n");
+
+                    for (int i = 0; i < filter_list_size; i++) {
                         printf(" %s\n", filter_list[i]);
                     }
                 }
-
+                
                 free(filter_list);
-                exit(EXIT_FAILURE);
+                filter_list = NULL;
+                
+                if (filter_index == -1) {
+                    exit(EXIT_FAILURE);
+                } 
             }
 
             break;
@@ -739,7 +753,7 @@ int main(int argc, char *argv[]) {
     } else if (filter_flag) {
         mode = FILTER;
         bitmapPtr->filter_name = filter_name;
-        bitmapPtr->filter_index =  filter_index;
+        bitmapPtr->filter_index = filter_index;
     } else {
         mode = COPY;
     }
