@@ -1,4 +1,5 @@
 #include "bitmap.h"
+#include "convolution.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -85,6 +86,9 @@ char *get_suffix(enum Mode mode) {
     case SEPIA:
         return "_sepia";
         break;
+    case FILTER:
+        return "_filter";
+        break;
     default:
         return "_suffix";
     }
@@ -130,6 +134,9 @@ char *mode_to_string(enum Mode mode) {
         break;
     case SEPIA:
         return "Sepia";
+        break;
+    case FILTER:
+        return "Filter";
         break;
     default:
         return "default: mode string not found";
@@ -1308,5 +1315,13 @@ void sepia3(Bitmap *bmp) {
 }
 
 void filter1(Bitmap *bmp){
-
+    char * filter_name = bmp->filter_name;
+    int filter_index = bmp->filter_index;
+    Convolution *c1 = malloc(sizeof(Convolution));
+    c1->input = bmp->imageBuffer1;  // Pointer to the input image buffer
+    c1->height = bmp->height;      // Image height
+    c1->width = bmp->width;       // Image width
+    Kernel kernel = kernel_list[filter_index];
+    c1.output = ; // Pointer to the output image buffer
+   
 }

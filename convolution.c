@@ -40,7 +40,7 @@ const int8_t edge_kernel[9] = {-1, -1, -1, -1, 8, -1, -1, -1, -1};
 
 
 
-
+// Global
  Kernel kernel_list[] = {
     {"emboss", emboss_kernel,9},
     {"edge", edge_kernel, 9},
@@ -80,18 +80,7 @@ extern char **get_filter_list(Kernel *kernel_list, uint8_t *name_count) {
 
 
 
-typedef struct {
-    uint8_t *input;  // Pointer to the input image buffer
-    uint8_t *output; // Pointer to the output image buffer
-    uint32_t height;      // Image height
-    uint32_t width;       // Image width
-    Kernel kernel;   // Pointer to the convolution kernel
-    //    int kernel_size;      // Size of the kernel (eg., 3 for a 3x3 kernel)
-    //    int kernel_weight;    // Normalization factor (sum of kernel elements)
-} Convolution;
 
-
-void conv1(Convolution *conv);
 
 
 int32_t get_kernel_weight(Kernel *kernel){
