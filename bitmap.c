@@ -155,6 +155,7 @@ uint8_t *init_buffer1(uint32_t image_size) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
         exit(EXIT_FAILURE);
     }
+    printf("Size created: %d\n", image_size);
 
     // bmp->imageBuffer1 = buf1;
     return buf1;
@@ -1315,13 +1316,44 @@ void sepia3(Bitmap *bmp) {
 }
 
 void filter1(Bitmap *bmp){
+    printf("Inside filter1\n");
     char * filter_name = bmp->filter_name;
     int filter_index = bmp->filter_index;
+    
     Convolution *c1 = malloc(sizeof(Convolution));
     c1->input = bmp->imageBuffer1;  // Pointer to the input image buffer
     c1->height = bmp->height;      // Image height
     c1->width = bmp->width;       // Image width
-    Kernel kernel = kernel_list[filter_index];
-    c1.output = ; // Pointer to the output image buffer
-   
+    c1->kernel = &kernel_list[filter_index];    
+    c1->output = init_buffer1(bmp->image_size); // Pointer to the output image buffer
+    
+    printf("Kernel: %s\n", c1->kernel->name);
+
+    for (int i = 0; i < c1->kernel->size; i++){
+        printf("%d ", c1->kernel->array[i]);
+    }
+    printf("\n");
+
+    printf("Before conv1\n");
+    for (int i = 0; i < 10; i++){
+        printf("I:%d,O:%d ", c1->input[i], c1->output[i]);
+    }
+    printf("\n");
+
+    conv1(c1);
+    printf("After conv1\n");
+
+
+   // transfer back to the original input buffer.
+   for (int i = 0; i < bmp->image_size; i++) {
+    if(i < 10){
+        printf("I:%d,O:%d", c1->input[i], c1->output[i]);
+    }
+
+    c1->input[i] = c1->output[i];
+   }
+   printf("\n");
+    free(c1->output);
+
+
 }

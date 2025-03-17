@@ -12,7 +12,6 @@
 #include <uchar.h>
 #include <unistd.h>
 
-
 #define VERSION "0.14 Discrete Convolution\n"
 
 char *dot_bmp = ".bmp";
@@ -176,10 +175,11 @@ bool write_image(Bitmap *bmp, char *filename) {
             blur1(bmp);
         } else if (bmp->output_mode == FILTER) {
             filter1(bmp);
+        } else {
+            fprintf(stderr, "%s mode not available for 1 channel grayscale.\n",
+                    mode_to_string(bmp->output_mode));
+            exit(EXIT_FAILURE);
         }
-        fprintf(stderr, "%s mode not available for 1 channel grayscale.\n",
-                mode_to_string(bmp->output_mode));
-        exit(EXIT_FAILURE);
 
     } else if (bmp->channels == RGB) {
         printf("RGB_CHANNEL\n");
@@ -469,7 +469,7 @@ int main(int argc, char *argv[]) {
                 char **filter_list =
                     get_filter_list(kernel_list, &filter_list_size);
 
-                    printf("Optarg: %s\n", optarg);
+                printf("Optarg: %s\n", optarg);
                 if (optarg) {
                     for (int i = 0;
                          (i < filter_list_size) && filter_index == -1; i++) {
@@ -480,26 +480,29 @@ int main(int argc, char *argv[]) {
                         }
                     }
                     if (filter_index == -1) {
-                    
-                    } else printf("Filter set: %s\n", filter_name);
+
+                    } else
+                        printf("Filter set: %s\n", filter_name);
                 }
-                
+
                 if (filter_index == -1) {
                     printf("Usage:\n");
-                    printf(">%s --filter=filter_name <input_filename> [opt_output_filename]\n", argv[0]);
+                    printf(">%s --filter=filter_name <input_filename> "
+                           "[opt_output_filename]\n",
+                           argv[0]);
                     printf("Available filter names:\n");
 
                     for (int i = 0; i < filter_list_size; i++) {
                         printf(" %s\n", filter_list[i]);
                     }
                 }
-                
+
                 free(filter_list);
                 filter_list = NULL;
-                
+
                 if (filter_index == -1) {
                     exit(EXIT_FAILURE);
-                } 
+                }
             }
 
             break;
