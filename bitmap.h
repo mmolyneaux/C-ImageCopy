@@ -61,14 +61,14 @@ typedef struct {
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
     enum Dir direction;           // Flip direction, <H>orizontal or <V>ertical
-    enum Mode output_mode;
+    enum Mode mode;
     enum Invert invert;
     char* filter_name;
     int8_t filter_index;
 
 } Bitmap;
 
-char *get_suffix(enum Mode mode);
+char *get_suffix(Bitmap *bmp);
 char *mode_to_string(enum Mode mode);
 void init_bitmap(Bitmap *bitmap);
 uint8_t *init_buffer1(uint32_t image_size);

@@ -33,14 +33,14 @@ void init_bitmap(Bitmap *bitmap) {
     bitmap->direction = 0;
     bitmap->invert = 0;
     bitmap->blur_level = 0;
-    bitmap->output_mode = NO_MODE;
+    bitmap->mode = NO_MODE;
     bitmap->filter_name = NULL;
     bitmap->filter_index = -1;
     
 }
 
-char *get_suffix(enum Mode mode) {
-    switch (mode) {
+char *get_suffix(Bitmap *bmp) {
+    switch (bmp->mode) {
     case NO_MODE:
         return "_none"; // not used currently besides initializaton
         break;

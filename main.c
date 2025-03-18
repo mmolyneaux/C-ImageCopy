@@ -144,7 +144,7 @@ bool write_image(Bitmap *bmp, char *filename) {
 
     // Process image
 
-    printf("Output mode: %s\n", mode_to_string(bmp->output_mode));
+    printf("Output mode: %s\n", mode_to_string(bmp->mode));
 
     // aka if (bmp->bit_depth <= 8), checked earlier
     if (bmp->channels == ONE_CHANNEL) {
@@ -152,74 +152,74 @@ bool write_image(Bitmap *bmp, char *filename) {
         printf("\n");
         printf("ONE_CHANNEL\n");
 
-        if (bmp->output_mode == COPY) {
+        if (bmp->mode == COPY) {
             copy13(bmp);
 
-        } else if (bmp->output_mode == MONO) {
+        } else if (bmp->mode == MONO) {
             mono1(bmp);
-        } else if (bmp->output_mode == BRIGHT) {
+        } else if (bmp->mode == BRIGHT) {
             bright1(bmp);
-        } else if (bmp->output_mode == HIST) {
+        } else if (bmp->mode == HIST) {
             hist1(bmp);
-        } else if (bmp->output_mode == HIST_N) {
+        } else if (bmp->mode == HIST_N) {
             hist1_normalized(bmp);
-        } else if (bmp->output_mode == EQUAL) {
+        } else if (bmp->mode == EQUAL) {
             equal1(bmp);
-        } else if (bmp->output_mode == INV) {
+        } else if (bmp->mode == INV) {
             inv1(bmp);
-        } else if (bmp->output_mode == ROT) {
+        } else if (bmp->mode == ROT) {
             rot13(bmp);
-        } else if (bmp->output_mode == FLIP) {
+        } else if (bmp->mode == FLIP) {
             flip13(bmp);
-        } else if (bmp->output_mode == BLUR) {
+        } else if (bmp->mode == BLUR) {
             blur1(bmp);
-        } else if (bmp->output_mode == FILTER) {
+        } else if (bmp->mode == FILTER) {
             filter1(bmp);
         } else {
             fprintf(stderr, "%s mode not available for 1 channel grayscale.\n",
-                    mode_to_string(bmp->output_mode));
+                    mode_to_string(bmp->mode));
             exit(EXIT_FAILURE);
         }
 
     } else if (bmp->channels == RGB) {
         printf("RGB_CHANNEL\n");
-        if (bmp->output_mode == COPY) {
+        if (bmp->mode == COPY) {
             printf("C3\n");
             copy13(bmp);
-        } else if (bmp->output_mode == GRAY) {
+        } else if (bmp->mode == GRAY) {
             printf("G3\n");
             gray3(bmp);
-        } else if (bmp->output_mode == MONO) {
+        } else if (bmp->mode == MONO) {
             printf("M3\n");
             mono3(bmp);
-        } else if (bmp->output_mode == BRIGHT) {
+        } else if (bmp->mode == BRIGHT) {
             printf("B3\n");
             bright3(bmp);
-        } else if (bmp->output_mode == EQUAL) {
+        } else if (bmp->mode == EQUAL) {
             printf("E3\n");
             equal3(bmp);
-        } else if (bmp->output_mode == INV_RGB) {
+        } else if (bmp->mode == INV_RGB) {
             printf("I3_RGB\n");
             inv_rgb3(bmp);
-        } else if (bmp->output_mode == INV_HSV) {
+        } else if (bmp->mode == INV_HSV) {
             printf("I3_HSV\n");
             inv_hsv3(bmp);
-        } else if (bmp->output_mode == ROT) {
+        } else if (bmp->mode == ROT) {
             printf("R3\n");
             rot13(bmp);
-        } else if (bmp->output_mode == FLIP) {
+        } else if (bmp->mode == FLIP) {
             printf("R3\n");
             flip13(bmp);
-        } else if (bmp->output_mode == BLUR) {
+        } else if (bmp->mode == BLUR) {
             printf("L3\n");
             blur3(bmp);
-        } else if (bmp->output_mode == SEPIA) {
+        } else if (bmp->mode == SEPIA) {
             printf("S3\n");
             sepia3(bmp);
         } else {
             printf("CHANNEL FAIL\n");
             fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
-                    mode_to_string(bmp->output_mode));
+                    mode_to_string(bmp->mode));
             exit(EXIT_FAILURE);
         }
     }
@@ -229,12 +229,12 @@ bool write_image(Bitmap *bmp, char *filename) {
     bool write_succesful = false;
     FILE *streamOut;
 
-    if (bmp->output_mode == HIST) {
+    if (bmp->mode == HIST) {
         streamOut = fopen(filename, "w");
         for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
             fprintf(streamOut, "%d\n", bmp->histogram1[i]);
         }
-    } else if (bmp->output_mode == HIST_N) {
+    } else if (bmp->mode == HIST_N) {
         streamOut = fopen(filename, "w");
         for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
             fprintf(streamOut, "%f\n", bmp->histogram_n[i]);
@@ -720,7 +720,7 @@ int main(int argc, char *argv[]) {
 
     if (g_flag) {
         mode = GRAY;
-        bitmapPtr->output_mode = mode;
+        bitmapPtr->mode = mode;
     } else if (m_flag) {
         mode = MONO;
         bitmapPtr->mono_threshold = m_flag_value;
@@ -760,7 +760,7 @@ int main(int argc, char *argv[]) {
     } else {
         mode = COPY;
     }
-    bitmapPtr->output_mode = mode;
+    bitmapPtr->mode = mode;
 
     // Check for required filename argument
     if (optind < argc) {
@@ -816,7 +816,7 @@ int main(int argc, char *argv[]) {
         char *suffix = NULL;
 
         if ((mode == BLUR) && (l_flag_int > 0)) {
-            char *suffix_temp = get_suffix(mode);
+            char *suffix_temp = get_suffix(bitmapPtr);
             size_t size =
                 snprintf(NULL, 0, "%s_%d", suffix_temp, l_flag_int) + 1;
             suffix = malloc(size);
@@ -825,7 +825,7 @@ int main(int argc, char *argv[]) {
             }
             snprintf(suffix, size, "%s_%d", suffix_temp, l_flag_int);
         } else {
-            suffix = get_suffix(mode);
+            suffix = get_suffix(bitmapPtr);
         }
 
         // Calculate the length of the parts to create filename2
