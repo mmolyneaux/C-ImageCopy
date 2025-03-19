@@ -36,7 +36,7 @@ void init_bitmap(Bitmap *bitmap) {
     bitmap->mode = NO_MODE;
     bitmap->filter_name = NULL;
     bitmap->filter_index = -1;
-    bitmap->filter_suffix = NULL;
+    bitmap->mode_suffix = NULL;
     
 }
 
@@ -90,9 +90,12 @@ char *get_suffix(Bitmap *bmp) {
         break;
     case FILTER:
         len = strlen(bmp->filter_name );
-        bmp->filter_suffix = (char *)malloc((len + 2) * sizeof(char));
-        strcpy(bmp->filter_suffix, "_");
-        strcpy(bmp->filter_suffix, bmp->filter_name);
+        bmp->mode_suffix  = (char *)malloc((len + 2) * sizeof(char));
+        strcpy(bmp->mode_suffix
+    , "_");
+        strcpy(bmp->mode_suffix
+    , bmp->filter_name);
+            return bmp->mode_suffix;
         break;
     default:
         return "_suffix";
@@ -262,9 +265,12 @@ void free_mem(Bitmap *bmp) {
         free(bmp->imageBuffer3);
         bmp->imageBuffer3 = NULL; // Avoid dangling pointer.
         
-        if (bmp->filter_suffix){{
-            free(bmp->filter_suffix);
-            bmp->filter_suffix = NULL;
+        if (bmp->mode_suffix
+){{
+            free(bmp->mode_suffix
+    );
+            bmp->mode_suffix
+     = NULL;
         }}
     }
 }
