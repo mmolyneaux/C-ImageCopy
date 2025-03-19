@@ -106,7 +106,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
 
     if (bitmap->channels == 1) {
         // Allocate memory for image buffer
-        bitmap->imageBuffer1 = init_buffer1(bitmap->image_size);
+        bitmap->imageBuffer1 = create_buffer1(bitmap->image_size);
 
         fread(bitmap->imageBuffer1, sizeof(char), bitmap->image_size, streamIn);
 
@@ -120,7 +120,7 @@ bool readImage(char *filename1, Bitmap *bitmap) {
         // nearest multiple of 4.
         bitmap->padded_width = (bitmap->width * 3 + 3) & (~3);
 
-        init_buffer3(&bitmap->imageBuffer3, bitmap->height,
+        create_buffer3(&bitmap->imageBuffer3, bitmap->height,
                      bitmap->padded_width);
 
         printf("Image buffer3 created.\n");
