@@ -151,11 +151,11 @@ char *mode_to_string(enum Mode mode) {
     }
 }
 
-uint8_t *init_buffer1(uint32_t image_size) {
+uint8_t *create_buffer1(uint32_t image_size) {
     if (!image_size) {
         fprintf(
             stderr,
-            "Error: Buffer initialization failed, Image size not defined.\n");
+            "Error: Buffer creation failed, Image size not defined.\n");
         exit(EXIT_FAILURE);
     }
     uint8_t *buf1 = (uint8_t *)calloc(image_size, sizeof(uint8_t));
@@ -192,8 +192,8 @@ void buffer1_to_2D(uint8_t *buf1D, uint8_t ***buf2D, uint32_t rows,
     }
 }
 
-void init_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols) {
-    printf("Buffer_init3\n");
+void create_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols) {
+    printf("Buffer_create3\n");
 
     *buffer = (uint8_t **)malloc(rows * sizeof(uint8_t *));
     if (*buffer == NULL) {
@@ -553,7 +553,7 @@ void hist3(Bitmap *bmp) {
         bmp->hist_max_value3[2] = 0;
 
     if (!bmp->histogram3) {
-        init_buffer3(&bmp->histogram3, 3, bmp->HIST_RANGE_MAX);
+        create_buffer3(&bmp->histogram3, 3, bmp->HIST_RANGE_MAX);
     }
 
     uint8_t val = 0;
@@ -698,7 +698,7 @@ void flip13(Bitmap *bmp) {
     uint8_t **output_buffer3 = NULL;
 
     if (bmp->channels == 1) {
-        output_buffer1 = init_buffer1(image_size);
+        output_buffer1 = create_buffer1(image_size);
 
         if (dir == H) {
             for (int r = 0; r < rows; r++) {
@@ -720,7 +720,7 @@ void flip13(Bitmap *bmp) {
         bmp->imageBuffer1 = output_buffer1;
 
     } else if (bmp->channels == 3) {
-        init_buffer3(&output_buffer3, height, bmp->padded_width);
+        create_buffer3(&output_buffer3, height, bmp->padded_width);
 
         if (dir == H) {
             for (int y = 0; y < height; y++) {
@@ -750,7 +750,7 @@ void flip13(Bitmap *bmp) {
 
         bmp->imageBuffer3 = output_buffer3;
     } else {
-        fprintf(stderr, "Error: Flip buffer initialization.\n");
+        fprintf(stderr, "Error: Flip buffer creation.\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -795,7 +795,7 @@ void rot13(Bitmap *bmp) {
     uint8_t **output_buffer3 = NULL;
 
     if (bmp->channels == 1) {
-        output_buffer1 = init_buffer1(image_size);
+        output_buffer1 = create_buffer1(image_size);
 
         if (degrees == 0) {
             for (int r = 0; r < rows; r++) {
@@ -832,7 +832,7 @@ void rot13(Bitmap *bmp) {
 
     } else if (bmp->channels == 3) {
 
-        init_buffer3(&output_buffer3, bmp->height, bmp->padded_width);
+        create_buffer3(&output_buffer3, bmp->height, bmp->padded_width);
         // 0 degrees test
         if (degrees == 0) {
             for (int y = 0; y < org_height; y++) {
@@ -900,7 +900,7 @@ void blur1(Bitmap *bmp) {
     uint8_t **buf1_2D = NULL;
     buffer1_to_2D(bmp->imageBuffer1, &buf1_2D, rows, cols);
 
-    uint8_t *buf2 = init_buffer1(image_size);
+    uint8_t *buf2 = create_buffer1(image_size);
     uint8_t **buf2_2D = NULL;
     buffer1_to_2D(buf2, &buf2_2D, rows, cols);
 
@@ -1064,7 +1064,7 @@ void blur3(Bitmap *bmp) {
 
     uint8_t **buf1 = bmp->imageBuffer3;
     uint8_t **buf2 = NULL;
-    init_buffer3(&buf2, rows, bmp->padded_width);
+    create_buffer3(&buf2, rows, bmp->padded_width);
     // printf("Rows: %d, PW: %d\n", rows, bmp->padded_width);
     float sum[3];
 
@@ -1341,7 +1341,7 @@ void filter1(Bitmap *bmp){
     c1->height = bmp->height;      // Image height
     c1->width = bmp->width;       // Image width
     c1->kernel = &kernel_list[filter_index];    
-    c1->output = init_buffer1(bmp->image_size); // Pointer to the output image buffer
+    c1->output = create_buffer1(bmp->image_size); // Pointer to the output image buffer
     
     printf("Kernel: %s\n", c1->kernel->name);
 
