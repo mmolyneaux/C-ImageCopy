@@ -36,9 +36,11 @@ void init_bitmap(Bitmap *bitmap) {
     bitmap->mode = NO_MODE;
     bitmap->filter_name = NULL;
     bitmap->filter_index = -1;
+    bitmap->filter_suffix = NULL;
     
 }
 
+size_t len;
 char *get_suffix(Bitmap *bmp) {
     switch (bmp->mode) {
     case NO_MODE:
@@ -87,7 +89,10 @@ char *get_suffix(Bitmap *bmp) {
         return "_sepia";
         break;
     case FILTER:
-        return "_filter";
+        len = strlen(bmp->filter_name );
+        bmp->filter_suffix = (char *)malloc((len + 2) * sizeof(char));
+        strcpy(bmp->filter_suffix, "_");
+        strcpy(bmp->filter_suffix, bmp->filter_name);
         break;
     default:
         return "_suffix";
@@ -256,6 +261,11 @@ void free_mem(Bitmap *bmp) {
         }
         free(bmp->imageBuffer3);
         bmp->imageBuffer3 = NULL; // Avoid dangling pointer.
+        
+        if (bmp->filter_suffix){{
+            free(bmp->filter_suffix);
+            bmp->filter_suffix = NULL;
+        }}
     }
 }
 

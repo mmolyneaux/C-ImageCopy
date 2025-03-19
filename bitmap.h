@@ -65,6 +65,7 @@ typedef struct {
     enum Invert invert;
     char* filter_name;
     int8_t filter_index;
+    char* filter_suffix;
 
 } Bitmap;
 
