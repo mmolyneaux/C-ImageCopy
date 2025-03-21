@@ -93,7 +93,7 @@ char *get_suffix(Bitmap *bmp) {
         bmp->mode_suffix  = (char *)malloc((len + 2) * sizeof(char));
         strcpy(bmp->mode_suffix
     , "_");
-        strcpy(bmp->mode_suffix
+        strcat(bmp->mode_suffix
     , bmp->filter_name);
             return bmp->mode_suffix;
         break;

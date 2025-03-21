@@ -17,10 +17,7 @@
 
 //
 
-const int8_t identity_kernel[9] =
-    {0,0,0,
-     0,1,0,
-     0,0,0};
+const int8_t identity_kernel[9] = {0, 0, 0, 0, 1, 0, 0, 0, 0};
 
 // 3x3, Smoothes the image by averaging neighboring pixels
 const int8_t box_blur_kernel[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
@@ -44,9 +41,14 @@ const int8_t emboss_kernel[9] = {-2, -1, 0, -1, 1, 1, 0, 1, 2};
 const int8_t edge_kernel[9] = {-1, -1, -1, -1, 8, -1, -1, -1, -1};
 
 // Global
-Kernel kernel_list[] = {{"emboss", emboss_kernel, 3},
+
+Kernel kernel_list[] = {{"identity", identity_kernel, 3},
+                        {"box_blur", box_blur_kernel, 3},
+                        {"gaussian_blur", gaussian_blur_kernel, 3},
+                        {"sharpen", sharpen_kernel, 3},
                         {"edge", edge_kernel, 3},
-                        {"identity", identity_kernel, 3},
+                        {"sobel_edge_kernel", edge_sobel_kernel, 3},
+                        {"emboss", emboss_kernel, 3},
                         {"laplacion", edge_laplacion_kernel, 3},
                         {NULL, NULL, 0}
 
@@ -90,6 +92,7 @@ int32_t get_kernel_weight(Kernel *kernel) {
         exit(EXIT_FAILURE);
     }
     uint8_t size = kernel->size;
+    size = size * size;
     int32_t weight = 0;
     for (int i = 0; i < size; i++) {
         weight += kernel->array[i];
@@ -110,7 +113,7 @@ void conv1(Convolution *conv) {
         conv->kernel->array; // Convolution kernel (flattened 2D array)
     uint8_t kernel_size = conv->kernel->size; // Kernel width or height
     int32_t kernel_weight = get_kernel_weight(conv->kernel);
-    
+    printf("kw:%d \n", kernel_weight);
     // if (kernel_weight <= 0) {
     //     printf("Kernel weight cannot be zero, weight: %d\n", kernel_weight);
     //     exit(EXIT_FAILURE);
@@ -145,15 +148,15 @@ void conv1(Convolution *conv) {
             }
 
             // Normalize and clamp the result
-           // printf("Kernel weight: %d\n", kernel_weight);
-            sum = kernel_weight > 0 ? sum / kernel_weight : sum;
-            //printf("sum:%d ", sum);
+            // printf("Kernel weight: %d\n", kernel_weight);
+            sum = (kernel_weight !=0) ? sum / kernel_weight : sum;
+            // printf("kw:%d ", kernel_weight);
             sum = sum < 0 ? 0 : (sum > 255 ? 255 : sum);
 
             // Write the result to the output buffer
             output[y * width + x] = (uint8_t)sum;
-            //printf("n:%d,I:%d,O:%d ", y * width + x, input[y * width + x],
-            //       output[y * width + x]);
+            // printf("n:%d,I:%d,O:%d ", y * width + x, input[y * width + x],
+            //        output[y * width + x]);
         }
     }
 }
