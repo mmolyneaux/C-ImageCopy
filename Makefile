@@ -8,10 +8,10 @@ CC = gcc
 TARGET = imagecopy
 
 # Source files
-SRCS = main.c bitmap.c bitmap.h convolution.c convolution.h
+SRCS = main.c bitmap.c bitmap.h convolution.c convolution.h clamp.c clamp.h
 
 # Object files
-OBJS = main.o bitmap.o convolution.o
+OBJS = main.o bitmap.o convolution.o clamp.o
 
 # Default target
 all: $(TARGET)
@@ -31,6 +31,10 @@ bitmap.o: bitmap.c bitmap.h
 # Compile convolution.o
 convolution.o: convolution.c convolution.h
 	$(CC) $(CFLAGS) -c convolution.c
+
+# Compile clamp.o
+clamp.o: clamp.c clamp.h
+	$(CC) $(CFLAGS) -c clamp.c
 
 # Clean up the generated files
 # WIN

@@ -2,6 +2,7 @@
 #define CONVOLUTION_C
 
 #include "convolution.h"
+#include "clamp.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +48,7 @@ Kernel kernel_list[] = {{"identity", identity_kernel, 3},
                         {"gaussian_blur", gaussian_blur_kernel, 3},
                         {"sharpen", sharpen_kernel, 3},
                         {"edge", edge_kernel, 3},
-                        {"sobel_edge_kernel", edge_sobel_kernel, 3},
+                        {"sobel_edge", edge_sobel_kernel, 3},
                         {"emboss", emboss_kernel, 3},
                         {"laplacion", edge_laplacion_kernel, 3},
                         {NULL, NULL, 0}
@@ -108,16 +109,11 @@ void conv1(Convolution *conv) {
     uint8_t *output = conv->output; // Output buffer
     uint32_t height = conv->height; // Image height
     uint32_t width = conv->width;   // Image width
-    printf("***Break***\n");
     const int8_t *kernel =
         conv->kernel->array; // Convolution kernel (flattened 2D array)
     uint8_t kernel_size = conv->kernel->size; // Kernel width or height
     int32_t kernel_weight = get_kernel_weight(conv->kernel);
     printf("kw:%d \n", kernel_weight);
-    // if (kernel_weight <= 0) {
-    //     printf("Kernel weight cannot be zero, weight: %d\n", kernel_weight);
-    //     exit(EXIT_FAILURE);
-    // }
 
     // Half-size of the kernel
     uint8_t kernel_radius = kernel_size / 2;
@@ -151,8 +147,8 @@ void conv1(Convolution *conv) {
             // printf("Kernel weight: %d\n", kernel_weight);
             sum = (kernel_weight !=0) ? sum / kernel_weight : sum;
             // printf("kw:%d ", kernel_weight);
-            sum = sum < 0 ? 0 : (sum > 255 ? 255 : sum);
-
+            //sum = sum < 0 ? 0 : (sum > 255 ? 255 : sum);
+            sum = clamp_uint8(sum, 0 , 255);
             // Write the result to the output buffer
             output[y * width + x] = (uint8_t)sum;
             // printf("n:%d,I:%d,O:%d ", y * width + x, input[y * width + x],
