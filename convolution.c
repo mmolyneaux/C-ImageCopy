@@ -148,11 +148,9 @@ void conv1(Convolution *conv) {
             sum = (kernel_weight !=0) ? sum / kernel_weight : sum;
             // printf("kw:%d ", kernel_weight);
             //sum = sum < 0 ? 0 : (sum > 255 ? 255 : sum);
-            sum = clamp_uint8(sum, 0 , 255);
+            sum = clamp_int(sum, 0 , 255);
             // Write the result to the output buffer
             output[y * width + x] = (uint8_t)sum;
-            // printf("n:%d,I:%d,O:%d ", y * width + x, input[y * width + x],
-            //        output[y * width + x]);
         }
     }
 }
