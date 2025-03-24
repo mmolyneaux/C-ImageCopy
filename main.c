@@ -64,7 +64,7 @@ char *get_default_ext(enum Mode mode) {
 
 // returns false early and prints an error message if operation not
 // complete. returns true on success of the operation.
-bool readImage(char *filename1, Bitmap *bitmap) {
+bool read_image(char *filename1, Bitmap *bitmap) {
     bool file_read_completed = false;
 
     FILE *streamIn = fopen(filename1, "rb");
@@ -878,7 +878,7 @@ int main(int argc, char *argv[]) {
         printf("mode: %s\n", mode_to_string(mode));
     }
 
-    bool imageRead = readImage(filename1, bitmapPtr);
+    bool imageRead = read_image(filename1, bitmapPtr);
     if (!imageRead) {
         fprintf(stderr, "Image read failed.\n");
         exit(EXIT_FAILURE);
