@@ -15,13 +15,13 @@ typedef struct {
 } BM_File_Header;
 
 typedef struct {
-    uint32_t size;
+    uint32_t size; // header size
     int32_t width;
     int32_t height;
     uint16_t planes;
     uint16_t bit_count;
     uint32_t compression;
-    uint32_t size_image;
+    uint32_t size_image; // image size
     int32_t x_pixels_per_meter;
     int32_t y_pixels_per_meter;
     uint32_t clr_used;
@@ -39,7 +39,7 @@ typedef struct {
 } Bitmap;
 
 // Function prototypes
-int read_bitmap(const char *filename, Bitmap *bmp);
+int read(const char *filename, Bitmap *bmp);
 int write_bitmap(const char *filename, const Bitmap *bmp);
 void freeBitmap(Bitmap *bmp);
 
