@@ -40,7 +40,7 @@ typedef struct {
 
 // Function prototypes
 int read(const char *filename, Bitmap *bmp);
-int write_bitmap(const char *filename, const Bitmap *bmp);
+int write(const char *filename, const Bitmap *bmp);
 void freeBitmap(Bitmap *bmp);
 
 #endif // BITMAP_H
