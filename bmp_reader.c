@@ -61,4 +61,9 @@ int write(const char *filename, const Bitmap *bmp) {
     return 0;
 }
 
+void free_bitmap(Bitmap *bmp) {
+    free(bmp->pixel_data);
+    bmp->pixel_data = NULL;
+}
+
 int main() { return 0; }
