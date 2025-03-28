@@ -71,3 +71,13 @@ Current Working modes
 "Equalize";
 -8-bit  Grayscale
 ---
+
+The bfSize field in the Bitmap File Header refers to the total size of the BMP file, measured in bytes. This size includes everything in the file:
+
+Bitmap File Header: The first 14 bytes.
+
+Bitmap Info Header (or other header types): The image metadata immediately following the file header.
+
+Pixel Data: The raw image data stored in the BMP file, which starts at the offset specified in the bfOffBits field.
+
+Optional Additional Metadata: If the BMP file includes extended color profile data (like in BMP V4 or V5), this data is also included in the size.

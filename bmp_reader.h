@@ -5,9 +5,22 @@
 
 #pragma pack(push, 1) // Ensure no padding in structs
 
+
+/* 
+The size field in the Bitmap File Header refers to the total size of the BMP file, measured in bytes.
+This size includes everything in the file:
+Bitmap File Header: The first 14 bytes.
+
+Bitmap Info Header (or other header types): The image metadata immediately following the file header. (40 bytes?)
+
+Pixel Data: The raw image data stored in the BMP file, which starts at the offset specified in the bfOffBits field.
+
+Optional Additional Metadata: If the BMP file includes extended color profile data (like in BMP V4 or V5),
+this data is also included in the size.
+ */
 typedef struct {
-    uint16_t type;
-    uint32_t size;
+    uint16_t type; // 0x4D42 == "BM" in ASCII
+    uint32_t size_file; // total file size in bytes
     uint16_t reserved1;
     uint16_t reserved2;
     uint32_t offset_bits;
