@@ -1,3 +1,18 @@
+/*
+The size field in the Bitmap File Header refers to the total size of the BMP
+file, measured in bytes. This size includes everything in the file: Bitmap File
+Header: The first 14 bytes.
+
+Bitmap Info Header (or other header types): The image metadata immediately
+following the file header. (40 bytes?)
+
+Pixel Data: The raw image data stored in the BMP file, which starts at the
+offset specified in the bfOffBits field.
+
+Optional Additional Metadata: If the BMP file includes extended color profile
+data (like in BMP V4 or V5), this data is also included in the size.
+ */
+
 #ifndef BITMAP_H
 #define BITMAP_H
 
@@ -5,36 +20,41 @@
 
 #pragma pack(push, 1) // Ensure no padding in structs
 
+// Bitmap file header size of every bmp
+#define FILE_HEADER_SIZE 14
+#define INFO_HEADER_SIZE 40
+// Bitmap color table size if it's needed, if bit_depth <= 8 by def.
+#define CT_SIZE 1024
 
-/* 
-The size field in the Bitmap File Header refers to the total size of the BMP file, measured in bytes.
-This size includes everything in the file:
-Bitmap File Header: The first 14 bytes.
-
-Bitmap Info Header (or other header types): The image metadata immediately following the file header. (40 bytes?)
-
-Pixel Data: The raw image data stored in the BMP file, which starts at the offset specified in the bfOffBits field.
-
-Optional Additional Metadata: If the BMP file includes extended color profile data (like in BMP V4 or V5),
-this data is also included in the size.
- */
+// 14 bytes
 typedef struct {
-    uint16_t type; // 0x4D42 == "BM" in ASCII
-    uint32_t size_file; // total file size in bytes
+    uint16_t type;      // 0x4D42 == "BM" in ASCII
+    uint32_t file_size; // total file size in bytes
     uint16_t reserved1;
     uint16_t reserved2;
-    uint32_t offset_bits;
+    uint32_t offset_bits; // File offset to PixelArray
 
 } BM_File_Header;
 
+/*
+  40 bytes (BMP V3)
+  BITMAPINFOHEADER (BMP V3): The size is typically 40 bytes.
+  BITMAPV4HEADER (BMP V4): The size is 108 bytes, which includes additional
+  metadata like color space information. BITMAPV5HEADER (BMP V5): The size is
+  124 bytes, adding fields for ICC color profiles and more advanced features.
+  When parsing a BMP file, checking the biSize field helps determine which
+  version of the BMP format is being used and how much header information to
+  read.
+ */
 typedef struct {
-    uint32_t size; // header size
-    int32_t width;
-    int32_t height;
+    // info header size
+    uint32_t info_header_byte_count;
+    int32_t image_width;
+    int32_t image_height;
     uint16_t planes;
-    uint16_t bit_count;
+    uint16_t bit_count_per_pixel;  
     uint32_t compression;
-    uint32_t size_image; // image size
+    uint32_t image_byte_count;
     int32_t x_pixels_per_meter;
     int32_t y_pixels_per_meter;
     uint32_t clr_used;

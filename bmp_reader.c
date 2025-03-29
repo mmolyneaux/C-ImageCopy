@@ -27,7 +27,7 @@ int read(const char *input_file_name, Bitmap *bmp) {
     fread(&bmp->info_header, sizeof(BM_Info_Header), 1, file);
 
     // Allocate emmeory for pixel data
-    bmp->pixel_data = malloc(bmp->info_header.size_image);
+    bmp->pixel_data = malloc(bmp->info_header.image_size);
     if (!bmp->pixel_data) {
         printf("Error: Memory allocation failed for pixel data.\n");
         fclose(file);
@@ -36,7 +36,7 @@ int read(const char *input_file_name, Bitmap *bmp) {
 
     // Read pixel data
     fseek(file, bmp->file_header.offset_bits, SEEK_SET);
-    fread(bmp->pixel_data, 1, bmp->info_header.size_image, file);
+    fread(bmp->pixel_data, 1, bmp->info_header.image_size, file);
     
     fclose(file);
     return 0;
@@ -56,7 +56,7 @@ int write(const char *filename, const Bitmap *bmp) {
     fwrite(&bmp->info_header, sizeof(BM_Info_Header), 1, file);
     
     // Write pixel data
-    fwrite( &bmp->pixel_data, 1, bmp->info_header.size_image, file);
+    fwrite( &bmp->pixel_data, 1, bmp->info_header.image_size, file);
     fclose(file);
     return 0;
 }
