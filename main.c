@@ -1,4 +1,4 @@
-#include "bitmap.h"
+#include "image_handler.h"
 #include "convolution.h"
 #include <errno.h>
 #include <getopt.h>
@@ -64,7 +64,7 @@ char *get_default_ext(enum Mode mode) {
 
 // returns false early and prints an error message if operation not
 // complete. returns true on success of the operation.
-bool read_image(char *filename1, Bitmap *bitmap) {
+bool read_image(char *filename1, Image *image) {
     bool file_read_completed = false;
 
     FILE *streamIn = fopen(filename1, "rb");
@@ -73,66 +73,66 @@ bool read_image(char *filename1, Bitmap *bitmap) {
         return false;
     }
 
-    fread(bitmap->header, 1, HEADER_SIZE, streamIn);
+    fread(image->header, 1, HEADER_SIZE, streamIn);
 
-    bitmap->width = *(int *)&bitmap->header[18];
-    bitmap->height = *(int *)&bitmap->header[22];
-    bitmap->bit_depth = *(int *)&bitmap->header[28];
-    bitmap->image_size = bitmap->width * bitmap->height;
+    image->width = *(int *)&image->header[18];
+    image->height = *(int *)&image->header[22];
+    image->bit_depth = *(int *)&image->header[28];
+    image->image_size = image->width * image->height;
 
     // if the bit depth is 1 to 8 then it has a
     // color table. 16-32 bit do not.
     // The read content is going to be stored in colorTable.
-    printf("bit_depth: %d\n", bitmap->bit_depth);
-    if (bitmap->bit_depth <= 8) {
+    printf("bit_depth: %d\n", image->bit_depth);
+    if (image->bit_depth <= 8) {
 
         // if bit depth < 8 i still want 1 channel.
-        bitmap->channels = 1;
-        bitmap->CT_EXISTS = true;
+        image->channels = 1;
+        image->CT_EXISTS = true;
 
         // Allocate memory for colorTable
-        bitmap->colorTable = (unsigned char *)malloc(sizeof(char) * CT_SIZE);
-        if (bitmap->colorTable == NULL) {
+        image->colorTable = (unsigned char *)malloc(sizeof(char) * CT_SIZE);
+        if (image->colorTable == NULL) {
             fprintf(stderr,
                     "Error: Failed to allocate memory for color table.\n");
             return false;
         }
 
-        fread(bitmap->colorTable, sizeof(char), CT_SIZE, streamIn);
+        fread(image->colorTable, sizeof(char), CT_SIZE, streamIn);
     } else {
         // 24 bit is 3 channel rbg, 32 bit is 32 bit is 4 channel rgba
-        bitmap->channels = bitmap->bit_depth / 8;
+        image->channels = image->bit_depth / 8;
     }
 
-    if (bitmap->channels == 1) {
+    if (image->channels == 1) {
         // Allocate memory for image buffer
-        bitmap->imageBuffer1 = create_buffer1(bitmap->image_size);
+        image->imageBuffer1 = create_buffer1(image->image_size);
 
-        fread(bitmap->imageBuffer1, sizeof(char), bitmap->image_size, streamIn);
+        fread(image->imageBuffer1, sizeof(char), image->image_size, streamIn);
 
         file_read_completed = true;
-    } else if (bitmap->channels == 3) {
+    } else if (image->channels == 3) {
 
         // BMP files stor pixel data in rows that must be
         // padded to multiples of 4 bytes. This
         // adds 3 to the total number of bytes, then bitwise
         // bitwise AND's NOT 3 (1111100) to round down to the
         // nearest multiple of 4.
-        bitmap->padded_width = (bitmap->width * 3 + 3) & (~3);
+        image->padded_width = (image->width * 3 + 3) & (~3);
 
-        create_buffer3(&bitmap->imageBuffer3, bitmap->height,
-                     bitmap->padded_width);
+        create_buffer3(&image->imageBuffer3, image->height,
+                     image->padded_width);
 
         printf("Image buffer3 created.\n");
 
-        for (int y = 0; y < bitmap->height; y++) {
-            fread(bitmap->imageBuffer3[y], sizeof(uint8_t),
-                  bitmap->padded_width, streamIn);
+        for (int y = 0; y < image->height; y++) {
+            fread(image->imageBuffer3[y], sizeof(uint8_t),
+                  image->padded_width, streamIn);
         }
 
         file_read_completed = true;
         printf("Channels read.\n");
-    } else if (bitmap->channels == 4) {
+    } else if (image->channels == 4) {
         fprintf(stderr, "Error: not set up for 4 channel rgba\n");
         exit(EXIT_FAILURE);
     }
@@ -140,7 +140,7 @@ bool read_image(char *filename1, Bitmap *bitmap) {
     printf("File read completed.\n");
     return file_read_completed;
 }
-bool write_image(Bitmap *bmp, char *filename) {
+bool write_image(Image *bmp, char *filename) {
 
     // Process image
 
@@ -714,16 +714,16 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    Bitmap bitmap;
-    Bitmap *bitmapPtr = &bitmap;
-    init_bitmap(bitmapPtr);
+    Image image;
+    Image *img = &image;
+    init_image(img);
 
     if (g_flag) {
         mode = GRAY;
-        bitmapPtr->mode = mode;
+        img->mode = mode;
     } else if (m_flag) {
         mode = MONO;
-        bitmapPtr->mono_threshold = m_flag_value;
+        img->mono_threshold = m_flag_value;
     } else if (i_flag) {
         if (invert_mode == 0) {
             mode = INV;
@@ -734,8 +734,8 @@ int main(int argc, char *argv[]) {
         }
     } else if (b_flag) {
         mode = BRIGHT;
-        bitmapPtr->bright_percent = b_flag_float;
-        bitmapPtr->bright_value = b_flag_int;
+        img->bright_percent = b_flag_float;
+        img->bright_value = b_flag_int;
     } else if (hist_flag) {
         mode = HIST;
     } else if (histn_flag) {
@@ -744,23 +744,23 @@ int main(int argc, char *argv[]) {
         mode = EQUAL;
     } else if (r_flag) {
         mode = ROT;
-        bitmapPtr->degrees = r_flag_int;
+        img->degrees = r_flag_int;
     } else if (f_flag) {
         mode = FLIP;
-        bitmapPtr->direction = flip_dir;
+        img->direction = flip_dir;
     } else if (l_flag) {
         mode = BLUR;
-        bitmapPtr->blur_level = l_flag_int;
+        img->blur_level = l_flag_int;
     } else if (s_flag) {
         mode = SEPIA;
     } else if (filter_flag) {
         mode = FILTER;
-        bitmapPtr->filter_name = filter_name;
-        bitmapPtr->filter_index = filter_index;
+        img->filter_name = filter_name;
+        img->filter_index = filter_index;
     } else {
         mode = COPY;
     }
-    bitmapPtr->mode = mode;
+    img->mode = mode;
 
     // Check for required filename argument
     if (optind < argc) {
@@ -816,7 +816,7 @@ int main(int argc, char *argv[]) {
         char *suffix = NULL;
 
         if ((mode == BLUR) && (l_flag_int > 0)) {
-            char *suffix_temp = get_suffix(bitmapPtr);
+            char *suffix_temp = get_suffix(img);
             size_t size =
                 snprintf(NULL, 0, "%s_%d", suffix_temp, l_flag_int) + 1;
             suffix = malloc(size);
@@ -825,7 +825,7 @@ int main(int argc, char *argv[]) {
             }
             snprintf(suffix, size, "%s_%d", suffix_temp, l_flag_int);
         } else {
-            suffix = get_suffix(bitmapPtr);
+            suffix = get_suffix(img);
         }
 
         // Calculate the length of the parts to create filename2
@@ -878,20 +878,20 @@ int main(int argc, char *argv[]) {
         printf("mode: %s\n", mode_to_string(mode));
     }
 
-    bool imageRead = read_image(filename1, bitmapPtr);
+    bool imageRead = read_image(filename1, img);
     if (!imageRead) {
         fprintf(stderr, "Image read failed.\n");
         exit(EXIT_FAILURE);
     }
 
-    printf("width: %d\n", bitmapPtr->width);
-    printf("height: %d\n", bitmapPtr->height);
-    printf("bit_depth: %d\n", bitmapPtr->bit_depth);
+    printf("width: %d\n", img->width);
+    printf("height: %d\n", img->height);
+    printf("bit_depth: %d\n", img->bit_depth);
 
-    write_image(bitmapPtr, filename2);
+    write_image(img, filename2);
 
-    printf("width: %d\n", bitmapPtr->width);
-    printf("height: %d\n", bitmapPtr->height);
+    printf("width: %d\n", img->width);
+    printf("height: %d\n", img->height);
     // free filename2 memory if it was allocated
     if (filename2_allocated && filename2 != NULL) {
         free(filename2);
@@ -899,7 +899,7 @@ int main(int argc, char *argv[]) {
         filename2_allocated = false;
     }
 
-    free_mem(bitmapPtr);
+    free_mem(img);
 
     return 0;
 }
