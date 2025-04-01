@@ -57,12 +57,12 @@ typedef struct {
     uint32_t image_byte_count;
     int32_t x_pixels_per_meter;
     int32_t y_pixels_per_meter;
-    uint32_t clr_used; // Colors in color table
+    uint32_t colors_used_count; // Colors in color table
 
     // Defines the subset of colors in the Color Table that are "important."
     // If 0, all colors in the Color Table are important. If nonzero, only the
     // specified number of colors matter for rendering.
-    uint32_t clr_important; // Important color count
+    uint32_t important_color_count; 
 
 } BM_Info_Header;
 
@@ -74,6 +74,7 @@ typedef struct {
     // The Color Table will have 256 entries (each 4 bytes). Contains the list
     // of all colors used in the indexed image (if applicable).	Used in BMPs
     // with a bit depth of 1, 4, or 8. Each color is 4 bytes (B, G, R, Reserved)
+    uint8_t color_table_byte_count;
     uint8_t *color_table;
     uint8_t *pixel_data;
 
