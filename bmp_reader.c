@@ -43,7 +43,6 @@ int read(const char *input_file_name, Bitmap *bmp) {
 
     bmp->color_table = NULL;
     bmp->color_table = malloc(bmp->color_table_byte_count);
-    
     if (!bmp->color_table) {
         printf("Error: Memory allocation failed for color table.\n");
         fclose(file);
@@ -53,7 +52,13 @@ int read(const char *input_file_name, Bitmap *bmp) {
     fseek(file,
           sizeof(bmp->file_header) + bmp->info_header.info_header_byte_count,
           SEEK_SET);
-    fread(bmp->color_table, 1, bmp->color_table_byte_count, file);
+    if(fread(bmp->color_table, 1, bmp->color_table_byte_count, file) != bmp->color_table_byte_count   ) {
+        fprintf(stderr, "Error: Failed to read complete color table\n");
+        free(bmp->color_table);
+        bmp->color_table = NULL; 
+        fclose(file);
+        return 5;
+}
 
     // Allocate emmeory for pixel data
     bmp->pixel_data = NULL;
