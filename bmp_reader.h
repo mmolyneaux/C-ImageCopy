@@ -21,10 +21,10 @@ data (like in BMP V4 or V5), this data is also included in the size.
 #pragma pack(push, 1) // Ensure no padding in structs
 
 // Bitmap file header size of every bmp
-#define FILE_HEADER_SIZE 14
-#define INFO_HEADER_SIZE 40
+//#define FILE_HEADER_SIZE 14
+//#define INFO_HEADER_SIZE 40
 // Bitmap color table size if it's needed, if bit_depth <= 8 by def.
-#define CT_SIZE 1024
+//#define CT_SIZE 1024
 
 // 14 bytes
 typedef struct {
@@ -34,7 +34,7 @@ typedef struct {
     uint16_t reserved2;
     uint32_t offset_bits; // File offset to PixelArray
 
-} BM_File_Header;
+} File_Header;
 
 /*
   40 bytes (BMP V3)
@@ -49,8 +49,8 @@ typedef struct {
 typedef struct {
     // info header size
     uint32_t info_header_byte_count;
-    int32_t image_width;
-    int32_t image_height;
+    int32_t width;
+    int32_t height;
     uint16_t planes;
     uint16_t bit_count_per_pixel;
     uint32_t compression;
@@ -64,24 +64,25 @@ typedef struct {
     // specified number of colors matter for rendering.
     uint32_t important_color_count; 
 
-} BM_Info_Header;
+} Info_Header;
 
-#pragma pack(pop)
+
 
 typedef struct {
-    BM_File_Header file_header;
-    BM_Info_Header info_header;
+    File_Header file_header;
+    Info_Header info_header;
     // The Color Table will have 256 entries (each 4 bytes). Contains the list
     // of all colors used in the indexed image (if applicable).	Used in BMPs
     // with a bit depth of 1, 4, or 8. Each color is 4 bytes (B, G, R, Reserved)
-    uint8_t color_table_byte_count;
-    uint8_t *color_table;
     uint8_t *pixel_data;
+    uint8_t *color_table;
+    uint8_t color_table_byte_count;
 
 } Bitmap;
+#pragma pack(pop)
 
 // Function prototypes
-int read(const char *filename, Bitmap *bmp);
+Bitmap *loadBitmap(const char *filename);
 int write(const char *filename, const Bitmap *bmp);
 void freeBitmap(Bitmap *bmp);
 

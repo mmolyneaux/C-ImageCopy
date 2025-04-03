@@ -282,11 +282,7 @@ bool write_image(Image *bmp, char *filename) {
                        streamOut);
             }
 
-            // for (int i = 0; i < bmp->image_size; ++i) {
-            //     // Write equally for each channel.
-            //     // j: red is 0, g is 1, b is 2
-            //         putc(bmp->imageBuffer3[i], streamOut);
-            // }
+
         }
     }
     fclose(streamOut);

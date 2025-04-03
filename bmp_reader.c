@@ -23,6 +23,13 @@ int read(const char *input_file_name, Bitmap *bmp) {
         return 2;
     }
 
+    bmp
+    
+    
+    
+    
+    
+    
     // Read info header
     fread(&bmp->info_header, sizeof(BM_Info_Header), 1, file);
 
@@ -31,8 +38,9 @@ int read(const char *input_file_name, Bitmap *bmp) {
         // each color table entry is 4 bytes (one byte each for Blue, Green,
         // Red, and a reserved byte). This is independent of the bit depth.
         uint32_t color_count = bmp->info_header.colors_used_count;
-        
-        // handle the case where colors_used_count is 0 (it defaults to 2^bit_count_per_pixel if unset).
+
+        // handle the case where colors_used_count is 0 (it defaults to
+        // 2^bit_count_per_pixel if unset).
         if (color_count == 0) {
             // 2^bit_count_per_pixel
             color_count = 1 << bmp->info_header.bit_count_per_pixel;
@@ -52,13 +60,14 @@ int read(const char *input_file_name, Bitmap *bmp) {
     fseek(file,
           sizeof(bmp->file_header) + bmp->info_header.info_header_byte_count,
           SEEK_SET);
-    if(fread(bmp->color_table, 1, bmp->color_table_byte_count, file) != bmp->color_table_byte_count   ) {
+    if (fread(bmp->color_table, 1, bmp->color_table_byte_count, file) !=
+        bmp->color_table_byte_count) {
         fprintf(stderr, "Error: Failed to read complete color table\n");
         free(bmp->color_table);
-        bmp->color_table = NULL; 
+        bmp->color_table = NULL;
         fclose(file);
         return 5;
-}
+    }
 
     // Allocate emmeory for pixel data
     bmp->pixel_data = NULL;
@@ -102,4 +111,26 @@ void free_bitmap(Bitmap *bmp) {
     bmp->pixel_data = NULL;
 }
 
-int main() { return 0; }
+int main(int argc, char * argv[]) {
+
+    // if the program is called with no options, print usage and exit.
+if (argc == 1) {
+    printf("Usage: %s <filename>\n", argv[0]);
+    exit(EXIT_SUCCESS);
+}
+
+char *filename1 = NULL;
+filename1 = argv[1];
+
+Bitmap *bmp = NULL;
+
+int imageRead = read(filename1, bmp);
+if (!imageRead) {
+    fprintf(stderr, "Image read failed.\n");
+    exit(EXIT_FAILURE);
+}
+
+    return 0;
+
+
+}
