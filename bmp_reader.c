@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int read(const char *input_file_name, Bitmap *bmp) {
+Bitmap *loadBitmap(const char *input_file_name) {
 
     // Open binary file for reading.
     FILE *file = fopen(input_file_name, "rb");
@@ -13,7 +13,7 @@ int read(const char *input_file_name, Bitmap *bmp) {
         return 1;
     }
     // Read File Header
-    fread(&bmp->file_header, sizeof(BM_File_Header), 1, file);
+    fread(&bmp->file_header, sizeof(File_Header), 1, file);
 
     // Validate BMP file type
     // 0x4D42 == "BM" in ASCII
@@ -31,7 +31,7 @@ int read(const char *input_file_name, Bitmap *bmp) {
     
     
     // Read info header
-    fread(&bmp->info_header, sizeof(BM_Info_Header), 1, file);
+    fread(&bmp->info_header, sizeof(Info_Header), 1, file);
 
     // Read color table
     if (bmp->info_header.bit_count_per_pixel <= 8) {
@@ -107,8 +107,14 @@ int write(const char *filename, const Bitmap *bmp) {
 }
 
 void free_bitmap(Bitmap *bmp) {
-    free(bmp->pixel_data);
+    free(bmp->pixelData);
+    free(bmp->colorTable);
+    free(bmp);
+
+    
     bmp->pixel_data = NULL;
+
+
 }
 
 int main(int argc, char * argv[]) {
