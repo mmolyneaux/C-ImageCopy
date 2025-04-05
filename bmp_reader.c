@@ -133,6 +133,9 @@ void print_bitmap(Bitmap *bmp) {
     Printing Characters:
     printf("Type: %c%c\n", ...): Prints the two bytes as individual characters.
     */                            
+
+    printf("File size: %d bytes (%.2f MiB)\n", bmp->file_header.file_size, bmp->file_header.file_size / 1048576.0);
+    printf("Offset bits: %d to pixel array\n",bmp->file_header.offset_bits);
 }
 
 int main(int argc, char *argv[]) {
