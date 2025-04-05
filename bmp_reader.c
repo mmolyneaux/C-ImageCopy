@@ -116,6 +116,25 @@ void free_bitmap(Bitmap *bmp) {
     bmp = NULL;
 }
 
+void print_bitmap(Bitmap *bmp) {
+    // Extract the type field (uint16_t)
+    // 0x4D42 == "BM" in ASCII
+    uint16_t type = bmp->file_header.type;    
+    printf("Type (hex): 0x%X == \"%c%c\"\n", type,
+    type & 0xFF, (type >> 8) & 0xFF);
+    /* 
+    Explanation:
+    Type Field:
+    The type field is a uint16_t, which is 2 bytes (16 bits).
+    In the BMP format, this value is typically 0x4D42, representing "BM" in ASCII.
+    Extracting Characters:
+    type & 0xFF: Extracts the low byte (e.g., 0x42, which is 'B' in ASCII).
+    (type >> 8) & 0xFF: Extracts the high byte (e.g., 0x4D, which is 'M' in ASCII).
+    Printing Characters:
+    printf("Type: %c%c\n", ...): Prints the two bytes as individual characters.
+    */                            
+}
+
 int main(int argc, char *argv[]) {
 
     // if the program is called with no options, print usage and exit.
@@ -134,6 +153,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Image read failed.\n");
         exit(EXIT_FAILURE);
     }
+
+    print_bitmap(bmp);
 
     return 0;
 }
