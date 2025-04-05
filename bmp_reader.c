@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 Bitmap *loadBitmap(const char *input_file_name) {
 
@@ -10,9 +11,14 @@ Bitmap *loadBitmap(const char *input_file_name) {
     FILE *file = fopen(input_file_name, "rb");
     if (!file) {
         fprintf(stderr, "Error opening file \"%s\"\n", input_file_name);
-        return 1;
+        return NULL;
     }
-    // Read File Header
+
+    Bitmap *bmp = malloc(sizeof(Bitmap));
+    if (!bmp) {
+        fprintf(stderr, "Error: Creating Bitmap struct\n");
+    }
+    // Read File Header 14 bytes
     fread(&bmp->file_header, sizeof(File_Header), 1, file);
 
     // Validate BMP file type
@@ -20,17 +26,10 @@ Bitmap *loadBitmap(const char *input_file_name) {
     if (bmp->file_header.type != 0x4D42) {
         printf("Error: File %s is not a valid BMP file.\n", input_file_name);
         fclose(file);
-        return 2;
+        return NULL;
     }
 
-    bmp
-    
-    
-    
-    
-    
-    
-    // Read info header
+    // Read info header 40 bytes
     fread(&bmp->info_header, sizeof(Info_Header), 1, file);
 
     // Read color table
@@ -48,13 +47,13 @@ Bitmap *loadBitmap(const char *input_file_name) {
         // Each entry is 4 bytes
         bmp->color_table_byte_count = color_count * 4;
     }
-
     bmp->color_table = NULL;
     bmp->color_table = malloc(bmp->color_table_byte_count);
     if (!bmp->color_table) {
         printf("Error: Memory allocation failed for color table.\n");
         fclose(file);
-        return 4;
+        free(bmp);
+        return NULL;
     }
 
     fseek(file,
@@ -62,11 +61,12 @@ Bitmap *loadBitmap(const char *input_file_name) {
           SEEK_SET);
     if (fread(bmp->color_table, 1, bmp->color_table_byte_count, file) !=
         bmp->color_table_byte_count) {
+        fclose(file);
         fprintf(stderr, "Error: Failed to read complete color table\n");
         free(bmp->color_table);
         bmp->color_table = NULL;
-        fclose(file);
-        return 5;
+        free(bmp);
+        return NULL;
     }
 
     // Allocate emmeory for pixel data
@@ -75,15 +75,18 @@ Bitmap *loadBitmap(const char *input_file_name) {
     if (!bmp->pixel_data) {
         printf("Error: Memory allocation failed for pixel data.\n");
         fclose(file);
-        return 5;
+        return NULL;
     }
 
     // Read pixel data
     fseek(file, bmp->file_header.offset_bits, SEEK_SET);
-    fread(bmp->pixel_data, 1, bmp->info_header.image_byte_count, file);
+    if (bmp->info_header.image_byte_count !=
+        fread(bmp->pixel_data, 1, bmp->info_header.image_byte_count, file)) {
+        fprintf(stderr, "Error: Could read image data.\n");
+    }
 
     fclose(file);
-    return 0;
+    return bmp;
 }
 
 int write(const char *filename, const Bitmap *bmp) {
@@ -95,10 +98,10 @@ int write(const char *filename, const Bitmap *bmp) {
     }
 
     // Write file header
-    fwrite(&bmp->file_header, sizeof(BM_File_Header), 1, file);
+    fwrite(&bmp->file_header, sizeof(File_Header), 1, file);
 
     // Write info header
-    fwrite(&bmp->info_header, sizeof(BM_Info_Header), 1, file);
+    fwrite(&bmp->info_header, sizeof(Info_Header), 1, file);
 
     // Write pixel data
     fwrite(&bmp->pixel_data, 1, bmp->info_header.image_byte_count, file);
@@ -107,36 +110,30 @@ int write(const char *filename, const Bitmap *bmp) {
 }
 
 void free_bitmap(Bitmap *bmp) {
-    free(bmp->pixelData);
-    free(bmp->colorTable);
+    free(bmp->pixel_data);
+    free(bmp->color_table);
     free(bmp);
-
-    
-    bmp->pixel_data = NULL;
-
-
+    bmp = NULL;
 }
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
 
     // if the program is called with no options, print usage and exit.
-if (argc == 1) {
-    printf("Usage: %s <filename>\n", argv[0]);
-    exit(EXIT_SUCCESS);
-}
+    if (argc == 1) {
+        printf("Usage: %s <filename>\n", argv[0]);
+        exit(EXIT_SUCCESS);
+    }
 
-char *filename1 = NULL;
-filename1 = argv[1];
+    char *filename1 = NULL;
+    filename1 = argv[1];
 
-Bitmap *bmp = NULL;
+    Bitmap *bmp = NULL;
 
-int imageRead = read(filename1, bmp);
-if (!imageRead) {
-    fprintf(stderr, "Image read failed.\n");
-    exit(EXIT_FAILURE);
-}
+    bmp = loadBitmap(filename1);
+    if (!bmp) {
+        fprintf(stderr, "Image read failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     return 0;
-
-
 }
