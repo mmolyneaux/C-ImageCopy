@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-Bitmap *loadBitmap(const char *input_file_name) {
+Bitmap *load_bitmap(const char *filename) {
 
     // Open binary file for reading.
-    FILE *file = fopen(input_file_name, "rb");
+    FILE *file = fopen(filename, "rb");
     if (!file) {
-        fprintf(stderr, "Error opening file \"%s\"\n", input_file_name);
+        fprintf(stderr, "Error opening file \"%s\"\n", filename);
         return NULL;
     }
 
@@ -24,7 +24,7 @@ Bitmap *loadBitmap(const char *input_file_name) {
     // Validate BMP file type
     // 0x4D42 == "BM" in ASCII
     if (bmp->file_header.type != 0x4D42) {
-        printf("Error: File %s is not a valid BMP file.\n", input_file_name);
+        printf("Error: File %s is not a valid BMP file.\n", filename);
         fclose(file);
         return NULL;
     }
@@ -109,55 +109,23 @@ int write(const char *filename, const Bitmap *bmp) {
     return 0;
 }
 
-void free_bitmap(Bitmap *bmp) {
-    free(bmp->pixel_data);
-    free(bmp->color_table);
-    free(bmp);
-    bmp = NULL;
-}
-
-void print_bitmap(Bitmap *bmp) {
-    // Extract the type field (uint16_t)
-    // 0x4D42 == "BM" in ASCII
-    uint16_t type = bmp->file_header.type;    
-    printf("Type (hex): 0x%X == \"%c%c\"\n", type,
-    type & 0xFF, (type >> 8) & 0xFF);
-    /* 
-    Explanation:
-    Type Field:
-    The type field is a uint16_t, which is 2 bytes (16 bits).
-    In the BMP format, this value is typically 0x4D42, representing "BM" in ASCII.
-    Extracting Characters:
-    type & 0xFF: Extracts the low byte (e.g., 0x42, which is 'B' in ASCII).
-    (type >> 8) & 0xFF: Extracts the high byte (e.g., 0x4D, which is 'M' in ASCII).
-    Printing Characters:
-    printf("Type: %c%c\n", ...): Prints the two bytes as individual characters.
-    */                            
-
-    printf("File size: %d bytes (%.2f MiB)\n", bmp->file_header.file_size, bmp->file_header.file_size / 1048576.0);
-    printf("Offset bits: %d to pixel array\n",bmp->file_header.offset_bits);
-}
-
-int main(int argc, char *argv[]) {
-
-    // if the program is called with no options, print usage and exit.
-    if (argc == 1) {
-        printf("Usage: %s <filename>\n", argv[0]);
-        exit(EXIT_SUCCESS);
+void free_bitmap(Bitmap **bmp) {
+    // Check if bmp is valid
+    if (bmp && *bmp) {
+        if ((*bmp)->pixel_data) {
+            free((*bmp)->pixel_data);
+            // Reset nested pointer
+            (*bmp)->pixel_data = NULL;
+        }
+        if ((*bmp)->color_table) {
+            free((*bmp)->color_table);
+            // Reset nested pointer
+            (*bmp)->pixel_data = NULL;
+        }
+        // Free the top-level struct
+        free(*bmp);
+        // Reset the callers original pointer
+        *bmp = NULL;
     }
-
-    char *filename1 = NULL;
-    filename1 = argv[1];
-
-    Bitmap *bmp = NULL;
-
-    bmp = loadBitmap(filename1);
-    if (!bmp) {
-        fprintf(stderr, "Image read failed.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    print_bitmap(bmp);
-
-    return 0;
 }
+

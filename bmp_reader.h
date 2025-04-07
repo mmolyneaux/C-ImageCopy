@@ -13,8 +13,8 @@ Optional Additional Metadata: If the BMP file includes extended color profile
 data (like in BMP V4 or V5), this data is also included in the size.
  */
 
-#ifndef BITMAP_H
-#define BITMAP_H
+#ifndef BMP_READER_H
+#define BMP_READER_H
 
 #include <stdint.h>
 
@@ -82,8 +82,9 @@ typedef struct {
 #pragma pack(pop)
 
 // Function prototypes
-Bitmap *loadBitmap(const char *filename);
+Bitmap *load_bitmap(const char *filename);
+void print_header_fields(Bitmap *bmp);
 int write(const char *filename, const Bitmap *bmp);
-void freeBitmap(Bitmap *bmp);
+void free_bitmap(Bitmap **bmp);
 
 #endif // BITMAP_H
