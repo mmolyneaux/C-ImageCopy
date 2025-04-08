@@ -89,6 +89,9 @@ Bitmap *load_bitmap(const char *filename) {
     return bmp;
 }
 
+
+
+
 int write(const char *filename, const Bitmap *bmp) {
     FILE *file = fopen(filename, "wb");
     if (!file) {
