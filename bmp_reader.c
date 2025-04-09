@@ -89,9 +89,6 @@ Bitmap *load_bitmap(const char *filename) {
     return bmp;
 }
 
-
-
-
 int write(const char *filename, const Bitmap *bmp) {
     FILE *file = fopen(filename, "wb");
     if (!file) {
@@ -105,6 +102,15 @@ int write(const char *filename, const Bitmap *bmp) {
 
     // Write info header
     fwrite(&bmp->info_header, sizeof(Info_Header), 1, file);
+
+    // Write color table
+    if (bmp->color_table) {
+        for(size_t i = 0; i < bmp->color_table_byte_count; i++) {
+            // fwrite(&bmp->color_table, size_t Size, size_t Count, FILE *restrict File)
+            fwrite(&bmp->color_table, 1, 1, file);
+        }
+    }
+
 
     // Write pixel data
     fwrite(&bmp->pixel_data, 1, bmp->info_header.image_byte_count, file);

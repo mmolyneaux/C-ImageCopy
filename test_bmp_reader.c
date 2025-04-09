@@ -143,6 +143,8 @@ int main(int argc, char *argv[]) {
     printf("Filename 2: %s\n", filename2);
     print_header_fields(bmp);
 
+    write(filename2, bmp);
+
     // Free the Bitmap and reset the pointer
     free(filename2);
     free_bitmap(&bmp);
