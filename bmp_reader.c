@@ -82,7 +82,7 @@ Bitmap *load_bitmap(const char *filename) {
     fseek(file, bmp->file_header.offset_bits, SEEK_SET);
     if (bmp->info_header.image_byte_count !=
         fread(bmp->pixel_data, 1, bmp->info_header.image_byte_count, file)) {
-        fprintf(stderr, "Error: Could read image data.\n");
+        fprintf(stderr, "Error: Could not read image data.\n");
     }
 
     fclose(file);
