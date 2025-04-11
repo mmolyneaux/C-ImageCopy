@@ -70,6 +70,14 @@ Bitmap *load_bitmap(const char *filename) {
     }
 
     // Allocate emmeory for pixel data
+  /*   if (bmp->info_header.image_byte_count) {
+        bmp->info_header.image_byte_count =
+            bmp->info_header.width * bmp->info_header.height *
+            (bmp->info_header.bit_count_per_pixel / 8);
+    }
+   */
+    
+
     bmp->pixel_data = NULL;
     bmp->pixel_data = malloc(bmp->info_header.image_byte_count);
     if (!bmp->pixel_data) {
@@ -105,15 +113,17 @@ int write(const char *filename, const Bitmap *bmp) {
 
     // Write color table
     if (bmp->color_table) {
-        for(size_t i = 0; i < bmp->color_table_byte_count; i++) {
-            // fwrite(&bmp->color_table, size_t Size, size_t Count, FILE *restrict File)
-            fwrite(&bmp->color_table, 1, 1, file);
+        for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
+            // fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
+            // *restrict File)
+            fwrite(&bmp->color_table[i], 1, 1, file);
         }
     }
 
-
     // Write pixel data
-    fwrite(&bmp->pixel_data, 1, bmp->info_header.image_byte_count, file);
+    for (int i = 0; i < bmp->info_header.image_byte_count; i++) {
+        fwrite(&bmp->pixel_data[i], 1, 1, file);
+    }
     fclose(file);
     return 0;
 }
@@ -137,4 +147,3 @@ void free_bitmap(Bitmap **bmp) {
         *bmp = NULL;
     }
 }
-
