@@ -69,13 +69,18 @@ Bitmap *load_bitmap(const char *filename) {
         return NULL;
     }
 
-    // Allocate emmeory for pixel data
-  /*   if (bmp->info_header.image_byte_count) {
+    printf("Debug 1: %d\n", bmp->info_header.bit_count_per_pixel);
+    printf("Debug 1: %d\n", bmp->info_header.image_byte_count);
+    printf("Debug 1: %d\n", bmp->info_header.height);
+    printf("Debug 1: %d\n", bmp->info_header.width);
+    // Allocate memeory for pixel data
+    if (bmp->info_header.image_byte_count == 0) {
         bmp->info_header.image_byte_count =
-            bmp->info_header.width * bmp->info_header.height *
-            (bmp->info_header.bit_count_per_pixel / 8);
+        bmp->info_header.width * bmp->info_header.height *
+        (bmp->info_header.bit_count_per_pixel / 8);
     }
-   */
+    printf("Debug 2: %d\n", bmp->info_header.image_byte_count);
+  
     
 
     bmp->pixel_data = NULL;
