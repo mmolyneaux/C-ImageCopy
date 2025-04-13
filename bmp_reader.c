@@ -9,6 +9,13 @@ Bitmap *load_bitmap(const char *filename) {
 
     // Open binary file for reading.
     FILE *file = fopen(filename, "rb");
+
+    fseek(file, 0, SEEK_END);
+    long actual_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+
+    printf("Actual file size: %ld bytes.\n", actual_size);
     if (!file) {
         fprintf(stderr, "Error opening file \"%s\"\n", filename);
         return NULL;

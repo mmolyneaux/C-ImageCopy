@@ -81,3 +81,7 @@ Bitmap Info Header (or other header types): The image metadata immediately follo
 Pixel Data: The raw image data stored in the BMP file, which starts at the offset specified in the bfOffBits field.
 
 Optional Additional Metadata: If the BMP file includes extended color profile data (like in BMP V4 or V5), this data is also included in the size.
+
+Using Windows PowerScript to hex dump a bmp:
+PS > Get-Content -Path .\images\example.bmp -Encoding Byte -TotalCount 64 | Format-Hex
+

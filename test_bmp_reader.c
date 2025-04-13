@@ -61,6 +61,7 @@ void print_header_fields(Bitmap *bmp) {
     %c%c\n", ...): Prints the two bytes as individual characters.
     */
 
+    
     printf("---\nFile Header: \n");
     uint16_t type = bmp->file_header.type;
     printf("Type (hex): 0x%X == \"%c%c\"\n", type, type & 0xFF,
