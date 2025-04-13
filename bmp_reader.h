@@ -54,7 +54,7 @@ typedef struct {
     uint16_t planes;
     uint16_t bit_count_per_pixel;
     uint32_t compression;
-    uint32_t image_byte_count;
+    uint32_t image_size_field;
     int32_t x_pixels_per_meter;
     int32_t y_pixels_per_meter;
     uint32_t colors_used_count; // Colors in color table
@@ -76,7 +76,11 @@ typedef struct {
     // with a bit depth of 1, 4, or 8. Each color is 4 bytes (B, G, R, Reserved)
     uint8_t *pixel_data;
     uint8_t *color_table;
-    uint8_t color_table_byte_count;
+    uint16_t color_table_byte_count;
+    char* filename;
+    uint32_t actual_size;
+    uint32_t padded_width;
+    uint32_t image_size_calculated;
 
 } Bitmap;
 #pragma pack(pop)

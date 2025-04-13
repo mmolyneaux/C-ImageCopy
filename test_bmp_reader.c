@@ -62,12 +62,14 @@ void print_header_fields(Bitmap *bmp) {
     */
 
     
+    printf("---\nFile Name: %s\n", bmp->filename);
+    printf("Actual File Size: %u\n", bmp->image_size_calculated);
     printf("---\nFile Header: \n");
     uint16_t type = bmp->file_header.type;
     printf("Type (hex): 0x%X == \"%c%c\"\n", type, type & 0xFF,
            (type >> 8) & 0xFF);
 
-    printf("File size: %d bytes (%.2f MiB)\n", bmp->file_header.file_size,
+    printf("File size(field): %d bytes (%.2f MiB)\n", bmp->file_header.file_size,
            bmp->file_header.file_size / 1048576.0);
     printf("Offset bits: %d to pixel array\n", bmp->file_header.offset_bits);
     printf("---\nInfo Header: \n");
@@ -79,7 +81,7 @@ void print_header_fields(Bitmap *bmp) {
     printf("Pixel bit depth: %d bytes\n", bmp->info_header.bit_count_per_pixel);
     printf("Compression: ");
     print_compression(bmp->info_header.compression);
-    printf("Image data bytes: %d\n", bmp->info_header.image_byte_count);
+    printf("Image data bytes: %d\n", bmp->info_header.image_size_field);
     printf("X pixels per meter: %d (%.1f DPI)\n",
            bmp->info_header.x_pixels_per_meter,
            ppm_to_dpi((double)bmp->info_header.x_pixels_per_meter));
@@ -88,7 +90,7 @@ void print_header_fields(Bitmap *bmp) {
            ppm_to_dpi((double)bmp->info_header.y_pixels_per_meter));
     printf("Colors in color table: %d, (x4 = %d bytes)\n",
            bmp->info_header.colors_used_count,
-           4 * bmp->info_header.colors_used_count); // Colors in color table
+            bmp->color_table_byte_count); // Colors in color table
     printf("Important color count: %d ",
            bmp->info_header.important_color_count);
     (bmp->info_header.important_color_count) ? printf("\n") : printf("(all)\n");
