@@ -99,14 +99,32 @@ Bitmap *load_bitmap(const char *filename) {
     printf("Debug 1: %d\n", bmp->info_header.height);
     printf("Debug 1: %d\n", bmp->info_header.width);
 
-    // align for 4 bytes
-    bmp->padded_width = (bmp->info_header.width + 3) & ~3;
-    bmp->image_size_calculated = bmp->padded_width *
-                                     bmp->info_header.height *
-                                     (bmp->info_header.bit_count_per_pixel / 8);
+    if (bmp->info_header.bit_count_per_pixel == 24) {
+        bmp->padded_width = (3 * bmp->info_header.width + 3) & ~3;
+        bmp->image_size_calculated =
+            bmp->padded_width * bmp->info_header.height;
+    }
+    // align for 4 bytes and bit_count <= 8
+    else if ((bmp->info_header.bit_count_per_pixel <= 8) &&
+             (bmp->info_header.bit_count_per_pixel > 1)) {
+        bmp->padded_width = (bmp->info_header.width + 3) & ~3;
+        bmp->image_size_calculated =
+            bmp->padded_width * bmp->info_header.height >>
+            (8 / bmp->info_header.bit_count_per_pixel - 1);
+    } else if (bmp->info_header.bit_count_per_pixel == 1) {
+        bmp->padded_width = (bmp->info_header.width + 3) & ~3;
+        bmp->image_size_calculated =
+            bmp->padded_width * bmp->info_header.height/8;
+    } else {
+        fprintf(stderr, "Error: Bitdepth not supported - %d",
+                bmp->info_header.bit_count_per_pixel);
+    }
+
     // Allocate memeory for pixel data
     if (bmp->info_header.image_size_field != bmp->image_size_calculated) {
-        fprintf(stderr, "Corrected Image Size field from %d bytes to %d bytes.\n", bmp->info_header.image_size_field,bmp->image_size_calculated);
+        fprintf(stderr,
+                "Corrected Image Size field from %d bytes to %d bytes.\n",
+                bmp->info_header.image_size_field, bmp->image_size_calculated);
         bmp->info_header.image_size_field = bmp->image_size_calculated;
     }
     printf("Debug 2: %d\n", bmp->info_header.image_size_field);
@@ -125,7 +143,7 @@ Bitmap *load_bitmap(const char *filename) {
         fread(bmp->pixel_data, 1, bmp->info_header.image_size_field, file)) {
         fprintf(stderr, "Error: Could not read image data.\n");
     }
-    printf("File read 5: %ld\n", ftell(file));
+    printf("File size read: %ld\n", ftell(file));
     fclose(file);
     return bmp;
 }

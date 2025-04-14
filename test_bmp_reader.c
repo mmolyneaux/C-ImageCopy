@@ -63,7 +63,7 @@ void print_header_fields(Bitmap *bmp) {
 
     
     printf("---\nFile Name: %s\n", bmp->filename);
-    printf("Actual File Size: %u\n", bmp->image_size_calculated);
+    printf("Calculated Image bytes: %u\n", bmp->image_size_calculated);
     printf("---\nFile Header: \n");
     uint16_t type = bmp->file_header.type;
     printf("Type (hex): 0x%X == \"%c%c\"\n", type, type & 0xFF,
