@@ -78,7 +78,7 @@ typedef struct {
     uint8_t *color_table;
     uint16_t color_table_byte_count;
     char* filename;
-    uint32_t actual_size;
+    uint32_t file_size_read;
     uint32_t padded_width;
     uint32_t image_size_calculated;
 
@@ -86,9 +86,9 @@ typedef struct {
 #pragma pack(pop)
 
 // Function prototypes
-Bitmap *load_bitmap(const char *filename);
+int load_bitmap(Bitmap *bmp, const char *filename);
 void print_header_fields(Bitmap *bmp);
-int write(const char *filename, const Bitmap *bmp);
+int write_bitmap(const Bitmap *bmp, const char *filename);
 void free_bitmap(Bitmap **bmp);
 
 #endif // BMP_FILE_HANDLER_H

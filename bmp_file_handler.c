@@ -5,28 +5,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-Bitmap *load_bitmap(const char *filename) {
+int load_bitmap(Bitmap *bmp, const char *filename) {
 
     // Open binary file for reading.
     FILE *file = fopen(filename, "rb");
 
     if (!file) {
         fprintf(stderr, "Error opening file \"%s\"\n", filename);
-        return NULL;
+        return 1;
     }
 
-    Bitmap *bmp = malloc(sizeof(Bitmap));
+    bmp = malloc(sizeof(Bitmap));
     if (!bmp) {
         fprintf(stderr, "Error: Creating Bitmap struct\n");
+        return 2;
     }
 
     bmp->filename = (char *)filename;
 
     fseek(file, 0, SEEK_END);
-    bmp->actual_size = ftell(file);
+    bmp->file_size_read = ftell(file);
     fseek(file, 0, SEEK_SET);
-
-    printf("File read 1: %ld\n", ftell(file));
 
     // Read File Header 14 bytes
     fread(&bmp->file_header, sizeof(File_Header), 1, file);
@@ -38,13 +37,11 @@ Bitmap *load_bitmap(const char *filename) {
     if (bmp->file_header.type != 0x4D42) {
         printf("Error: File %s is not a valid BMP file.\n", filename);
         fclose(file);
-        return NULL;
+        return 3;
     }
 
     // Read info header 40 bytes
     fread(&bmp->info_header, sizeof(Info_Header), 1, file);
-
-    printf("File read 3: %ld\n", ftell(file));
 
     // Read color table
     if (bmp->info_header.bit_count_per_pixel <= 8) {
@@ -61,7 +58,7 @@ Bitmap *load_bitmap(const char *filename) {
                    1 << bmp->info_header.bit_count_per_pixel);
         }
 
-        // Each entry is 4 bytes
+        // Each color table entry is 4 bytes
         bmp->color_table_byte_count = bmp->info_header.colors_used_count * 4;
     }
 
@@ -74,7 +71,7 @@ Bitmap *load_bitmap(const char *filename) {
         printf("Error: Memory allocation failed for color table.\n");
         fclose(file);
         free(bmp);
-        return NULL;
+        return 4;
     }
 
     // fseek(file,
@@ -87,7 +84,7 @@ Bitmap *load_bitmap(const char *filename) {
         free(bmp->color_table);
         bmp->color_table = NULL;
         free(bmp);
-        return NULL;
+        return 5;
     }
     printf("Color table byte count: %hu\n", bmp->color_table_byte_count);
     printf("File read 4: %ld\n", ftell(file));
@@ -134,7 +131,7 @@ Bitmap *load_bitmap(const char *filename) {
     if (!bmp->pixel_data) {
         printf("Error: Memory allocation failed for pixel data.\n");
         fclose(file);
-        return NULL;
+        return 6;
     }
 
     // Read pixel data
@@ -145,22 +142,37 @@ Bitmap *load_bitmap(const char *filename) {
     }
     printf("File size read: %ld\n", ftell(file));
     fclose(file);
-    return bmp;
+    return 0;
 }
 
-int write(const char *filename, const Bitmap *bmp) {
+int write_bitmap(const Bitmap *bmp, const char *filename) {
+    if (!bmp || !filename) {
+        fprintf(stderr, "Error: Invalid arguments to write_bitmap.\n");
+        return 1;
+    }
+    
     FILE *file = fopen(filename, "wb");
     if (!file) {
         fprintf(stderr, "Error: Could not open file %s for writing.\n",
                 filename);
-        return 1;
+        return 2;
     }
 
-    // Write file header
-    fwrite(&bmp->file_header, sizeof(File_Header), 1, file);
+    // Write file header, check that it successfully wrote 1 struct
+    if (fwrite(&bmp->file_header, sizeof(File_Header), 1, file) != 1) {
+        fprintf(stderr, "Error: Failed to write file header.\n");
+        fclose(file);
+        return 1;
+    }
+    
 
-    // Write info header
-    fwrite(&bmp->info_header, sizeof(Info_Header), 1, file);
+    // Write info header, check that it successfully wrote 1 struct
+    //fwrite(&bmp->info_header, sizeof(Info_Header), 1, file);
+    if (fwrite(&bmp->info_header, sizeof(Info_Header), 1, file) != 1) {
+        fprintf(stderr, "Error: Failed to write info header.\n");
+        fclose(file);
+        return 1;
+    }
 
     // Write color table
     if (bmp->color_table) {
