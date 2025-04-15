@@ -1,5 +1,5 @@
 
-#include "bmp_reader.h"
+#include "bmp_file_handler.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

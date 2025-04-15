@@ -1,4 +1,4 @@
-#include "bmp_reader.h"
+#include "bmp_file_handler.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,8 +75,10 @@ void print_header_fields(Bitmap *bmp) {
     printf("---\nInfo Header: \n");
     printf("Info header size: %d bytes\n",
            bmp->info_header.info_header_byte_count);
-    printf("Width: %d\n", bmp->info_header.width);
-    printf("Height: %d\n", bmp->info_header.height);
+    printf("Width (pixels): %d\n", bmp->info_header.width);
+    printf("Padded width (pixels): %d\n", bmp->info_header.width);
+    //printf("Padded width (bytes): %d\n", bmp->info_header.width);
+    printf("Height (pixels): %d\n", bmp->info_header.height);
     printf("Planes: %d\n", bmp->info_header.planes);
     printf("Pixel bit depth: %d bytes\n", bmp->info_header.bit_count_per_pixel);
     printf("Compression: ");

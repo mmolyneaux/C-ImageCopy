@@ -13,8 +13,8 @@ Optional Additional Metadata: If the BMP file includes extended color profile
 data (like in BMP V4 or V5), this data is also included in the size.
  */
 
-#ifndef BMP_READER_H
-#define BMP_READER_H
+#ifndef BMP_FILE_HANDLER_H
+#define BMP_FILE_HANDLER_H
 
 #include <stdint.h>
 
@@ -91,4 +91,4 @@ void print_header_fields(Bitmap *bmp);
 int write(const char *filename, const Bitmap *bmp);
 void free_bitmap(Bitmap **bmp);
 
-#endif // BITMAP_H
+#endif // BMP_FILE_HANDLER_H
