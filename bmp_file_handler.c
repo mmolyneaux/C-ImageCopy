@@ -111,7 +111,7 @@ int load_bitmap(Bitmap *bmp, const char *filename) {
     } else if (bmp->info_header.bit_count_per_pixel == 1) {
         bmp->padded_width = (bmp->info_header.width + 3) & ~3;
         bmp->image_size_calculated =
-            bmp->padded_width * bmp->info_header.height/8;
+            bmp->padded_width * bmp->info_header.height / 8;
     } else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
                 bmp->info_header.bit_count_per_pixel);
@@ -150,7 +150,7 @@ int write_bitmap(const Bitmap *bmp, const char *filename) {
         fprintf(stderr, "Error: Invalid arguments to write_bitmap.\n");
         return 1;
     }
-    
+
     FILE *file = fopen(filename, "wb");
     if (!file) {
         fprintf(stderr, "Error: Could not open file %s for writing.\n",
@@ -162,30 +162,39 @@ int write_bitmap(const Bitmap *bmp, const char *filename) {
     if (fwrite(&bmp->file_header, sizeof(File_Header), 1, file) != 1) {
         fprintf(stderr, "Error: Failed to write file header.\n");
         fclose(file);
-        return 1;
+        return 3;
     }
-    
 
     // Write info header, check that it successfully wrote 1 struct
-    //fwrite(&bmp->info_header, sizeof(Info_Header), 1, file);
+    // fwrite(&bmp->info_header, sizeof(Info_Header), 1, file);
     if (fwrite(&bmp->info_header, sizeof(Info_Header), 1, file) != 1) {
         fprintf(stderr, "Error: Failed to write info header.\n");
         fclose(file);
-        return 1;
+        return 4;
     }
 
     // Write color table
     if (bmp->color_table) {
-        //for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
-            // fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
-            // *restrict File)
-            fwrite(&bmp->color_table, 1, bmp->color_table_byte_count, file);
+        // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
+        //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
+        //  *restrict File)
+        if (fwrite(&bmp->color_table, 1, bmp->color_table_byte_count, file) !=
+            bmp->color_table_byte_count) {
+            fprintf(stderr, "Error: Failed to write color table.\n");
+            fclose(file);
+                return 5;
+        }
         //}
     }
 
     // Write pixel data
-    //for (int i = 0; i < bmp->info_header.image_size_field; i++) {
-        fwrite(&bmp->pixel_data, 1, bmp->info_header.image_size_field, file);
+    // for (int i = 0; i < bmp->info_header.image_size_field; i++) {
+    if (fwrite(&bmp->pixel_data, 1, bmp->info_header.image_size_field, file) !=
+        bmp->info_header.image_size_field) {
+        fprintf(stderr, "Error: Failed to write image data.\n");
+        fclose(file);
+            return 6;
+    }
     //}
     fclose(file);
     return 0;

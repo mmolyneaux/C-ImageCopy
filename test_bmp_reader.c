@@ -140,16 +140,16 @@ int main(int argc, char *argv[]) {
     Bitmap *bmp = NULL;
     int error_value = 0;
     error_value = load_bitmap(bmp, filename1);
-    if (result) {
-        fprintf(stderr, "Image read failed. Error %d\n", result);
+    if (error_value) {
+        fprintf(stderr, "Image read failed. Error %d\n", error_value);
         exit(EXIT_FAILURE);
     }
     printf("Filename 1: %s\n", filename1);
     printf("Filename 2: %s\n", filename2);
+    printf("HERE\n");
     print_header_fields(bmp);
-
     error_value = write_bitmap( bmp, filename2);
-
+    printf("Write error: %d\n", error_value);
     // Free the Bitmap and reset the pointer
     free(filename2);
     free_bitmap(&bmp);
