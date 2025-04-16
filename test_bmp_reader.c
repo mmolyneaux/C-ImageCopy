@@ -138,17 +138,17 @@ int main(int argc, char *argv[]) {
     char *filename1 = argv[1];
     char *filename2 = add_suffix_to_filename(filename1, "_copy");
     Bitmap *bmp = NULL;
-
-    bmp = load_bitmap(filename1);
-    if (!bmp) {
-        fprintf(stderr, "Image read failed.\n");
+    int error_value = 0;
+    error_value = load_bitmap(bmp, filename1);
+    if (result) {
+        fprintf(stderr, "Image read failed. Error %d\n", result);
         exit(EXIT_FAILURE);
     }
     printf("Filename 1: %s\n", filename1);
     printf("Filename 2: %s\n", filename2);
     print_header_fields(bmp);
 
-    write(filename2, bmp);
+    error_value = write_bitmap( bmp, filename2);
 
     // Free the Bitmap and reset the pointer
     free(filename2);

@@ -176,17 +176,17 @@ int write_bitmap(const Bitmap *bmp, const char *filename) {
 
     // Write color table
     if (bmp->color_table) {
-        for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
+        //for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
             // fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
             // *restrict File)
-            fwrite(&bmp->color_table[i], 1, 1, file);
-        }
+            fwrite(&bmp->color_table, 1, bmp->color_table_byte_count, file);
+        //}
     }
 
     // Write pixel data
-    for (int i = 0; i < bmp->info_header.image_size_field; i++) {
-        fwrite(&bmp->pixel_data[i], 1, 1, file);
-    }
+    //for (int i = 0; i < bmp->info_header.image_size_field; i++) {
+        fwrite(&bmp->pixel_data, 1, bmp->info_header.image_size_field, file);
+    //}
     fclose(file);
     return 0;
 }
