@@ -61,8 +61,8 @@ void print_header_fields(Bitmap *bmp) {
     %c%c\n", ...): Prints the two bytes as individual characters.
     */
 
-    
-    printf("---\nFile Name: %s\n", bmp->filename);
+    printf("HERE\n");
+    printf("---\nFile Name: %c\n", *bmp->filename);
     printf("Calculated Image bytes: %u\n", bmp->image_size_calculated);
     printf("---\nFile Header: \n");
     uint16_t type = bmp->file_header.type;
@@ -139,14 +139,14 @@ int main(int argc, char *argv[]) {
     char *filename2 = add_suffix_to_filename(filename1, "_copy");
     Bitmap *bmp = NULL;
     int error_value = 0;
-    error_value = load_bitmap(bmp, filename1);
+    error_value = load_bitmap(&bmp, filename1);
     if (error_value) {
         fprintf(stderr, "Image read failed. Error %d\n", error_value);
         exit(EXIT_FAILURE);
     }
     printf("Filename 1: %s\n", filename1);
     printf("Filename 2: %s\n", filename2);
-    printf("HERE\n");
+    printf("---\nFile Name: %s\n", bmp->filename);
     print_header_fields(bmp);
     error_value = write_bitmap( bmp, filename2);
     printf("Write error: %d\n", error_value);

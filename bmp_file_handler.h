@@ -86,7 +86,8 @@ typedef struct {
 #pragma pack(pop)
 
 // Function prototypes
-int load_bitmap(Bitmap *bmp, const char *filename);
+void create_bitmap(Bitmap **bmp, const char *filename);
+int load_bitmap(Bitmap **bmp, const char *filename);
 void print_header_fields(Bitmap *bmp);
 int write_bitmap(const Bitmap *bmp, const char *filename);
 void free_bitmap(Bitmap **bmp);
