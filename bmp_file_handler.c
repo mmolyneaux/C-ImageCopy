@@ -7,7 +7,7 @@
 
 // inserts a suffix in the filename before the . extension, preserves the last .
 // and extension if there is no dot extension it just adds the suffix
-char *add_suffix_to_filename(char *filename, char *suffix) {
+char *create_filename_with_suffix(char *filename, char *suffix) {
     // Find the last position of the last '.' in the filename
     char *last_dot = strrchr(filename, '.');
     size_t base_len =
@@ -29,12 +29,11 @@ char *add_suffix_to_filename(char *filename, char *suffix) {
     // Append suffix
     strcat(new_filename, suffix);
     // Append extension
-    if(last_dot){
+    if (last_dot) {
         strcat(new_filename, last_dot);
     }
     return new_filename;
 }
-
 
 int load_bitmap(Bitmap **bmp, const char *filename) {
 
@@ -77,7 +76,8 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // Read info header 40 bytes
     fread(&(*bmp)->info_header, sizeof(Info_Header), 1, file);
 
-    // Read color table size or calculate if missing 
+    // Read color table size or calculate if missing
+
     if ((*bmp)->info_header.bit_count_per_pixel <= 8) {
         // each color table entry is 4 bytes (one byte each for Blue, Green,
         // Red, and a reserved byte). This is independent of the bit depth.
@@ -93,7 +93,8 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         }
 
         // Each color table entry is 4 bytes
-        (*bmp)->color_table_byte_count = (*bmp)->info_header.colors_used_count * 4;
+        (*bmp)->color_table_byte_count =
+            (*bmp)->info_header.colors_used_count * 4;
     }
 
     printf("Color table byte count: %d\n", (*bmp)->color_table_byte_count);
@@ -111,7 +112,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
 
     // Read color table
     if (fread((*bmp)->color_table, 1, (*bmp)->color_table_byte_count, file) !=
-    (*bmp)->color_table_byte_count) {
+        (*bmp)->color_table_byte_count) {
         fclose(file);
         fprintf(stderr, "Error: Failed to read complete color table\n");
         free((*bmp)->color_table);
@@ -123,7 +124,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     printf("File read 4: %ld\n", ftell(file));
 
     printf("(*bmp)->info_header.bit_count_per_pixel: %d\n",
-        (*bmp)->info_header.bit_count_per_pixel);
+           (*bmp)->info_header.bit_count_per_pixel);
     printf("(*bmp)->info_header.image_size_field: %d\n",
            (*bmp)->info_header.image_size_field);
     printf("Debug 1: %d\n", (*bmp)->info_header.height);
@@ -151,14 +152,15 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
                 (*bmp)->info_header.bit_count_per_pixel);
     }
 
-    // Validate image size field with calculated image size 
+    // Validate image size field with calculated image size
     if ((*bmp)->info_header.image_size_field != (*bmp)->image_size_calculated) {
         fprintf(stderr,
                 "Corrected Image Size field from %d bytes to %d bytes.\n",
-                (*bmp)->info_header.image_size_field, (*bmp)->image_size_calculated);
+                (*bmp)->info_header.image_size_field,
+                (*bmp)->image_size_calculated);
         (*bmp)->info_header.image_size_field = (*bmp)->image_size_calculated;
     }
-    printf("Debug 2: %d\n", (*bmp)->info_header.image_size_field);
+    printf("Image size field: %d\n", (*bmp)->info_header.image_size_field);
 
     // Create pixel data buffer
     (*bmp)->pixel_data = NULL;
@@ -172,7 +174,8 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // Read pixel data
     fseek(file, (*bmp)->file_header.offset_bits, SEEK_SET);
     if ((*bmp)->info_header.image_size_field !=
-        fread((*bmp)->pixel_data, 1, (*bmp)->info_header.image_size_field, file)) {
+        fread((*bmp)->pixel_data, 1, (*bmp)->info_header.image_size_field,
+              file)) {
         fprintf(stderr, "Error: Could not read image data.\n");
     }
     printf("File size read: %ld\n", ftell(file));
@@ -180,8 +183,8 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     return 0;
 }
 
-int write_bitmap(Bitmap **bmp, char * filename) {
-    if (!(*bmp) || !(*bmp)->filename ) {
+int write_bitmap(Bitmap **bmp, char *filename) {
+    if (!(*bmp) || !(*bmp)->filename) {
         fprintf(stderr, "Error: Invalid arguments to write_bitmap.\n");
         return 1;
     }
@@ -189,15 +192,14 @@ int write_bitmap(Bitmap **bmp, char * filename) {
     if (filename) {
         output_filename = filename;
     } else {
-        output_filename = add_suffix_to_filename((*bmp)->filename, "_copy");
+        output_filename =
+            create_filename_with_suffix((*bmp)->filename, "_copy");
     }
 
-
-
-    FILE *file = fopen((*bmp)->filename, "wb");
+    FILE *file = fopen(output_filename, "wb");
     if (!file) {
         fprintf(stderr, "Error: Could not open file %s for writing.\n",
-            (*bmp)->filename);
+                output_filename);
         return 2;
     }
 
@@ -221,22 +223,22 @@ int write_bitmap(Bitmap **bmp, char * filename) {
         // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
         //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
         //  *restrict File)
-        if (fwrite(&(*bmp)->color_table, 1, (*bmp)->color_table_byte_count, file) !=
-        (*bmp)->color_table_byte_count) {
+        if (fwrite((*bmp)->color_table, 1, (*bmp)->color_table_byte_count,
+                   file) != (*bmp)->color_table_byte_count) {
             fprintf(stderr, "Error: Failed to write color table.\n");
             fclose(file);
-                return 5;
+            return 5;
         }
         //}
     }
 
     // Write pixel data
     // for (int i = 0; i < bmp->info_header.image_size_field; i++) {
-    if (fwrite(&(*bmp)->pixel_data, 1, (*bmp)->info_header.image_size_field, file) !=
-    (*bmp)->info_header.image_size_field) {
+    if (fwrite((*bmp)->pixel_data, 1, (*bmp)->info_header.image_size_field,
+               file) != (*bmp)->info_header.image_size_field) {
         fprintf(stderr, "Error: Failed to write image data.\n");
         fclose(file);
-            return 6;
+        return 6;
     }
     //}
     fclose(file);
@@ -250,7 +252,7 @@ void free_bitmap(Bitmap **bmp) {
             free((*bmp)->filename);
             (*bmp)->filename = NULL;
         }
-        
+
         if ((*bmp)->pixel_data) {
             free((*bmp)->pixel_data);
             // Reset nested pointer

@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     printf("Filename 1: %s\n", filename1);
-    printf("Filename 2: %s\n", filename2);
+    //printf("Filename 2: %s\n", filename2);
     printf("---\nFile Name: %s\n", bmp->filename);
     print_header_fields(bmp);
     error_value = write_bitmap( &bmp, NULL);

@@ -86,7 +86,7 @@ typedef struct {
 #pragma pack(pop)
 
 // Function prototypes
-char *add_suffix_to_filename(char *filename, char *suffix);
+char *create_filename_with_suffix(char *filename, char *suffix);
 void create_bitmap(Bitmap **bmp, const char *filename);
 int load_bitmap(Bitmap **bmp, const char *filename);
 void print_header_fields(Bitmap *bmp);
