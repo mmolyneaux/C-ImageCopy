@@ -62,7 +62,7 @@ void print_header_fields(Bitmap *bmp) {
     */
 
     printf("HERE\n");
-    printf("---\nFile Name: %c\n", *bmp->filename);
+    printf("---\nFile Name: %s\n", bmp->filename);
     printf("Calculated Image bytes: %u\n", bmp->image_size_calculated);
     printf("---\nFile Header: \n");
     uint16_t type = bmp->file_header.type;
@@ -97,35 +97,7 @@ void print_header_fields(Bitmap *bmp) {
            bmp->info_header.important_color_count);
     (bmp->info_header.important_color_count) ? printf("\n") : printf("(all)\n");
 }
-// inserts a suffix in the filename before the . extension, preserves the last .
-// and extension if there is no dot extension it just adds the suffix
-char *add_suffix_to_filename(char *filename, char *suffix) {
-    // Find the last position of the last '.' in the filename
-    char *last_dot = strrchr(filename, '.');
-    size_t base_len =
-        last_dot ? (size_t)(last_dot - filename) : strlen(filename);
-    size_t new_len =
-        base_len + strlen(suffix) + (last_dot ? strlen(last_dot) : 0) + 1;
 
-    // Allocate memory for new string.
-    char *new_filename = malloc(new_len);
-    if (!new_filename) {
-        fprintf(stderr, "Error: Filename memory allocation failed.\n");
-        return NULL;
-    }
-
-    // Copy base name
-    strncpy(new_filename, filename, base_len);
-    // Null-terminate base name
-    new_filename[base_len] = '\0';
-    // Append suffix
-    strcat(new_filename, suffix);
-    // Append extension
-    if(last_dot){
-        strcat(new_filename, last_dot);
-    }
-    return new_filename;
-}
 
 int main(int argc, char *argv[]) {
 
@@ -136,7 +108,7 @@ int main(int argc, char *argv[]) {
     }
 
     char *filename1 = argv[1];
-    char *filename2 = add_suffix_to_filename(filename1, "_copy");
+    //char *filename2 = add_suffix_to_filename(filename1, "_copy");
     Bitmap *bmp = NULL;
     int error_value = 0;
     error_value = load_bitmap(&bmp, filename1);
@@ -148,10 +120,10 @@ int main(int argc, char *argv[]) {
     printf("Filename 2: %s\n", filename2);
     printf("---\nFile Name: %s\n", bmp->filename);
     print_header_fields(bmp);
-    error_value = write_bitmap( bmp, filename2);
+    error_value = write_bitmap( &bmp, NULL);
     printf("Write error: %d\n", error_value);
     // Free the Bitmap and reset the pointer
-    free(filename2);
+    //free(filename2);
     free_bitmap(&bmp);
 
     return 0;

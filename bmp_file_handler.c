@@ -5,16 +5,34 @@
 #include <stdlib.h>
 #include <string.h>
 
-void create_bitmap(Bitmap **bmp, const char *filename) {
-    *bmp = malloc(sizeof(Bitmap));
-    if (!*bmp) {
-        fprintf(stderr, "Error: Memory allocation failed.\n");
-        return;
+// inserts a suffix in the filename before the . extension, preserves the last .
+// and extension if there is no dot extension it just adds the suffix
+char *add_suffix_to_filename(char *filename, char *suffix) {
+    // Find the last position of the last '.' in the filename
+    char *last_dot = strrchr(filename, '.');
+    size_t base_len =
+        last_dot ? (size_t)(last_dot - filename) : strlen(filename);
+    size_t new_len =
+        base_len + strlen(suffix) + (last_dot ? strlen(last_dot) : 0) + 1;
+
+    // Allocate memory for new string.
+    char *new_filename = malloc(new_len);
+    if (!new_filename) {
+        fprintf(stderr, "Error: Filename memory allocation failed.\n");
+        return NULL;
     }
 
-    (*bmp)->filename = strdup(filename);
-    (*bmp)->color_table = NULL;
-    (*bmp)->pixel_data = NULL;
+    // Copy base name
+    strncpy(new_filename, filename, base_len);
+    // Null-terminate base name
+    new_filename[base_len] = '\0';
+    // Append suffix
+    strcat(new_filename, suffix);
+    // Append extension
+    if(last_dot){
+        strcat(new_filename, last_dot);
+    }
+    return new_filename;
 }
 
 
@@ -30,11 +48,14 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
 
     *bmp = malloc(sizeof(Bitmap));
     if (!*bmp) {
-        fprintf(stderr, "Error: Creating Bitmap struct\n");
-        return 2;
+        fprintf(stderr, "Error: Memory allocation failed.\n");
+        return 1;
     }
 
-    (*bmp)->filename = (char *)filename;
+    (*bmp)->filename = strdup(filename);
+    (*bmp)->color_table = NULL;
+    (*bmp)->pixel_data = NULL;
+
     printf("Filename is: %s\n", (*bmp)->filename);
     fseek(file, 0, SEEK_END);
     (*bmp)->file_size_read = ftell(file);
@@ -56,7 +77,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // Read info header 40 bytes
     fread(&(*bmp)->info_header, sizeof(Info_Header), 1, file);
 
-    // Read color table
+    // Read color table size or calculate if missing 
     if ((*bmp)->info_header.bit_count_per_pixel <= 8) {
         // each color table entry is 4 bytes (one byte each for Blue, Green,
         // Red, and a reserved byte). This is independent of the bit depth.
@@ -78,6 +99,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     printf("Color table byte count: %d\n", (*bmp)->color_table_byte_count);
     printf("Color count: %d\n", (*bmp)->info_header.colors_used_count);
 
+    // Allocate color table
     (*bmp)->color_table = NULL;
     (*bmp)->color_table = malloc((*bmp)->color_table_byte_count);
     if (!(*bmp)->color_table) {
@@ -87,9 +109,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         return 4;
     }
 
-    // fseek(file,
-    //       sizeof(bmp->file_header) + bmp->info_header.info_header_byte_count,
-    //       SEEK_SET);
+    // Read color table
     if (fread((*bmp)->color_table, 1, (*bmp)->color_table_byte_count, file) !=
     (*bmp)->color_table_byte_count) {
         fclose(file);
@@ -109,6 +129,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     printf("Debug 1: %d\n", (*bmp)->info_header.height);
     printf("Debug 1: %d\n", (*bmp)->info_header.width);
 
+    // Calculate image data size
     if ((*bmp)->info_header.bit_count_per_pixel == 24) {
         (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
         (*bmp)->image_size_calculated =
@@ -130,7 +151,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
                 (*bmp)->info_header.bit_count_per_pixel);
     }
 
-    // Allocate memeory for pixel data
+    // Validate image size field with calculated image size 
     if ((*bmp)->info_header.image_size_field != (*bmp)->image_size_calculated) {
         fprintf(stderr,
                 "Corrected Image Size field from %d bytes to %d bytes.\n",
@@ -139,6 +160,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     }
     printf("Debug 2: %d\n", (*bmp)->info_header.image_size_field);
 
+    // Create pixel data buffer
     (*bmp)->pixel_data = NULL;
     (*bmp)->pixel_data = malloc((*bmp)->info_header.image_size_field);
     if (!(*bmp)->pixel_data) {
@@ -158,21 +180,29 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     return 0;
 }
 
-int write_bitmap(const Bitmap *bmp, const char *filename) {
-    if (!bmp || !filename) {
+int write_bitmap(Bitmap **bmp, char * filename) {
+    if (!(*bmp) || !(*bmp)->filename ) {
         fprintf(stderr, "Error: Invalid arguments to write_bitmap.\n");
         return 1;
     }
+    char *output_filename = NULL;
+    if (filename) {
+        output_filename = filename;
+    } else {
+        output_filename = add_suffix_to_filename((*bmp)->filename, "_copy");
+    }
 
-    FILE *file = fopen(filename, "wb");
+
+
+    FILE *file = fopen((*bmp)->filename, "wb");
     if (!file) {
         fprintf(stderr, "Error: Could not open file %s for writing.\n",
-                filename);
+            (*bmp)->filename);
         return 2;
     }
 
     // Write file header, check that it successfully wrote 1 struct
-    if (fwrite(&bmp->file_header, sizeof(File_Header), 1, file) != 1) {
+    if (fwrite(&(*bmp)->file_header, sizeof(File_Header), 1, file) != 1) {
         fprintf(stderr, "Error: Failed to write file header.\n");
         fclose(file);
         return 3;
@@ -180,19 +210,19 @@ int write_bitmap(const Bitmap *bmp, const char *filename) {
 
     // Write info header, check that it successfully wrote 1 struct
     // fwrite(&bmp->info_header, sizeof(Info_Header), 1, file);
-    if (fwrite(&bmp->info_header, sizeof(Info_Header), 1, file) != 1) {
+    if (fwrite(&(*bmp)->info_header, sizeof(Info_Header), 1, file) != 1) {
         fprintf(stderr, "Error: Failed to write info header.\n");
         fclose(file);
         return 4;
     }
 
     // Write color table
-    if (bmp->color_table) {
+    if ((*bmp)->color_table) {
         // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
         //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
         //  *restrict File)
-        if (fwrite(&bmp->color_table, 1, bmp->color_table_byte_count, file) !=
-            bmp->color_table_byte_count) {
+        if (fwrite(&(*bmp)->color_table, 1, (*bmp)->color_table_byte_count, file) !=
+        (*bmp)->color_table_byte_count) {
             fprintf(stderr, "Error: Failed to write color table.\n");
             fclose(file);
                 return 5;
@@ -202,8 +232,8 @@ int write_bitmap(const Bitmap *bmp, const char *filename) {
 
     // Write pixel data
     // for (int i = 0; i < bmp->info_header.image_size_field; i++) {
-    if (fwrite(&bmp->pixel_data, 1, bmp->info_header.image_size_field, file) !=
-        bmp->info_header.image_size_field) {
+    if (fwrite(&(*bmp)->pixel_data, 1, (*bmp)->info_header.image_size_field, file) !=
+    (*bmp)->info_header.image_size_field) {
         fprintf(stderr, "Error: Failed to write image data.\n");
         fclose(file);
             return 6;
@@ -216,6 +246,11 @@ int write_bitmap(const Bitmap *bmp, const char *filename) {
 void free_bitmap(Bitmap **bmp) {
     // Check if bmp is valid
     if (bmp && *bmp) {
+        if ((*bmp)->filename) {
+            free((*bmp)->filename);
+            (*bmp)->filename = NULL;
+        }
+        
         if ((*bmp)->pixel_data) {
             free((*bmp)->pixel_data);
             // Reset nested pointer

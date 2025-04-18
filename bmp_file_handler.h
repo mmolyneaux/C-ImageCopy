@@ -86,10 +86,11 @@ typedef struct {
 #pragma pack(pop)
 
 // Function prototypes
+char *add_suffix_to_filename(char *filename, char *suffix);
 void create_bitmap(Bitmap **bmp, const char *filename);
 int load_bitmap(Bitmap **bmp, const char *filename);
 void print_header_fields(Bitmap *bmp);
-int write_bitmap(const Bitmap *bmp, const char *filename);
+int write_bitmap(Bitmap **bmp, char * filename);
 void free_bitmap(Bitmap **bmp);
 
 #endif // BMP_FILE_HANDLER_H
