@@ -62,22 +62,22 @@ void print_header_fields(Bitmap *bmp) {
     */
 
     printf("HERE\n");
-    printf("---\nFile Name: %s\n", bmp->filename);
+    printf("---\nFile Name: %s\n", bmp->filename_in);
     printf("Calculated Image bytes: %u\n", bmp->image_size_calculated);
     printf("---\nFile Header: \n");
     uint16_t type = bmp->file_header.type;
     printf("Type (hex): 0x%X == \"%c%c\"\n", type, type & 0xFF,
            (type >> 8) & 0xFF);
 
-    printf("File size(field): %d bytes (%.2f MiB)\n", bmp->file_header.file_size,
-           bmp->file_header.file_size / 1048576.0);
+    printf("File size(field): %d bytes (%.2f MiB)\n",
+           bmp->file_header.file_size, bmp->file_header.file_size / 1048576.0);
     printf("Offset bits: %d to pixel array\n", bmp->file_header.offset_bits);
     printf("---\nInfo Header: \n");
     printf("Info header size: %d bytes\n",
            bmp->info_header.info_header_byte_count);
     printf("Width (pixels): %d\n", bmp->info_header.width);
     printf("Padded width (pixels): %d\n", bmp->info_header.width);
-    //printf("Padded width (bytes): %d\n", bmp->info_header.width);
+    // printf("Padded width (bytes): %d\n", bmp->info_header.width);
     printf("Height (pixels): %d\n", bmp->info_header.height);
     printf("Planes: %d\n", bmp->info_header.planes);
     printf("Pixel bit depth: %d bytes\n", bmp->info_header.bit_count_per_pixel);
@@ -92,12 +92,11 @@ void print_header_fields(Bitmap *bmp) {
            ppm_to_dpi((double)bmp->info_header.y_pixels_per_meter));
     printf("Colors in color table: %d, (x4 = %d bytes)\n",
            bmp->info_header.colors_used_count,
-            bmp->color_table_byte_count); // Colors in color table
+           bmp->color_table_byte_count); // Colors in color table
     printf("Important color count: %d ",
            bmp->info_header.important_color_count);
     (bmp->info_header.important_color_count) ? printf("\n") : printf("(all)\n");
 }
-
 
 int main(int argc, char *argv[]) {
 
@@ -108,7 +107,7 @@ int main(int argc, char *argv[]) {
     }
 
     char *filename1 = argv[1];
-    //char *filename2 = add_suffix_to_filename(filename1, "_copy");
+    // char *filename2 = add_suffix_to_filename(filename1, "_copy");
     Bitmap *bmp = NULL;
     int error_value = 0;
     error_value = load_bitmap(&bmp, filename1);
@@ -117,14 +116,15 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     printf("Filename 1: %s\n", filename1);
-    //printf("Filename 2: %s\n", filename2);
-    printf("---\nFile Name: %s\n", bmp->filename);
+    // printf("Filename 2: %s\n", filename2);
+    printf("---\nFile In: %s\n", bmp->filename_in);
     print_header_fields(bmp);
-    error_value = write_bitmap( &bmp, NULL);
-    printf("Write error: %d\n", error_value);
-    // Free the Bitmap and reset the pointer
-    //free(filename2);
-    free_bitmap(&bmp);
 
+    error_value = write_bitmap(&bmp, NULL);
+    // write_bitmap(&bmp, create_filename_with_suffix(filename1, "_new"));
+
+    printf("Write error: %d\n", error_value);
+    free_bitmap(&bmp);
+    // Test Freed memory
     return 0;
 }

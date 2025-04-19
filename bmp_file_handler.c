@@ -51,11 +51,11 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         return 1;
     }
 
-    (*bmp)->filename = strdup(filename);
+    (*bmp)->filename_in = strdup(filename);
     (*bmp)->color_table = NULL;
     (*bmp)->pixel_data = NULL;
 
-    printf("Filename is: %s\n", (*bmp)->filename);
+    printf("Filename_in is: %s\n", (*bmp)->filename_in);
     fseek(file, 0, SEEK_END);
     (*bmp)->file_size_read = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -95,30 +95,30 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         // Each color table entry is 4 bytes
         (*bmp)->color_table_byte_count =
             (*bmp)->info_header.colors_used_count * 4;
-    }
 
-    printf("Color table byte count: %d\n", (*bmp)->color_table_byte_count);
-    printf("Color count: %d\n", (*bmp)->info_header.colors_used_count);
+        printf("Color table byte count: %d\n", (*bmp)->color_table_byte_count);
+        printf("Color count: %d\n", (*bmp)->info_header.colors_used_count);
 
-    // Allocate color table
-    (*bmp)->color_table = NULL;
-    (*bmp)->color_table = malloc((*bmp)->color_table_byte_count);
-    if (!(*bmp)->color_table) {
-        printf("Error: Memory allocation failed for color table.\n");
-        fclose(file);
-        free(*bmp);
-        return 4;
-    }
-
-    // Read color table
-    if (fread((*bmp)->color_table, 1, (*bmp)->color_table_byte_count, file) !=
-        (*bmp)->color_table_byte_count) {
-        fclose(file);
-        fprintf(stderr, "Error: Failed to read complete color table\n");
-        free((*bmp)->color_table);
+        // Allocate color table
         (*bmp)->color_table = NULL;
-        free(*bmp);
-        return 5;
+        (*bmp)->color_table = malloc((*bmp)->color_table_byte_count);
+        if (!(*bmp)->color_table) {
+            printf("Error: Memory allocation failed for color table.\n");
+            fclose(file);
+            free(*bmp);
+            return 4;
+        }
+
+        // Read color table
+        if (fread((*bmp)->color_table, 1, (*bmp)->color_table_byte_count,
+                  file) != (*bmp)->color_table_byte_count) {
+            fclose(file);
+            fprintf(stderr, "Error: Failed to read complete color table\n");
+            free((*bmp)->color_table);
+            (*bmp)->color_table = NULL;
+            free(*bmp);
+            return 5;
+        }
     }
     printf("Color table byte count: %hu\n", (*bmp)->color_table_byte_count);
     printf("File read 4: %ld\n", ftell(file));
@@ -183,23 +183,24 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     return 0;
 }
 
-int write_bitmap(Bitmap **bmp, char *filename) {
-    if (!(*bmp) || !(*bmp)->filename) {
+int write_bitmap(Bitmap **bmp, char *filename_out) {
+    if (!(*bmp) || !(*bmp)->filename_in) {
         fprintf(stderr, "Error: Invalid arguments to write_bitmap.\n");
         return 1;
     }
-    char *output_filename = NULL;
-    if (filename) {
-        output_filename = filename;
+
+    if (filename_out) {
+        //(*bmp)->filename_out = strdup(filename_out);
+        (*bmp)->filename_out = filename_out;
     } else {
-        output_filename =
-            create_filename_with_suffix((*bmp)->filename, "_copy");
+        (*bmp)->filename_out =
+            create_filename_with_suffix((*bmp)->filename_in, "_copy");
     }
 
-    FILE *file = fopen(output_filename, "wb");
+    FILE *file = fopen((*bmp)->filename_out, "wb");
     if (!file) {
         fprintf(stderr, "Error: Could not open file %s for writing.\n",
-                output_filename);
+            (*bmp)->filename_out);
         return 2;
     }
 
@@ -248,11 +249,14 @@ int write_bitmap(Bitmap **bmp, char *filename) {
 void free_bitmap(Bitmap **bmp) {
     // Check if bmp is valid
     if (bmp && *bmp) {
-        if ((*bmp)->filename) {
-            free((*bmp)->filename);
-            (*bmp)->filename = NULL;
+        if ((*bmp)->filename_in) {
+            free((*bmp)->filename_in);
+            (*bmp)->filename_in = NULL;
         }
-
+        if ((*bmp)->filename_out) {
+            free((*bmp)->filename_out);
+            (*bmp)->filename_out = NULL;
+        }
         if ((*bmp)->pixel_data) {
             free((*bmp)->pixel_data);
             // Reset nested pointer
