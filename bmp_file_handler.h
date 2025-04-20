@@ -52,7 +52,7 @@ typedef struct {
     int32_t width;
     int32_t height;
     uint16_t planes;
-    uint16_t bit_count_per_pixel;
+    uint16_t bit_depth;
     uint32_t compression;
     uint32_t image_size_field;
     int32_t x_pixels_per_meter;

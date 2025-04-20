@@ -80,7 +80,7 @@ void print_header_fields(Bitmap *bmp) {
     // printf("Padded width (bytes): %d\n", bmp->info_header.width);
     printf("Height (pixels): %d\n", bmp->info_header.height);
     printf("Planes: %d\n", bmp->info_header.planes);
-    printf("Pixel bit depth: %d bytes\n", bmp->info_header.bit_count_per_pixel);
+    printf("Pixel bit depth: %d bytes\n", bmp->info_header.bit_depth);
     printf("Compression: ");
     print_compression(bmp->info_header.compression);
     printf("Image data bytes: %d\n", bmp->info_header.image_size_field);
