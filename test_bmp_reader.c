@@ -91,7 +91,7 @@ void print_header_fields(Bitmap *bmp) {
            bmp->info_header.y_pixels_per_meter,
            ppm_to_dpi((double)bmp->info_header.y_pixels_per_meter));
     printf("Colors in color table: %d, (x4 = %d bytes)\n",
-           bmp->info_header.colors_used_count,
+           bmp->info_header.colors_used,
            bmp->color_table_byte_count); // Colors in color table
     printf("Important color count: %d ",
            bmp->info_header.important_color_count);

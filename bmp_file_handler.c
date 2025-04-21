@@ -78,38 +78,28 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
 
     // Read color table size or calculate if missing
 
-
-
-
-
-
-
-
-
-
-
-
-// For bitdepth <= 8, colors are stored in and referenced from the color table
+    // For bitdepth <= 8, colors are stored in and referenced from the color
+    // table
     if ((*bmp)->info_header.bit_depth <= 8) {
         // each color table entry is 4 bytes (one byte each for Blue, Green,
         // Red, and a reserved byte). This is independent of the bit depth.
 
-        // handle the case where colors_used_count is 0 (it defaults to
+        // handle the case where colors_used is 0 (it defaults to
         // 2^bit_depth if unset).
-        if ((*bmp)->info_header.colors_used_count == 0) {
+
+        (*bmp)->CT_MAX_COLORS = 1 << (*bmp)->info_header.bit_depth;
+        if ((*bmp)->info_header.colors_used == 0) {
             // 2^bit_depth
-            (*bmp)->info_header.colors_used_count =
-                1 << (*bmp)->info_header.bit_depth;
-            printf("Color math: %d\n",
+            (*bmp)->info_header.colors_used = (*bmp)->CT_MAX_COLORS;
+            printf("Colors used check: %d\n",
                    1 << (*bmp)->info_header.bit_depth);
         }
 
         // Each color table entry is 4 bytes
-        (*bmp)->color_table_byte_count =
-            (*bmp)->info_header.colors_used_count * 4;
+        (*bmp)->color_table_byte_count = (*bmp)->info_header.colors_used * 4;
 
         printf("Color table byte count: %d\n", (*bmp)->color_table_byte_count);
-        printf("Color count: %d\n", (*bmp)->info_header.colors_used_count);
+        printf("Color count: %d\n", (*bmp)->info_header.colors_used);
 
         // Allocate color table
         (*bmp)->color_table = NULL;
@@ -131,74 +121,41 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
             free(*bmp);
             return 5;
         }
-    
-    
-    
-    // align for 4 bytes and bit_count <= 8
-    if (((*bmp)->info_header.bit_depth <= 8) &&
-             ((*bmp)->info_header.bit_depth > 1)) {
-        (*bmp)->padded_width = ((*bmp)->info_header.width + 3) & ~3;
-        (*bmp)->image_size_calculated =
-            (*bmp)->padded_width * (*bmp)->info_header.height >>
-            (8 / (*bmp)->info_header.bit_depth - 1);
-    } else if ((*bmp)->info_header.bit_depth == 1) {
-        (*bmp)->padded_width = ((*bmp)->info_header.width + 3) & ~3;
-        (*bmp)->image_size_calculated =
-            (*bmp)->padded_width * (*bmp)->info_header.height / 8;
-    
-    
-    
-    
-    
-    
-    
-    }
 
+        // if Monochrome else other 8 bits or less
+        if ((*bmp)->info_header.bit_depth == 1) {
+            (*bmp)->padded_width = ((*bmp)->info_header.width + 3) & ~3;
+            (*bmp)->image_size_calculated =
+                (*bmp)->padded_width * (*bmp)->info_header.height / 8;
+            // align for 4 bytes and bit_count <= 8
+        } else if ((*bmp)->info_header.bit_depth <= 8) {
+            (*bmp)->padded_width = ((*bmp)->info_header.width + 3) & ~3;
+            (*bmp)->image_size_calculated =
+                (*bmp)->padded_width * (*bmp)->info_header.height >>
+                (8 / (*bmp)->info_header.bit_depth - 1);
+        } else if ((*bmp)->info_header.bit_depth == 24) {
+            (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
+            (*bmp)->image_size_calculated =
+                (*bmp)->padded_width * (*bmp)->info_header.height;
+        }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    printf("Color table byte count: %hu\n", (*bmp)->color_table_byte_count);
-    printf("File read 4: %ld\n", ftell(file));
-
-    printf("(*bmp)->info_header.bit_depth: %d\n",
-           (*bmp)->info_header.bit_depth);
-    printf("(*bmp)->info_header.image_size_field: %d\n",
-           (*bmp)->info_header.image_size_field);
-    printf("Debug 1: %d\n", (*bmp)->info_header.height);
-    printf("Debug 1: %d\n", (*bmp)->info_header.width);
-
-    // Calculate image data size
-    if ((*bmp)->info_header.bit_depth == 24) {
-        (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
-        (*bmp)->image_size_calculated =
-            (*bmp)->padded_width * (*bmp)->info_header.height;
-    }
-    
     } else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
                 (*bmp)->info_header.bit_depth);
     }
+
+        printf("Color table byte count: %hu\n", (*bmp)->color_table_byte_count);
+        printf("File read 4: %ld\n", ftell(file));
+
+        printf("(*bmp)->info_header.bit_depth: %d\n",
+               (*bmp)->info_header.bit_depth);
+        printf("(*bmp)->info_header.image_size_field: %d\n",
+               (*bmp)->info_header.image_size_field);
+        printf("Debug 1: %d\n", (*bmp)->info_header.height);
+        printf("Debug 1: %d\n", (*bmp)->info_header.width);
+
+        // Calculate image data size
+        
 
     // Validate image size field with calculated image size
     if ((*bmp)->info_header.image_size_field != (*bmp)->image_size_calculated) {
@@ -248,7 +205,7 @@ int write_bitmap(Bitmap **bmp, char *filename_out) {
     FILE *file = fopen((*bmp)->filename_out, "wb");
     if (!file) {
         fprintf(stderr, "Error: Could not open file %s for writing.\n",
-            (*bmp)->filename_out);
+                (*bmp)->filename_out);
         return 2;
     }
 
