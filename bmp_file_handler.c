@@ -63,7 +63,8 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // Read File Header 14 bytes
     fread(&(*bmp)->file_header, sizeof(File_Header), 1, file);
 
-    printf("File read 2: %ld\n", ftell(file));
+    printf("File length read : %ld bytes\n", ftell(file));
+    printf("File length field: %ld bytes\n", ftell(file));
 
     // Validate BMP file type
     // 0x4D42 == "BM" in ASCII
@@ -87,14 +88,14 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         // handle the case where colors_used is 0 (it defaults to
         // 2^bit_depth if unset).
 
-        (*bmp)->CT_MAX_COLORS = 1 << (*bmp)->info_header.bit_depth;
         if ((*bmp)->info_header.colors_used == 0) {
+            (*bmp)->colors_to_read = 1 << (*bmp)->info_header.bit_depth;
             // 2^bit_depth
-            (*bmp)->info_header.colors_used = (*bmp)->CT_MAX_COLORS;
             printf("Colors used check: %d\n",
                    1 << (*bmp)->info_header.bit_depth);
+        } else {
+            (*bmp)->colors_to_read = (*bmp)->info_header.colors_used;
         }
-
         // Each color table entry is 4 bytes
         (*bmp)->color_table_byte_count = (*bmp)->info_header.colors_used * 4;
 
@@ -144,18 +145,17 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
                 (*bmp)->info_header.bit_depth);
     }
 
-        printf("Color table byte count: %hu\n", (*bmp)->color_table_byte_count);
-        printf("File read 4: %ld\n", ftell(file));
+    printf("Color table byte count: %hu\n", (*bmp)->color_table_byte_count);
+    printf("File read 4: %ld\n", ftell(file));
 
-        printf("(*bmp)->info_header.bit_depth: %d\n",
-               (*bmp)->info_header.bit_depth);
-        printf("(*bmp)->info_header.image_size_field: %d\n",
-               (*bmp)->info_header.image_size_field);
-        printf("Debug 1: %d\n", (*bmp)->info_header.height);
-        printf("Debug 1: %d\n", (*bmp)->info_header.width);
+    printf("(*bmp)->info_header.bit_depth: %d\n",
+           (*bmp)->info_header.bit_depth);
+    printf("(*bmp)->info_header.image_size_field: %d\n",
+           (*bmp)->info_header.image_size_field);
+    printf("Debug 1: %d\n", (*bmp)->info_header.height);
+    printf("Debug 1: %d\n", (*bmp)->info_header.width);
 
-        // Calculate image data size
-        
+    // Calculate image data size
 
     // Validate image size field with calculated image size
     if ((*bmp)->info_header.image_size_field != (*bmp)->image_size_calculated) {

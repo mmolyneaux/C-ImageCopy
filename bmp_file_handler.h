@@ -57,16 +57,14 @@ typedef struct {
     uint32_t image_size_field;
     int32_t x_pixels_per_meter;
     int32_t y_pixels_per_meter;
+    // Colors Used defines how many colors exist in the table.
     uint32_t colors_used; // Colors in color table
-
-    // Defines the subset of colors in the Color Table that are "important."
+    // Important Colors defines how many colors matter for rendering.
     // If 0, all colors in the Color Table are important. If nonzero, only the
     // specified number of colors matter for rendering.
     uint32_t important_color_count; 
 
 } Info_Header;
-
-
 
 typedef struct {
     File_Header file_header;
@@ -77,7 +75,7 @@ typedef struct {
     uint8_t *pixel_data;
     uint8_t *color_table;
     uint16_t color_table_byte_count;
-    uint8_t CT_MAX_COLORS;
+    uint8_t colors_to_read;
     char* filename_in;
     char *filename_out;
     uint32_t file_size_read;
