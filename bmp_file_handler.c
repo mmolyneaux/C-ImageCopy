@@ -97,7 +97,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
             (*bmp)->colors_to_read = (*bmp)->info_header.colors_used;
         }
         // Each color table entry is 4 bytes
-        (*bmp)->color_table_byte_count = (*bmp)->info_header.colors_used * 4;
+        (*bmp)->color_table_byte_count = (*bmp)->info_header.colors_used * sizeof(Color);
 
         printf("Color table byte count: %d\n", (*bmp)->color_table_byte_count);
         printf("Color count: %d\n", (*bmp)->info_header.colors_used);
@@ -134,12 +134,12 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
             (*bmp)->image_size_calculated =
                 (*bmp)->padded_width * (*bmp)->info_header.height >>
                 (8 / (*bmp)->info_header.bit_depth - 1);
-        } else if ((*bmp)->info_header.bit_depth == 24) {
-            (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
-            (*bmp)->image_size_calculated =
-                (*bmp)->padded_width * (*bmp)->info_header.height;
-        }
+        } 
 
+    } else if ((*bmp)->info_header.bit_depth == 24) {
+        (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
+        (*bmp)->image_size_calculated =
+            (*bmp)->padded_width * (*bmp)->info_header.height;
     } else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
                 (*bmp)->info_header.bit_depth);

@@ -67,6 +67,13 @@ typedef struct {
 } Info_Header;
 
 typedef struct {
+    uint8_t red;   // Red component (1 byte)
+    uint8_t green; // Green component (1 byte)
+    uint8_t blue;  // Blue component (1 byte)
+    uint8_t reserved; // Reserved or Alpha component (1 byte, often unused or 0)
+} Color;
+
+typedef struct {
     File_Header file_header;
     Info_Header info_header;
     // The Color Table will have 256 entries (each 4 bytes). Contains the list
