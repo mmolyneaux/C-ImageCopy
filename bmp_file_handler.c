@@ -123,18 +123,24 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
             return 5;
         }
 
+
+        (*bmp)->padded_width = ((*bmp)->info_header.width + 3) & ~3;
         // if Monochrome else other 8 bits or less
-        if ((*bmp)->info_header.bit_depth == 1) {
-            (*bmp)->padded_width = ((*bmp)->info_header.width + 3) & ~3;
-            (*bmp)->image_size_calculated =
-                (*bmp)->padded_width * (*bmp)->info_header.height / 8;
+        //if ((*bmp)->info_header.bit_depth == 1) {
+            
+           // (*bmp)->image_size_calculated =
+          //      (*bmp)->padded_width * (*bmp)->info_header.height / 8;
             // align for 4 bytes and bit_count <= 8
-        } else if ((*bmp)->info_header.bit_depth <= 8) {
-            (*bmp)->padded_width = ((*bmp)->info_header.width + 3) & ~3;
+        //} else if ((*bmp)->info_header.bit_depth <= 8) {
+            
             (*bmp)->image_size_calculated =
+                (*bmp)->padded_width * (*bmp)->info_header.height * (*bmp)->info_header.bit_depth / 8;
+
+           /*  (*bmp)->image_size_calculated =
                 (*bmp)->padded_width * (*bmp)->info_header.height >>
-                (8 / (*bmp)->info_header.bit_depth - 1);
-        } 
+                 (8 / (*bmp)->info_header.bit_depth - 1);
+            */
+             //    } 
 
     } else if ((*bmp)->info_header.bit_depth == 24) {
         (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
