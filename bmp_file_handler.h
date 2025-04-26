@@ -87,7 +87,7 @@ typedef struct {
     char *filename_out;
     uint32_t file_size_read;
     uint32_t padded_width;
-    uint32_t image_size_calculated;
+    uint32_t image_bytes_calculated;
 
 } Bitmap;
 #pragma pack(pop)

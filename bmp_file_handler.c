@@ -128,15 +128,15 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         // if Monochrome else other 8 bits or less
         //if ((*bmp)->info_header.bit_depth == 1) {
             
-           // (*bmp)->image_size_calculated =
+           // (*bmp)->image_bytes_calculated =
           //      (*bmp)->padded_width * (*bmp)->info_header.height / 8;
             // align for 4 bytes and bit_count <= 8
         //} else if ((*bmp)->info_header.bit_depth <= 8) {
             
-            (*bmp)->image_size_calculated =
+            (*bmp)->image_bytes_calculated =
                 (*bmp)->padded_width * (*bmp)->info_header.height * (*bmp)->info_header.bit_depth / 8;
 
-           /*  (*bmp)->image_size_calculated =
+           /*  (*bmp)->image_bytes_calculated =
                 (*bmp)->padded_width * (*bmp)->info_header.height >>
                  (8 / (*bmp)->info_header.bit_depth - 1);
             */
@@ -144,7 +144,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
 
     } else if ((*bmp)->info_header.bit_depth == 24) {
         (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
-        (*bmp)->image_size_calculated =
+        (*bmp)->image_bytes_calculated =
             (*bmp)->padded_width * (*bmp)->info_header.height;
     } else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
@@ -164,12 +164,12 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // Calculate image data size
 
     // Validate image size field with calculated image size
-    if ((*bmp)->info_header.image_size_field != (*bmp)->image_size_calculated) {
+    if ((*bmp)->info_header.image_size_field != (*bmp)->image_bytes_calculated) {
         fprintf(stderr,
                 "Corrected Image Size field from %d bytes to %d bytes.\n",
                 (*bmp)->info_header.image_size_field,
-                (*bmp)->image_size_calculated);
-        (*bmp)->info_header.image_size_field = (*bmp)->image_size_calculated;
+                (*bmp)->image_bytes_calculated);
+        (*bmp)->info_header.image_size_field = (*bmp)->image_bytes_calculated;
     }
     printf("Image size field: %d\n", (*bmp)->info_header.image_size_field);
 
