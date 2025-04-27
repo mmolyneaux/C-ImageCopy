@@ -29,10 +29,10 @@ data (like in BMP V4 or V5), this data is also included in the size.
 // 14 bytes
 typedef struct {
     uint16_t type;      // 0x4D42 == "BM" in ASCII
-    uint32_t file_size; // total file size in bytes
+    uint32_t file_size_field; // total file size in bytes
     uint16_t reserved1;
     uint16_t reserved2;
-    uint32_t offset_bits; // File offset to PixelArray
+    uint32_t offset_bytes; // File offset to PixelArray
 
 } File_Header;
 
@@ -48,7 +48,7 @@ typedef struct {
  */
 typedef struct {
     // info header size
-    uint32_t info_header_byte_count;
+    uint32_t info_header_size_field;
     int32_t width;
     int32_t height;
     uint16_t planes;
@@ -58,7 +58,7 @@ typedef struct {
     int32_t x_pixels_per_meter;
     int32_t y_pixels_per_meter;
     // Colors Used defines how many colors exist in the table.
-    uint32_t colors_used; // Colors in color table
+    uint32_t colors_used_field; // Colors in color table, or 0 for default
     // Important Colors defines how many colors matter for rendering.
     // If 0, all colors in the Color Table are important. If nonzero, only the
     // specified number of colors matter for rendering.
@@ -82,7 +82,7 @@ typedef struct {
     uint8_t *pixel_data;
     uint8_t *color_table;
     uint16_t color_table_byte_count;
-    uint8_t colors_to_read;
+    uint16_t colors_used_actual;
     char* filename_in;
     char *filename_out;
     uint32_t file_size_read;

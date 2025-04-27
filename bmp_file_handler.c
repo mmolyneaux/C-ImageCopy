@@ -75,23 +75,22 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
 
     // Read color table size or calculate if missing
 
-    // For bitdepth <= 8, colors are stored in and referenced from the color
+    // For bit_depth <= 8, colors are stored in and referenced from the color
     // table
     if ((*bmp)->info_header.bit_depth <= 8) {
         // each color table entry is 4 bytes (one byte each for Blue, Green,
         // Red, and a reserved byte). This is independent of the bit depth.
 
-        // handle the case where colors_used is 0 (it defaults to
+        // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
 
-        if ((*bmp)->info_header.colors_used == 0) {
-            (*bmp)->colors_to_read = 1 << (*bmp)->info_header.bit_depth;
-            // 2^bit_depth
+        if ((*bmp)->info_header.colors_used_field == 0) {
+            (*bmp)->colors_used_actual = 1 << (*bmp)->info_header.bit_depth;
         } else {
-            (*bmp)->colors_to_read = (*bmp)->info_header.colors_used;
+            (*bmp)->colors_used_actual = (*bmp)->info_header.colors_used_field;
         }
         // Each color table entry is 4 bytes
-        (*bmp)->color_table_byte_count = (*bmp)->info_header.colors_used * sizeof(Color);
+        (*bmp)->color_table_byte_count = (*bmp)->colors_used_actual * sizeof(Color);
 
         // Allocate color table
         (*bmp)->color_table = NULL;
@@ -157,7 +156,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     }
 
     // Read pixel data
-    fseek(file, (*bmp)->file_header.offset_bits, SEEK_SET);
+    fseek(file, (*bmp)->file_header.offset_bytes, SEEK_SET);
     if ((*bmp)->info_header.image_size_field !=
         fread((*bmp)->pixel_data, 1, (*bmp)->info_header.image_size_field,
               file)) {

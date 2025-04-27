@@ -6,8 +6,7 @@
 void print_compression(uint32_t compression) {
     switch (compression) {
     case 0:
-        printf("0	BI_RGB (No Compression)	The image is uncompressed. "
-               "Each pixel is stored directly (most common).\n");
+        printf("0	BI_RGB (No Compression)	The image is uncompressed.\n");
         break;
     case 1:
         printf("1	BI_RLE8 (8-bit Run-Length Encoding)	Compresses "
@@ -62,39 +61,49 @@ void print_header_fields(Bitmap *bmp) {
     */
 
     printf("---\nFile Name: %s\n", bmp->filename_in);
-    printf("Calculated Image bytes: %u\n", bmp->image_bytes_calculated);
-    printf("---\nFile Header: \n");
     uint16_t type = bmp->file_header.type;
-    printf("Type (hex): 0x%X == \"%c%c\"\n", type, type & 0xFF,
+    printf("File Type (hex): 0x%X == \"%c%c\"\n", type, type & 0xFF,
            (type >> 8) & 0xFF);
 
     printf("File size(field): %d bytes (%.2f MiB)\n",
-           bmp->file_header.file_size, bmp->file_header.file_size / 1048576.0);
-    printf("Offset bits: %d to pixel array\n", bmp->file_header.offset_bits);
-    printf("---\nInfo Header: \n");
+           bmp->file_header.file_size_field,
+           bmp->file_header.file_size_field / 1048576.0);
+    printf("File size(read):  %d bytes (%.2f MiB)\n", bmp->file_size_read,
+           bmp->file_size_read / 1048576.0);
+    printf("bytes: %d to pixel array\n", bmp->file_header.offset_bytes);
+    printf("---\n");
     printf("Info header size: %d bytes\n",
-           bmp->info_header.info_header_byte_count);
+           bmp->info_header.info_header_size_field);
     printf("Width (pixels): %d\n", bmp->info_header.width);
-    printf("Padded width (pixels): %d\n", bmp->info_header.width);
+    printf("Padded width (bytes):  %d\n", bmp->padded_width);
     // printf("Padded width (bytes): %d\n", bmp->info_header.width);
     printf("Height (pixels): %d\n", bmp->info_header.height);
     printf("Planes: %d\n", bmp->info_header.planes);
-    printf("Pixel bit depth: %d bytes\n", bmp->info_header.bit_depth);
+    printf("Pixel bit depth: %d\n", bmp->info_header.bit_depth);
     printf("Compression: ");
     print_compression(bmp->info_header.compression);
-    printf("Image data bytes: %d\n", bmp->info_header.image_size_field);
+    printf("Image bytes field     : %d\n", bmp->info_header.image_size_field);
+    printf("Image bytes calculated: %u\n", bmp->image_bytes_calculated);
     printf("X pixels per meter: %d (%.1f DPI)\n",
            bmp->info_header.x_pixels_per_meter,
            ppm_to_dpi((double)bmp->info_header.x_pixels_per_meter));
     printf("Y pixels per meter: %d (%.1f DPI)\n",
            bmp->info_header.y_pixels_per_meter,
            ppm_to_dpi((double)bmp->info_header.y_pixels_per_meter));
-    printf("Colors in color table: %d, (x4 = %d bytes)\n",
-           bmp->info_header.colors_used,
-           bmp->color_table_byte_count); // Colors in color table
-    printf("Important color count: %d ",
-           bmp->info_header.important_color_count);
-    (bmp->info_header.important_color_count) ? printf("\n") : printf("(all)\n");
+
+    if (bmp->info_header.bit_depth <= 8) {
+        printf("Colors used in color table (field): %d ",
+               bmp->info_header.colors_used_field );  
+               (bmp->info_header.colors_used_field) ? printf("\n")
+               : printf("(all)\n");
+        printf("Colors in color table/CT size: %d, (x%llu = %d bytes)\n",
+            bmp->colors_used_actual, sizeof(Color),
+               bmp->color_table_byte_count); // Colors in color table
+        printf("Important color count: %d ",
+               bmp->info_header.important_color_count);
+               (bmp->info_header.important_color_count) ? printf("\n")
+               : printf("(all, = %d)\n", bmp->colors_used_actual);
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -114,9 +123,9 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Image read failed. Error %d\n", error_value);
         exit(EXIT_FAILURE);
     }
-    //printf("Filename 1: %s\n", filename1);
-    // printf("Filename 2: %s\n", filename2);
-    //printf("---\nFile In: %s\n", bmp->filename_in);
+    // printf("Filename 1: %s\n", filename1);
+    //  printf("Filename 2: %s\n", filename2);
+    // printf("---\nFile In: %s\n", bmp->filename_in);
     print_header_fields(bmp);
 
     error_value = write_bitmap(&bmp, NULL);
