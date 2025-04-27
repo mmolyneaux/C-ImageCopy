@@ -55,7 +55,6 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     (*bmp)->color_table = NULL;
     (*bmp)->pixel_data = NULL;
 
-    printf("Filename_in is: %s\n", (*bmp)->filename_in);
     fseek(file, 0, SEEK_END);
     (*bmp)->file_size_read = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -63,13 +62,10 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // Read File Header 14 bytes
     fread(&(*bmp)->file_header, sizeof(File_Header), 1, file);
 
-    printf("File length read : %ld bytes\n", ftell(file));
-    printf("File length field: %ld bytes\n", ftell(file));
-
     // Validate BMP file type
     // 0x4D42 == "BM" in ASCII
     if ((*bmp)->file_header.type != 0x4D42) {
-        printf("Error: File %s is not a valid BMP file.\n", filename);
+        fprintf(stderr, "Error: File %s is not a valid BMP file.\n", filename);
         fclose(file);
         return 3;
     }
@@ -91,22 +87,17 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         if ((*bmp)->info_header.colors_used == 0) {
             (*bmp)->colors_to_read = 1 << (*bmp)->info_header.bit_depth;
             // 2^bit_depth
-            printf("Colors used check: %d\n",
-                   1 << (*bmp)->info_header.bit_depth);
         } else {
             (*bmp)->colors_to_read = (*bmp)->info_header.colors_used;
         }
         // Each color table entry is 4 bytes
         (*bmp)->color_table_byte_count = (*bmp)->info_header.colors_used * sizeof(Color);
 
-        printf("Color table byte count: %d\n", (*bmp)->color_table_byte_count);
-        printf("Color count: %d\n", (*bmp)->info_header.colors_used);
-
         // Allocate color table
         (*bmp)->color_table = NULL;
         (*bmp)->color_table = malloc((*bmp)->color_table_byte_count);
         if (!(*bmp)->color_table) {
-            printf("Error: Memory allocation failed for color table.\n");
+            fprintf(stderr, "Error: Memory allocation failed for color table.\n");
             fclose(file);
             free(*bmp);
             return 4;
@@ -123,24 +114,18 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
             return 5;
         }
 
+        // Calculate unpadded row size in bits
+        size_t bits_per_row = (*bmp)->info_header.bit_depth * (*bmp)->info_header.width ;
+        
+        // Convert bits to bytes and round up to nearest byte
+        size_t bytes_per_row = (bits_per_row + 7) / 8;
 
-        (*bmp)->padded_width = ((*bmp)->info_header.width + 3) & ~3;
-        // if Monochrome else other 8 bits or less
-        //if ((*bmp)->info_header.bit_depth == 1) {
-            
-           // (*bmp)->image_bytes_calculated =
-          //      (*bmp)->padded_width * (*bmp)->info_header.height / 8;
-            // align for 4 bytes and bit_count <= 8
-        //} else if ((*bmp)->info_header.bit_depth <= 8) {
-            
+        // Align to the newrest multiple of 4 bytes
+        (*bmp)->padded_width = (bytes_per_row + 3) & ~3;
+
+        // Total image size in bytes
             (*bmp)->image_bytes_calculated =
-                (*bmp)->padded_width * (*bmp)->info_header.height * (*bmp)->info_header.bit_depth / 8;
-
-           /*  (*bmp)->image_bytes_calculated =
-                (*bmp)->padded_width * (*bmp)->info_header.height >>
-                 (8 / (*bmp)->info_header.bit_depth - 1);
-            */
-             //    } 
+                (*bmp)->padded_width * (*bmp)->info_header.height;
 
     } else if ((*bmp)->info_header.bit_depth == 24) {
         (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
@@ -150,16 +135,6 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
                 (*bmp)->info_header.bit_depth);
     }
-
-    printf("Color table byte count: %hu\n", (*bmp)->color_table_byte_count);
-    printf("File read 4: %ld\n", ftell(file));
-
-    printf("(*bmp)->info_header.bit_depth: %d\n",
-           (*bmp)->info_header.bit_depth);
-    printf("(*bmp)->info_header.image_size_field: %d\n",
-           (*bmp)->info_header.image_size_field);
-    printf("Debug 1: %d\n", (*bmp)->info_header.height);
-    printf("Debug 1: %d\n", (*bmp)->info_header.width);
 
     // Calculate image data size
 
@@ -171,13 +146,12 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
                 (*bmp)->image_bytes_calculated);
         (*bmp)->info_header.image_size_field = (*bmp)->image_bytes_calculated;
     }
-    printf("Image size field: %d\n", (*bmp)->info_header.image_size_field);
 
     // Create pixel data buffer
     (*bmp)->pixel_data = NULL;
     (*bmp)->pixel_data = malloc((*bmp)->info_header.image_size_field);
     if (!(*bmp)->pixel_data) {
-        printf("Error: Memory allocation failed for pixel data.\n");
+        fprintf(stderr, "Error: Memory allocation failed for pixel data.\n");
         fclose(file);
         return 6;
     }
@@ -189,7 +163,6 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
               file)) {
         fprintf(stderr, "Error: Could not read image data.\n");
     }
-    printf("File size read: %ld\n", ftell(file));
     fclose(file);
     return 0;
 }
