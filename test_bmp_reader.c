@@ -72,7 +72,7 @@ void print_header_fields(Bitmap *bmp) {
            bmp->file_size_read / 1048576.0);
     printf("bytes: %d to pixel array\n", bmp->file_header.offset_bytes);
     printf("---\n");
-    printf("Info header size: %d bytes\n",
+    printf("Info header size(field): %d bytes\n",
            bmp->info_header.info_header_size_field);
     printf("Width (pixels): %d\n", bmp->info_header.width);
     printf("Padded width (bytes):  %d\n", bmp->padded_width);

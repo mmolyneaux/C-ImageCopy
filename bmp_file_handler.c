@@ -90,13 +90,15 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
             (*bmp)->colors_used_actual = (*bmp)->info_header.colors_used_field;
         }
         // Each color table entry is 4 bytes
-        (*bmp)->color_table_byte_count = (*bmp)->colors_used_actual * sizeof(Color);
+        (*bmp)->color_table_byte_count =
+            (*bmp)->colors_used_actual * sizeof(Color);
 
         // Allocate color table
         (*bmp)->color_table = NULL;
         (*bmp)->color_table = malloc((*bmp)->color_table_byte_count);
         if (!(*bmp)->color_table) {
-            fprintf(stderr, "Error: Memory allocation failed for color table.\n");
+            fprintf(stderr,
+                    "Error: Memory allocation failed for color table.\n");
             fclose(file);
             free(*bmp);
             return 4;
@@ -114,8 +116,9 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         }
 
         // Calculate unpadded row size in bits
-        size_t bits_per_row = (*bmp)->info_header.bit_depth * (*bmp)->info_header.width ;
-        
+        size_t bits_per_row =
+            (*bmp)->info_header.bit_depth * (*bmp)->info_header.width;
+
         // Convert bits to bytes and round up to nearest byte
         size_t bytes_per_row = (bits_per_row + 7) / 8;
 
@@ -123,8 +126,8 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         (*bmp)->padded_width = (bytes_per_row + 3) & ~3;
 
         // Total image size in bytes
-            (*bmp)->image_bytes_calculated =
-                (*bmp)->padded_width * (*bmp)->info_header.height;
+        (*bmp)->image_bytes_calculated =
+            (*bmp)->padded_width * (*bmp)->info_header.height;
 
     } else if ((*bmp)->info_header.bit_depth == 24) {
         (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
@@ -138,7 +141,8 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // Calculate image data size
 
     // Validate image size field with calculated image size
-    if ((*bmp)->info_header.image_size_field != (*bmp)->image_bytes_calculated) {
+    if ((*bmp)->info_header.image_size_field !=
+        (*bmp)->image_bytes_calculated) {
         fprintf(stderr,
                 "Corrected Image Size field from %d bytes to %d bytes.\n",
                 (*bmp)->info_header.image_size_field,
@@ -202,20 +206,21 @@ int write_bitmap(Bitmap **bmp, char *filename_out) {
         return 4;
     }
 
-    // Write color table
-    if ((*bmp)->color_table) {
-        // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
-        //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
-        //  *restrict File)
-        if (fwrite((*bmp)->color_table, 1, (*bmp)->color_table_byte_count,
-                   file) != (*bmp)->color_table_byte_count) {
-            fprintf(stderr, "Error: Failed to write color table.\n");
-            fclose(file);
-            return 5;
+    // Write color table, bit <= 8
+    if ((*bmp)->info_header.bit_depth <= 8) {
+        if ((*bmp)->color_table) {
+            // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
+            //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
+            //  *restrict File)
+            if (fwrite((*bmp)->color_table, 1, (*bmp)->color_table_byte_count,
+                       file) != (*bmp)->color_table_byte_count) {
+                fprintf(stderr, "Error: Failed to write color table.\n");
+                fclose(file);
+                return 5;
+            }
+            
         }
-        //}
     }
-
     // Write pixel data
     // for (int i = 0; i < bmp->info_header.image_size_field; i++) {
     if (fwrite((*bmp)->pixel_data, 1, (*bmp)->info_header.image_size_field,
