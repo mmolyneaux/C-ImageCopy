@@ -189,8 +189,8 @@ int write_bitmap(Bitmap **bmp, char *filename_out) {
         (*bmp)->filename_out =
             create_filename_with_suffix((*bmp)->filename_in, "_copy");
     }
-
     
+    (*bmp)->info_header.info_header_size_field = sizeof(Info_Header);
     (*bmp)->file_header.offset_bytes = sizeof(File_Header) + sizeof(Info_Header) + (*bmp)->color_table_byte_count;
     (*bmp)->file_header.file_size_field = (*bmp)->file_header.offset_bytes + (*bmp)->info_header.image_size_field;
 
