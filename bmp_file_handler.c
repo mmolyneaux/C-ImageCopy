@@ -52,8 +52,14 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     }
 
     (*bmp)->filename_in = strdup(filename);
+    (*bmp)->filename_out = NULL;
     (*bmp)->color_table = NULL;
     (*bmp)->pixel_data = NULL;
+    (*bmp)->color_table_byte_count = 0;
+    (*bmp)->file_size_read = 0;
+    (*bmp)->padded_width = 0;
+    (*bmp)->image_bytes_calculated = 0;
+
 
     fseek(file, 0, SEEK_END);
     (*bmp)->file_size_read = ftell(file);
@@ -138,7 +144,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
                 (*bmp)->info_header.bit_depth);
     }
 
-    // Calculate image data size
+ 
 
     // Validate image size field with calculated image size
     if ((*bmp)->info_header.image_size_field !=
@@ -151,7 +157,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     }
 
     // Create pixel data buffer
-    (*bmp)->pixel_data = NULL;
+    //(*bmp)->pixel_data = NULL; // already initialized to NULL
     (*bmp)->pixel_data = malloc((*bmp)->info_header.image_size_field);
     if (!(*bmp)->pixel_data) {
         fprintf(stderr, "Error: Memory allocation failed for pixel data.\n");
@@ -183,6 +189,10 @@ int write_bitmap(Bitmap **bmp, char *filename_out) {
         (*bmp)->filename_out =
             create_filename_with_suffix((*bmp)->filename_in, "_copy");
     }
+
+    
+    (*bmp)->file_header.offset_bytes = sizeof(File_Header) + sizeof(Info_Header) + (*bmp)->color_table_byte_count;
+    (*bmp)->file_header.file_size_field = (*bmp)->file_header.offset_bytes + (*bmp)->info_header.image_size_field;
 
     FILE *file = fopen((*bmp)->filename_out, "wb");
     if (!file) {
