@@ -1,4 +1,5 @@
 #include "image_handler.h"
+#include "bmp_file_handler.h"
 #include "convolution.h"
 #include <errno.h>
 #include <getopt.h>
@@ -12,11 +13,7 @@
 #include <uchar.h>
 #include <unistd.h>
 
-#define VERSION "0.14 Discrete Convolution\n"
-
-char *dot_bmp = ".bmp";
-char *dot_txt = ".txt";
-char *dot_dat = ".dat";
+#define VERSION "0.14.1 bmp file handler\n"
 
 /**  Returns true if a filename ends with the given extension,
  *   false otherwise.
@@ -41,14 +38,14 @@ bool ends_with(char *str, const char *ext) {
 char *get_filename_ext(char *filename, enum Mode mode) {
 
     if (mode == HIST || mode == HIST_N) {
-        if (ends_with(filename, dot_txt)) {
-            return dot_txt;
-        } else if (ends_with(filename, dot_dat)) {
-            return dot_dat;
+        if (ends_with(filename, ".txt")) {
+            return ".txt";
+        } else if (ends_with(filename, ".txt")) {
+            return ".txt";
         }
     } else { // image
-        if (ends_with(filename, dot_bmp)) {
-            return dot_bmp;
+        if (ends_with(filename, ".bmp")) {
+            return ".bmp";
         }
     }
     return NULL;
@@ -56,9 +53,9 @@ char *get_filename_ext(char *filename, enum Mode mode) {
 
 char *get_default_ext(enum Mode mode) {
     if (mode == HIST || mode == HIST_N) {
-        return dot_txt;
+        return ".txt";
     } else {
-        return dot_bmp;
+        return ".bmp";
     }
 }
 
@@ -774,10 +771,10 @@ int main(int argc, char *argv[]) {
 
     printf("Filename1: %s, and mode: %s.\n", filename1, mode_to_string(mode));
 
-    // confirm filename1 ends with dot_bmp
-    if (!ends_with(filename1, dot_bmp)) {
+    // confirm filename1 ends with ".bmp"
+    if (!ends_with(filename1, ".bmp")) {
         fprintf(stderr, "Error: Input file %s does not end with %s\n",
-                filename1, dot_bmp);
+                filename1, ".bmp");
         exit(EXIT_FAILURE);
     }
     // if there is a filename2 we have to confirm the extension.
@@ -790,10 +787,10 @@ int main(int argc, char *argv[]) {
             if (mode == HIST || mode == HIST_N) {
                 printf("Error: Output file %s does not end with %s or "
                        "%s\n",
-                       filename2, dot_txt, dot_dat);
+                       filename2, ".txt", ".txt");
             } else { // image
                 printf("Error: Output file %s does not end with %s\n",
-                       filename2, dot_bmp);
+                       filename2, ".bmp");
             }
             exit(EXIT_FAILURE);
         }
@@ -837,7 +834,7 @@ int main(int argc, char *argv[]) {
         }
         filename2_allocated = true;
         // Copy the base part of filename1 and append the suffix and
-        // dot_bmp. strncpy copies the first base_len number of chars
+        // ".bmp". strncpy copies the first base_len number of chars
         // from filename1 into filename2
         strncpy(filename2, filename1, base_len);
         // use ptr math to copy suffix to filename2ptr's + position +
