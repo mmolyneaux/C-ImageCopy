@@ -8,10 +8,10 @@ CC = gcc
 TARGET = imagecopy
 
 # Source files
-SRCS = main.c image_handler.c image_handler.h convolution.c convolution.h clamp.c clamp.h
+SRCS = main.c image_data_handler.c image_data_handler.h convolution.c convolution.h clamp.c clamp.h
 
 # Object files
-OBJS = main.o image_handler.o convolution.o clamp.o
+OBJS = main.o image_data_handler.o convolution.o clamp.o
 
 # Default target
 all: $(TARGET)
@@ -24,9 +24,9 @@ $(TARGET): $(OBJS)
 main.o: main.c
 	$(CC) $(CFLAGS) -c main.c
 
-# Compile image_handler.o
-image_handler.o: image_handler.c image_handler.h
-	$(CC) $(CFLAGS) -c image_handler.c
+# Compile image_data_handler.o
+image_data_handler.o: image_data_handler.c image_data_handler.h
+	$(CC) $(CFLAGS) -c image_data_handler.c
 
 # Compile convolution.o
 convolution.o: convolution.c convolution.h

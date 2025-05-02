@@ -1,4 +1,4 @@
-#include "image_handler.h"
+#include "image_data_handler.h"
 #include "bmp_file_handler.h"
 #include "convolution.h"
 #include <errno.h>
