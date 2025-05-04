@@ -81,6 +81,7 @@ typedef struct {
     uint32_t file_size_read;
     uint32_t padded_width;
     uint32_t image_bytes_calculated;
+    uint8_t channels;
 
 } Bitmap;
 #pragma pack(pop)

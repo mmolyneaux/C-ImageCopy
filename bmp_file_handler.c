@@ -59,6 +59,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     (*bmp)->file_size_read = 0;
     (*bmp)->padded_width = 0;
     (*bmp)->image_bytes_calculated = 0;
+    (*bmp)->channels = 0;
 
 
     fseek(file, 0, SEEK_END);
@@ -84,6 +85,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // For bit_depth <= 8, colors are stored in and referenced from the color
     // table
     if ((*bmp)->info_header.bit_depth <= 8) {
+        (*bmp)->channels = 1;
         // each color table entry is 4 bytes (one byte each for Blue, Green,
         // Red, and a reserved byte). This is independent of the bit depth.
 
@@ -136,6 +138,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
             (*bmp)->padded_width * (*bmp)->info_header.height;
 
     } else if ((*bmp)->info_header.bit_depth == 24) {
+        (*bmp)->channels = 3;
         (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
         (*bmp)->image_bytes_calculated =
             (*bmp)->padded_width * (*bmp)->info_header.height;
