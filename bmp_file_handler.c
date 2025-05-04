@@ -5,6 +5,27 @@
 #include <stdlib.h>
 #include <string.h>
 
+uint32_t pad_width(int32_t width, uint16_t bit_depth) {
+
+    if (bit_depth <= 8) {
+        // Calculate unpadded row size in bits
+        size_t bits_per_row = bit_depth * width;
+
+        // Convert bits to bytes and round up to nearest byte
+        size_t bytes_per_row = (bits_per_row + 7) / 8;
+
+        // Align to the newrest multiple of 4 bytes
+        return (bytes_per_row + 3) & ~3;
+    } else if (bit_depth == 24) {
+        return (3 * width + 3) & ~3;
+    }
+    fprintf(stderr,
+            "Error: Trying to pad width for unsupported type;\n"
+            "width: %d, depth:%d \n",
+            width, bit_depth);
+    exit(EXIT_FAILURE);
+}
+
 // inserts a suffix in the filename before the . extension, preserves the last .
 // and extension if there is no dot extension it just adds the suffix
 char *create_filename_with_suffix(char *filename, char *suffix) {
@@ -61,7 +82,6 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     (*bmp)->image_bytes_calculated = 0;
     (*bmp)->channels = 0;
 
-
     fseek(file, 0, SEEK_END);
     (*bmp)->file_size_read = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -92,15 +112,16 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
 
-        if ((*bmp)->info_header.colors_used_field == 0) {
-            (*bmp)->colors_used_actual = 1 << (*bmp)->info_header.bit_depth;
-        } else {
-            (*bmp)->colors_used_actual = (*bmp)->info_header.colors_used_field;
-        }
-        // Each color table entry is 4 bytes
-        (*bmp)->color_table_byte_count =
-            (*bmp)->colors_used_actual * sizeof(Color);
-
+        /*         if ((*bmp)->info_header.colors_used_field == 0) {
+                    (*bmp)->colors_used_actual = 1 <<
+           (*bmp)->info_header.bit_depth; } else {
+                    (*bmp)->colors_used_actual =
+           (*bmp)->info_header.colors_used_field;
+                }
+                // Each color table entry is 4 bytes
+                (*bmp)->color_table_byte_count =
+                    (*bmp)->colors_used_actual * sizeof(Color);
+         */
         // Allocate color table
         (*bmp)->color_table = NULL;
         (*bmp)->color_table = malloc((*bmp)->color_table_byte_count);
@@ -124,30 +145,30 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         }
 
         // Calculate unpadded row size in bits
+        /*
         size_t bits_per_row =
-            (*bmp)->info_header.bit_depth * (*bmp)->info_header.width;
+         * (*bmp)->info_header.bit_depth(*bmp)->info_header.width;
 
         // Convert bits to bytes and round up to nearest byte
         size_t bytes_per_row = (bits_per_row + 7) / 8;
 
         // Align to the newrest multiple of 4 bytes
         (*bmp)->padded_width = (bytes_per_row + 3) & ~3;
-
-        // Total image size in bytes
-        (*bmp)->image_bytes_calculated =
-            (*bmp)->padded_width * (*bmp)->info_header.height;
+       */
 
     } else if ((*bmp)->info_header.bit_depth == 24) {
         (*bmp)->channels = 3;
-        (*bmp)->padded_width = (3 * (*bmp)->info_header.width + 3) & ~3;
-        (*bmp)->image_bytes_calculated =
-            (*bmp)->padded_width * (*bmp)->info_header.height;
     } else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
                 (*bmp)->info_header.bit_depth);
     }
 
- 
+    (*bmp)->padded_width =
+        pad_width((*bmp)->info_header.width, (*bmp)->info_header.bit_depth);
+
+    // Total image size in bytes
+    (*bmp)->image_bytes_calculated =
+        (*bmp)->padded_width * (*bmp)->info_header.height;
 
     // Validate image size field with calculated image size
     if ((*bmp)->info_header.image_size_field !=
@@ -192,10 +213,13 @@ int write_bitmap(Bitmap **bmp, char *filename_out) {
         (*bmp)->filename_out =
             create_filename_with_suffix((*bmp)->filename_in, "_copy");
     }
-    
+
     (*bmp)->info_header.info_header_size_field = sizeof(Info_Header);
-    (*bmp)->file_header.offset_bytes = sizeof(File_Header) + sizeof(Info_Header) + (*bmp)->color_table_byte_count;
-    (*bmp)->file_header.file_size_field = (*bmp)->file_header.offset_bytes + (*bmp)->info_header.image_size_field;
+    (*bmp)->file_header.offset_bytes = sizeof(File_Header) +
+                                       sizeof(Info_Header) +
+                                       (*bmp)->color_table_byte_count;
+    (*bmp)->file_header.file_size_field =
+        (*bmp)->file_header.offset_bytes + (*bmp)->info_header.image_size_field;
 
     FILE *file = fopen((*bmp)->filename_out, "wb");
     if (!file) {
@@ -231,7 +255,6 @@ int write_bitmap(Bitmap **bmp, char *filename_out) {
                 fclose(file);
                 return 5;
             }
-            
         }
     }
     // Write pixel data

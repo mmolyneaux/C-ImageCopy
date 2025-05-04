@@ -94,6 +94,7 @@ typedef struct {
 } Color;
 
 // Function prototypes
+uint32_t pad_width(int32_t width, uint16_t bit_depth);
 char *create_filename_with_suffix(char *filename, char *suffix);
 void create_bitmap(Bitmap **bmp, const char *filename);
 int load_bitmap(Bitmap **bmp, const char *filename);
