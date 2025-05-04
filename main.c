@@ -61,7 +61,7 @@ char *get_default_ext(enum Mode mode) {
 
 // returns false early and prints an error message if operation not
 // complete. returns true on success of the operation.
-bool read_image(char *filename1, Image *image) {
+bool read_image(Image *image, char *filename1) {
     bool file_read_completed = false;
 
     FILE *streamIn = fopen(filename1, "rb");
