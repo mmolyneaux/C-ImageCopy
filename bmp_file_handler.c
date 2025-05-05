@@ -1,5 +1,6 @@
 
 #include "bmp_file_handler.h"
+#include "image_data_handler.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -106,6 +107,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // table
     if ((*bmp)->info_header.bit_depth <= 8) {
         (*bmp)->channels = 1;
+
         // each color table entry is 4 bytes (one byte each for Blue, Green,
         // Red, and a reserved byte). This is independent of the bit depth.
 
@@ -197,6 +199,19 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         fprintf(stderr, "Error: Could not read image data.\n");
     }
     fclose(file);
+
+    (*bmp)->imageBuffer1 = NULL;
+    (*bmp)->imageBuffer3 = NULL;
+    if((*bmp)->channels == 1) {
+        (*bmp)->imageBuffer1 = (*bmp)->pixel_data;
+    } else if((*bmp)->channels == 3) {
+        
+        create_buffer3(&(*bmp)->imageBuffer3, (*bmp)->info_header.height,
+        (*bmp)->padded_width);
+        //copy_to_buffer3
+
+    }
+
     return 0;
 }
 

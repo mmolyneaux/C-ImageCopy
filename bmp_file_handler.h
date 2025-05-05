@@ -82,6 +82,8 @@ typedef struct {
     uint32_t padded_width;
     uint32_t image_bytes_calculated;
     uint8_t channels;
+    uint8_t *imageBuffer1;
+    uint8_t **imageBuffer3;
 
 } Bitmap;
 #pragma pack(pop)
