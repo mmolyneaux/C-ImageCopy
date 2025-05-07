@@ -225,7 +225,24 @@ void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
     }
 }
 
-uint8_t **buffer3_to_2Dbu(uint8_t *buf1, uint32_t rows, uint32_t cols) {
+// use width(cols) for buffer 1 or padded_width for buffer3
+// consider changing this to pixel_data_to_buffer_rc 
+void pixel_data_to_buffer3(uint8_t **pixel_data, uint8_t ***buffer3, uint32_t rows, uint32_t padded_width) {
+    printf("pixel_data_to_buffer3\n");
+
+    *buffer3 = (uint8_t **)malloc(rows * sizeof(uint8_t *));
+    if (*buffer3 == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int r = 0; r < rows; r++) {
+        (*buffer3)[r] = &pixel_data[r * padded_width];
+    }
+
+}
+
+uint8_t **buffer3_to_2Dbubu(uint8_t *buf1, uint32_t rows, uint32_t cols) {
     uint8_t **array2D = (uint8_t **)malloc(sizeof(uint8_t *) * rows);
     for (int r = 0; r < rows; r++) {
         array2D[r] = &buf1[r * cols];

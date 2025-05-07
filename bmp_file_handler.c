@@ -206,9 +206,11 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         (*bmp)->imageBuffer1 = (*bmp)->pixel_data;
     } else if((*bmp)->channels == 3) {
         
-        create_buffer3(&(*bmp)->imageBuffer3, (*bmp)->info_header.height,
+        //create_buffer3(&(*bmp)->imageBuffer3, (*bmp)->info_header.height,
+        //(*bmp)->padded_width);
+        
+        pixel_data_to_buffer3(&(*bmp)->pixel_data,  &(*bmp)->imageBuffer3,(*bmp)->info_header.height,
         (*bmp)->padded_width);
-        //copy_to_buffer3
 
     }
 

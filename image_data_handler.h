@@ -74,6 +74,7 @@ char *mode_to_string(enum Mode mode);
 void init_image(Image *img);
 uint8_t *create_buffer1(uint32_t image_byte_count);
 void create_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols);
+void pixel_data_to_buffer3(uint8_t **pixel_data, uint8_t ***buffer3, uint32_t rows, uint32_t padded_width);
 void free_mem(Image *img);
 void copy13(Image *img);
 void gray3(Image *img);
