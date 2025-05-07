@@ -1,6 +1,6 @@
-#include "image_data_handler.h"
 #include "bmp_file_handler.h"
 #include "convolution.h"
+#include "image_data_handler.h"
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
@@ -12,6 +12,7 @@
 #include <string.h>
 #include <uchar.h>
 #include <unistd.h>
+
 
 #define VERSION "0.14.1 bmp file handler\n"
 
@@ -118,13 +119,13 @@ bool read_image(Image *image, char *filename1) {
         image->padded_width = (image->width * 3 + 3) & (~3);
 
         create_buffer3(&image->imageBuffer3, image->height,
-                     image->padded_width);
+                       image->padded_width);
 
         printf("Image buffer3 created.\n");
 
         for (int y = 0; y < image->height; y++) {
-            fread(image->imageBuffer3[y], sizeof(uint8_t),
-                  image->padded_width, streamIn);
+            fread(image->imageBuffer3[y], sizeof(uint8_t), image->padded_width,
+                  streamIn);
         }
 
         file_read_completed = true;
@@ -137,104 +138,21 @@ bool read_image(Image *image, char *filename1) {
     printf("File read completed.\n");
     return file_read_completed;
 }
-bool write_image(Image *bmp, char *filename) {
-
-    // Process image
-
-    printf("Output mode: %s\n", mode_to_string(bmp->mode));
-
-    // aka if (bmp->bit_depth <= 8), checked earlier
-    if (bmp->channels == ONE_CHANNEL) {
-
-        printf("\n");
-        printf("ONE_CHANNEL\n");
-
-        if (bmp->mode == COPY) {
-            copy13(bmp);
-
-        } else if (bmp->mode == MONO) {
-            mono1(bmp);
-        } else if (bmp->mode == BRIGHT) {
-            bright1(bmp);
-        } else if (bmp->mode == HIST) {
-            hist1(bmp);
-        } else if (bmp->mode == HIST_N) {
-            hist1_normalized(bmp);
-        } else if (bmp->mode == EQUAL) {
-            equal1(bmp);
-        } else if (bmp->mode == INV) {
-            inv1(bmp);
-        } else if (bmp->mode == ROT) {
-            rot13(bmp);
-        } else if (bmp->mode == FLIP) {
-            flip13(bmp);
-        } else if (bmp->mode == BLUR) {
-            blur1(bmp);
-        } else if (bmp->mode == FILTER) {
-            filter1(bmp);
-        } else {
-            fprintf(stderr, "%s mode not available for 1 channel grayscale.\n",
-                    mode_to_string(bmp->mode));
-            exit(EXIT_FAILURE);
-        }
-
-    } else if (bmp->channels == RGB) {
-        printf("RGB_CHANNEL\n");
-        if (bmp->mode == COPY) {
-            printf("C3\n");
-            copy13(bmp);
-        } else if (bmp->mode == GRAY) {
-            printf("G3\n");
-            gray3(bmp);
-        } else if (bmp->mode == MONO) {
-            printf("M3\n");
-            mono3(bmp);
-        } else if (bmp->mode == BRIGHT) {
-            printf("B3\n");
-            bright3(bmp);
-        } else if (bmp->mode == EQUAL) {
-            printf("E3\n");
-            equal3(bmp);
-        } else if (bmp->mode == INV_RGB) {
-            printf("I3_RGB\n");
-            inv_rgb3(bmp);
-        } else if (bmp->mode == INV_HSV) {
-            printf("I3_HSV\n");
-            inv_hsv3(bmp);
-        } else if (bmp->mode == ROT) {
-            printf("R3\n");
-            rot13(bmp);
-        } else if (bmp->mode == FLIP) {
-            printf("R3\n");
-            flip13(bmp);
-        } else if (bmp->mode == BLUR) {
-            printf("L3\n");
-            blur3(bmp);
-        } else if (bmp->mode == SEPIA) {
-            printf("S3\n");
-            sepia3(bmp);
-        } else {
-            printf("CHANNEL FAIL\n");
-            fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
-                    mode_to_string(bmp->mode));
-            exit(EXIT_FAILURE);
-        }
-    }
-
+bool write_image(Image *img, char *filename) {
     // Write data
 
     bool write_succesful = false;
     FILE *streamOut;
 
-    if (bmp->mode == HIST) {
+    if (img->mode == HIST) {
         streamOut = fopen(filename, "w");
-        for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
-            fprintf(streamOut, "%d\n", bmp->histogram1[i]);
+        for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
+            fprintf(streamOut, "%d\n", img->histogram1[i]);
         }
-    } else if (bmp->mode == HIST_N) {
+    } else if (img->mode == HIST_N) {
         streamOut = fopen(filename, "w");
-        for (int i = 0; i < bmp->HIST_RANGE_MAX; i++) {
-            fprintf(streamOut, "%f\n", bmp->histogram_n[i]);
+        for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
+            fprintf(streamOut, "%f\n", img->histogram_n[i]);
         }
     } else {
         streamOut = fopen(filename, "wb");
@@ -250,14 +168,14 @@ bool write_image(Image *bmp, char *filename) {
         //  *(int *)&bmp->header[22] = (uint32_t)bmp->height;
 
         // Write header info
-        fwrite(bmp->header, sizeof(char), HEADER_SIZE, streamOut);
+        fwrite(img->header, sizeof(char), HEADER_SIZE, streamOut);
 
-        if (bmp->channels == ONE_CHANNEL) {
+        if (img->channels == ONE_CHANNEL) {
             printf("ONE_CHANNEL\n");
 
             // Write color table if necessary.
-            if (bmp->CT_EXISTS) {
-                fwrite(bmp->colorTable, sizeof(char), CT_SIZE, streamOut);
+            if (img->CT_EXISTS) {
+                fwrite(img->colorTable, sizeof(char), CT_SIZE, streamOut);
             }
 
             /*             // Print test
@@ -267,19 +185,17 @@ bool write_image(Image *bmp, char *filename) {
                         }
                         printf(" End output.\n"); */
 
-            fwrite(bmp->imageBuffer1, sizeof(char), bmp->image_size, streamOut);
-        } else if (bmp->channels == RGB) {
-            for (int x = bmp->padded_width - 16; x < bmp->padded_width - 1;
+            fwrite(img->imageBuffer1, sizeof(char), img->image_size, streamOut);
+        } else if (img->channels == RGB) {
+            for (int x = img->padded_width - 16; x < img->padded_width - 1;
                  x++) {
-                printf("%d ", bmp->imageBuffer3[bmp->height - 1][x]);
+                printf("%d ", img->imageBuffer3[img->height - 1][x]);
             }
             printf("\n");
-            for (int y = 0; y < bmp->height; y++) {
-                fwrite(bmp->imageBuffer3[y], sizeof(uint8_t), bmp->padded_width,
+            for (int y = 0; y < img->height; y++) {
+                fwrite(img->imageBuffer3[y], sizeof(uint8_t), img->padded_width,
                        streamOut);
             }
-
-
         }
     }
     fclose(streamOut);
@@ -880,7 +796,7 @@ int main(int argc, char *argv[]) {
     printf("width: %d\n", img->width);
     printf("height: %d\n", img->height);
     printf("bit_depth: %d\n", img->bit_depth);
-
+    process_image(img);
     write_image(img, filename2);
 
     printf("width: %d\n", img->width);

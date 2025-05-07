@@ -9,10 +9,9 @@
 void init_image(Image *img) {
     if (!img)
         return;
-    memset(img->header, 0, sizeof(img->header));
     img->width = 0;
     img->height = 0;
-    //img->padded_width = 0;
+    // img->padded_width = 0;
     img->image_size = 0;
     img->bit_depth = 0;
     img->channels = 0;
@@ -37,11 +36,91 @@ void init_image(Image *img) {
     img->filter_name = NULL;
     img->filter_index = -1;
     img->mode_suffix = NULL;
-    
+}
+// Process image
+void process_image(Image *img) {
+    printf("Output mode: %s\n", mode_to_string(img->mode));
+    // aka if (bmp->bit_depth <= 8), checked earlier
+    if (img->channels == 1) {
+
+        printf("\n");
+        printf("ONE_CHANNEL\n");
+
+        if (img->mode == COPY) {
+            copy13(img);
+
+        } else if (img->mode == MONO) {
+            mono1(img);
+        } else if (img->mode == BRIGHT) {
+            bright1(img);
+        } else if (img->mode == HIST) {
+            hist1(img);
+        } else if (img->mode == HIST_N) {
+            hist1_normalized(img);
+        } else if (img->mode == EQUAL) {
+            equal1(img);
+        } else if (img->mode == INV) {
+            inv1(img);
+        } else if (img->mode == ROT) {
+            rot13(img);
+        } else if (img->mode == FLIP) {
+            flip13(img);
+        } else if (img->mode == BLUR) {
+            blur1(img);
+        } else if (img->mode == FILTER) {
+            filter1(img);
+        } else {
+            fprintf(stderr, "%s mode not available for 1 channel grayscale.\n",
+                    mode_to_string(img->mode));
+            exit(EXIT_FAILURE);
+        }
+
+    } else if (img->channels == RGB) {
+        printf("RGB_CHANNEL\n");
+        if (img->mode == COPY) {
+            printf("C3\n");
+            copy13(img);
+        } else if (img->mode == GRAY) {
+            printf("G3\n");
+            gray3(img);
+        } else if (img->mode == MONO) {
+            printf("M3\n");
+            mono3(img);
+        } else if (img->mode == BRIGHT) {
+            printf("B3\n");
+            bright3(img);
+        } else if (img->mode == EQUAL) {
+            printf("E3\n");
+            equal3(img);
+        } else if (img->mode == INV_RGB) {
+            printf("I3_RGB\n");
+            inv_rgb3(img);
+        } else if (img->mode == INV_HSV) {
+            printf("I3_HSV\n");
+            inv_hsv3(img);
+        } else if (img->mode == ROT) {
+            printf("R3\n");
+            rot13(img);
+        } else if (img->mode == FLIP) {
+            printf("R3\n");
+            flip13(img);
+        } else if (img->mode == BLUR) {
+            printf("L3\n");
+            blur3(img);
+        } else if (img->mode == SEPIA) {
+            printf("S3\n");
+            sepia3(img);
+        } else {
+            printf("CHANNEL FAIL\n");
+            fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
+                    mode_to_string(img->mode));
+            exit(EXIT_FAILURE);
+        }
+    }
 }
 
-size_t len;
 char *get_suffix(Image *img) {
+    size_t len;
     switch (img->mode) {
     case NO_MODE:
         return "_none"; // not used currently besides initializaton
@@ -89,13 +168,11 @@ char *get_suffix(Image *img) {
         return "_sepia";
         break;
     case FILTER:
-        len = strlen(img->filter_name );
-        img->mode_suffix  = (char *)malloc((len + 2) * sizeof(char));
-        strcpy(img->mode_suffix
-    , "_");
-        strcat(img->mode_suffix
-    , img->filter_name);
-            return img->mode_suffix;
+        len = strlen(img->filter_name);
+        img->mode_suffix = (char *)malloc((len + 2) * sizeof(char));
+        strcpy(img->mode_suffix, "_");
+        strcat(img->mode_suffix, img->filter_name);
+        return img->mode_suffix;
         break;
     default:
         return "_suffix";
@@ -153,9 +230,8 @@ char *mode_to_string(enum Mode mode) {
 
 uint8_t *create_buffer1(uint32_t image_size) {
     if (!image_size) {
-        fprintf(
-            stderr,
-            "Error: Buffer creation failed, Image size not defined.\n");
+        fprintf(stderr,
+                "Error: Buffer creation failed, Image size not defined.\n");
         exit(EXIT_FAILURE);
     }
     uint8_t *buf1 = (uint8_t *)calloc(image_size, sizeof(uint8_t));
@@ -226,8 +302,9 @@ void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
 }
 
 // use width(cols) for buffer 1 or padded_width for buffer3
-// consider changing this to pixel_data_to_buffer_rc 
-void pixel_data_to_buffer3(uint8_t **pixel_data, uint8_t ***buffer3, uint32_t rows, uint32_t padded_width) {
+// consider changing this to pixel_data_to_buffer_rc
+void pixel_data_to_buffer3(uint8_t **pixel_data, uint8_t ***buffer3,
+                           uint32_t rows, uint32_t padded_width) {
     printf("pixel_data_to_buffer3\n");
 
     *buffer3 = (uint8_t **)malloc(rows * sizeof(uint8_t *));
@@ -239,7 +316,6 @@ void pixel_data_to_buffer3(uint8_t **pixel_data, uint8_t ***buffer3, uint32_t ro
     for (int r = 0; r < rows; r++) {
         (*buffer3)[r] = &pixel_data[r * padded_width];
     }
-
 }
 
 uint8_t **buffer3_to_2Dbubu(uint8_t *buf1, uint32_t rows, uint32_t cols) {
@@ -281,14 +357,13 @@ void free_mem(Image *img) {
         }
         free(img->imageBuffer3);
         img->imageBuffer3 = NULL; // Avoid dangling pointer.
-        
-        if (img->mode_suffix
-){{
-            free(img->mode_suffix
-    );
-            img->mode_suffix
-     = NULL;
-        }}
+
+        if (img->mode_suffix) {
+            {
+                free(img->mode_suffix);
+                img->mode_suffix = NULL;
+            }
+        }
     }
 }
 
@@ -1348,27 +1423,28 @@ void sepia3(Image *img) {
     }
 }
 
-void filter1(Image *img){
+void filter1(Image *img) {
     printf("Inside filter1\n");
-    char * filter_name = img->filter_name;
+    char *filter_name = img->filter_name;
     int filter_index = img->filter_index;
-    
+
     Convolution *c1 = malloc(sizeof(Convolution));
-    c1->input = img->imageBuffer1;  // Pointer to the input image buffer
+    c1->input = img->imageBuffer1; // Pointer to the input image buffer
     c1->height = img->height;      // Image height
-    c1->width = img->width;       // Image width
-    c1->kernel = &kernel_list[filter_index];    
-    c1->output = create_buffer1(img->image_size); // Pointer to the output image buffer
-    
+    c1->width = img->width;        // Image width
+    c1->kernel = &kernel_list[filter_index];
+    c1->output =
+        create_buffer1(img->image_size); // Pointer to the output image buffer
+
     printf("Kernel: %s\n", c1->kernel->name);
 
-    for (int i = 0; i < c1->kernel->size; i++){
+    for (int i = 0; i < c1->kernel->size; i++) {
         printf("%d ", c1->kernel->array[i]);
     }
     printf("\n");
 
     printf("Before conv1\n");
-    for (int i = 0; i < 10; i++){
+    for (int i = 0; i < 10; i++) {
         printf("I:%d,O:%d ", c1->input[i], c1->output[i]);
     }
     printf("\n");
@@ -1376,17 +1452,14 @@ void filter1(Image *img){
     conv1(c1);
     printf("After conv1\n");
 
+    // transfer back to the original input buffer.
+    for (int i = 0; i < img->image_size; i++) {
+        if (i < 10) {
+            printf("I:%d,O:%d", c1->input[i], c1->output[i]);
+        }
 
-   // transfer back to the original input buffer.
-   for (int i = 0; i < img->image_size; i++) {
-    if(i < 10){
-        printf("I:%d,O:%d", c1->input[i], c1->output[i]);
+        c1->input[i] = c1->output[i];
     }
-
-    c1->input[i] = c1->output[i];
-   }
-   printf("\n");
+    printf("\n");
     free(c1->output);
-
-
 }
