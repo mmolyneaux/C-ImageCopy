@@ -217,6 +217,13 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     return 0;
 }
 
+
+
+
+
+
+
+
 int write_bitmap(Bitmap **bmp, char *filename_out) {
     if (!(*bmp) || !(*bmp)->filename_in) {
         fprintf(stderr, "Error: Invalid arguments to write_bitmap.\n");

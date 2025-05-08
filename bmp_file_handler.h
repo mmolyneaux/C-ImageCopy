@@ -16,6 +16,7 @@ data (like in BMP V4 or V5), this data is also included in the size.
 #ifndef BMP_FILE_HANDLER_H
 #define BMP_FILE_HANDLER_H
 
+#include "image_data_handler.h"
 #include <stdint.h>
 
 #pragma pack(push, 1) // Ensure no padding in structs
@@ -81,9 +82,10 @@ typedef struct {
     uint32_t file_size_read;
     uint32_t padded_width;
     uint32_t image_bytes_calculated;
-    uint8_t channels;
-    uint8_t *imageBuffer1;
-    uint8_t **imageBuffer3;
+    //uint8_t channels;
+    // uint8_t *imageBuffer1;
+    // uint8_t **imageBuffer3;
+    Image image;
 
 } Bitmap;
 #pragma pack(pop)
