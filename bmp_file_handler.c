@@ -81,7 +81,9 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     (*bmp)->file_size_read = 0;
     (*bmp)->padded_width = 0;
     (*bmp)->image_bytes_calculated = 0;
-    (*bmp)->channels = 0;
+    memset((*bmp)->image, 0, sizeof(Image));
+    
+    //.channels = 0;
 
     fseek(file, 0, SEEK_END);
     (*bmp)->file_size_read = ftell(file);
