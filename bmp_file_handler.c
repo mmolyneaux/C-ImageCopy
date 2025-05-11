@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+Image _img;
+
 uint32_t pad_width(int32_t width, uint16_t bit_depth) {
 
     if (bit_depth <= 8) {
@@ -81,9 +83,11 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     (*bmp)->file_size_read = 0;
     (*bmp)->padded_width = 0;
     (*bmp)->image_bytes_calculated = 0;
-    memset((*bmp)->image, 0, sizeof(Image));
     
-    //.channels = 0;
+    // Initialize the bmp's image struct.
+    Image *img = (*bmp)->image = &_img;
+    
+    init_image((*bmp)->image);
 
     fseek(file, 0, SEEK_END);
     (*bmp)->file_size_read = ftell(file);
@@ -108,7 +112,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // For bit_depth <= 8, colors are stored in and referenced from the color
     // table
     if ((*bmp)->info_header.bit_depth <= 8) {
-        (*bmp)->channels = 1;
+        img->channels = 1;
 
         // each color table entry is 4 bytes (one byte each for Blue, Green,
         // Red, and a reserved byte). This is independent of the bit depth.
@@ -161,7 +165,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
        */
 
     } else if ((*bmp)->info_header.bit_depth == 24) {
-        (*bmp)->channels = 3;
+        img->channels = 3;
     } else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
                 (*bmp)->info_header.bit_depth);
@@ -202,16 +206,14 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     }
     fclose(file);
 
-    (*bmp)->imageBuffer1 = NULL;
-    (*bmp)->imageBuffer3 = NULL;
-    if((*bmp)->channels == 1) {
-        (*bmp)->imageBuffer1 = (*bmp)->pixel_data;
-    } else if((*bmp)->channels == 3) {
+    if(img->channels == 1) {
+        img->imageBuffer1 = (*bmp)->pixel_data;
+    } else if(img->channels == 3) {
         
         //create_buffer3(&(*bmp)->imageBuffer3, (*bmp)->info_header.height,
         //(*bmp)->padded_width);
         
-        pixel_data_to_buffer3(&(*bmp)->pixel_data,  &(*bmp)->imageBuffer3,(*bmp)->info_header.height,
+        pixel_data_to_buffer3(&(*bmp)->pixel_data,  &img->imageBuffer3,(*bmp)->info_header.height,
         (*bmp)->padded_width);
 
     }

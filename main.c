@@ -622,11 +622,11 @@ int main(int argc, char *argv[]) {
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
     }
-
+/* 
     Image image;
     Image *img = &image;
     init_image(img);
-
+ */
     if (g_flag) {
         mode = GRAY;
         img->mode = mode;
