@@ -13,7 +13,6 @@
 #include <uchar.h>
 #include <unistd.h>
 
-
 #define VERSION "0.14.1 bmp file handler\n"
 
 /**  Returns true if a filename ends with the given extension,
@@ -148,11 +147,15 @@ bool write_image(Image *img, char *filename) {
         streamOut = fopen(filename, "w");
         for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
             fprintf(streamOut, "%d\n", img->histogram1[i]);
+            fclose(streamOut);
+            return write_succesful = true;
         }
     } else if (img->mode == HIST_N) {
         streamOut = fopen(filename, "w");
         for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
             fprintf(streamOut, "%f\n", img->histogram_n[i]);
+            fclose(streamOut);
+            return write_succesful = true;
         }
     } else {
         streamOut = fopen(filename, "wb");
@@ -197,9 +200,9 @@ bool write_image(Image *img, char *filename) {
                        streamOut);
             }
         }
+        fclose(streamOut);
+        return write_succesful = true;
     }
-    fclose(streamOut);
-    return write_succesful = true;
 }
 
 void print_version() { printf("Program version: %s\n", VERSION); }
@@ -622,11 +625,11 @@ int main(int argc, char *argv[]) {
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
     }
-/* 
-    Image image;
-    Image *img = &image;
-    init_image(img);
- */
+    /*
+        Image image;
+        Image *img = &image;
+        init_image(img);
+     */
     if (g_flag) {
         mode = GRAY;
         img->mode = mode;
