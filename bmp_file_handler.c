@@ -59,13 +59,13 @@ char *create_filename_with_suffix(char *filename, char *suffix) {
     return new_filename;
 }
 
-int load_bitmap(Bitmap **bmp, const char *filename) {
+int load_bitmap(Bitmap **bmp, const char *filename_in) {
 
     // Open binary file for reading.
-    FILE *file = fopen(filename, "rb");
+    FILE *file = fopen(filename_in, "rb");
 
     if (!file) {
-        fprintf(stderr, "Error opening file \"%s\"\n", filename);
+        fprintf(stderr, "Error opening file \"%s\"\n", filename_in);
         return 1;
     }
 
@@ -75,7 +75,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
         return 1;
     }
 
-    (*bmp)->filename_in = strdup(filename);
+    (*bmp)->filename_in = strdup(filename_in);
     (*bmp)->filename_out = NULL;
     (*bmp)->color_table = NULL;
     (*bmp)->pixel_data = NULL;
@@ -99,7 +99,7 @@ int load_bitmap(Bitmap **bmp, const char *filename) {
     // Validate BMP file type
     // 0x4D42 == "BM" in ASCII
     if ((*bmp)->file_header.type != 0x4D42) {
-        fprintf(stderr, "Error: File %s is not a valid BMP file.\n", filename);
+        fprintf(stderr, "Error: File %s is not a valid BMP file.\n", filename_in);
         fclose(file);
         return 3;
     }
