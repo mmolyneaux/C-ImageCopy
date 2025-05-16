@@ -237,10 +237,12 @@ int write_bitmap(Bitmap **bmp, char *filename_out) {
     if (filename_out) {
         //(*bmp)->filename_out = strdup(filename_out);
         (*bmp)->filename_out = filename_out;
-    } else {
+    } else if (!(*bmp)->filename_out){
         (*bmp)->filename_out =
             create_filename_with_suffix((*bmp)->filename_in, "_copy");
     }
+
+    //Image *img = (*bmp)->image;
 
     (*bmp)->info_header.info_header_size_field = sizeof(Info_Header);
     (*bmp)->file_header.offset_bytes = sizeof(File_Header) +
