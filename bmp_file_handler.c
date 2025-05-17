@@ -83,10 +83,10 @@ int load_bitmap(Bitmap **bmp, const char *filename_in) {
     (*bmp)->file_size_read = 0;
     (*bmp)->padded_width = 0;
     (*bmp)->image_bytes_calculated = 0;
-    
+
     // Initialize the bmp's image struct.
     Image *img = (*bmp)->image = &_img;
-    
+
     init_image((*bmp)->image);
 
     fseek(file, 0, SEEK_END);
@@ -99,7 +99,8 @@ int load_bitmap(Bitmap **bmp, const char *filename_in) {
     // Validate BMP file type
     // 0x4D42 == "BM" in ASCII
     if ((*bmp)->file_header.type != 0x4D42) {
-        fprintf(stderr, "Error: File %s is not a valid BMP file.\n", filename_in);
+        fprintf(stderr, "Error: File %s is not a valid BMP file.\n",
+                filename_in);
         fclose(file);
         return 3;
     }
@@ -206,126 +207,157 @@ int load_bitmap(Bitmap **bmp, const char *filename_in) {
     }
     fclose(file);
 
-    if(img->channels == 1) {
+    if (img->channels == 1) {
         img->imageBuffer1 = (*bmp)->pixel_data;
-    } else if(img->channels == 3) {
-        
-        //create_buffer3(&(*bmp)->imageBuffer3, (*bmp)->info_header.height,
-        //(*bmp)->padded_width);
-        
-        pixel_data_to_buffer3(&(*bmp)->pixel_data,  &img->imageBuffer3,(*bmp)->info_header.height,
-        (*bmp)->padded_width);
+    } else if (img->channels == 3) {
 
+        // create_buffer3(&(*bmp)->imageBuffer3, (*bmp)->info_header.height,
+        //(*bmp)->padded_width);
+
+        pixel_data_to_buffer3(&(*bmp)->pixel_data, &img->imageBuffer3,
+                              (*bmp)->info_header.height, (*bmp)->padded_width);
     }
 
     return 0;
 }
 
+void change_extension(char *filename, char *ext) {
+    size_t len_str = strlen(filename);
+    size_t len_ext = strlen(ext);
+    if (len_str >= 3 && len_ext >= 3) {
+        filename[len_str - 3] = ext[len_ext - 3];
+        filename[len_str - 2] = ext[len_ext - 2];
+        filename[len_str - 1] = ext[len_ext - 1];
+    }
+}
 
-
-
-
-
-
-
-int write_bitmap(Bitmap **bmp, char *filename_out) {
+int write_bitmap(Bitmap **bmp) {
     if (!(*bmp) || !(*bmp)->filename_in) {
         fprintf(stderr, "Error: Invalid arguments to write_bitmap.\n");
         return 1;
     }
     Image *img = (*bmp)->image;
-    
+    char *filename = (*bmp)->filename_out;
+    FILE *file = NULL;
+    bool write_succesful = false;
 
-    if (filename_out) {
-        //(*bmp)->filename_out = strdup(filename_out);
-        (*bmp)->filename_out = filename_out;
-    } else if (!(*bmp)->filename_out){
-        (*bmp)->filename_out =
-            create_filename_with_suffix((*bmp)->filename_in, "_copy");
-    }
-
-    //Image *img = (*bmp)->image;
-
-    (*bmp)->info_header.info_header_size_field = sizeof(Info_Header);
-    (*bmp)->file_header.offset_bytes = sizeof(File_Header) +
-                                       sizeof(Info_Header) +
-                                       (*bmp)->color_table_byte_count;
-    (*bmp)->file_header.file_size_field =
-        (*bmp)->file_header.offset_bytes + (*bmp)->info_header.image_size_field;
-
-    FILE *file = fopen((*bmp)->filename_out, "wb");
-    if (!file) {
-        fprintf(stderr, "Error: Could not open file %s for writing.\n",
-                (*bmp)->filename_out);
-        return 2;
-    }
-
-    // Write file header, check that it successfully wrote 1 struct
-    if (fwrite(&(*bmp)->file_header, sizeof(File_Header), 1, file) != 1) {
-        fprintf(stderr, "Error: Failed to write file header.\n");
-        fclose(file);
-        return 3;
-    }
-
-    // Write info header, check that it successfully wrote 1 struct
-    // fwrite(&bmp->info_header, sizeof(Info_Header), 1, file);
-    if (fwrite(&(*bmp)->info_header, sizeof(Info_Header), 1, file) != 1) {
-        fprintf(stderr, "Error: Failed to write info header.\n");
-        fclose(file);
-        return 4;
-    }
-
-    // Write color table, bit <= 8
-    if ((*bmp)->info_header.bit_depth <= 8) {
-        if ((*bmp)->color_table) {
-            // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
-            //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
-            //  *restrict File)
-            if (fwrite((*bmp)->color_table, 1, (*bmp)->color_table_byte_count,
-                       file) != (*bmp)->color_table_byte_count) {
-                fprintf(stderr, "Error: Failed to write color table.\n");
-                fclose(file);
-                return 5;
+    if (img->mode == HIST || img->mode == HIST_N) {
+        if (img->mode == HIST) {
+            if (!filename) {
+                filename =
+                    create_filename_with_suffix((*bmp)->filename_in, "_hist");
+            }
+        } else if (img->mode == HIST_N) {
+            if (!filename) {
+                filename =
+                    create_filename_with_suffix((*bmp)->filename_in, "_hist_n");
             }
         }
-    }
-    // Write pixel data
-    // for (int i = 0; i < bmp->info_header.image_size_field; i++) {
-    if (fwrite((*bmp)->pixel_data, 1, (*bmp)->info_header.image_size_field,
-               file) != (*bmp)->info_header.image_size_field) {
-        fprintf(stderr, "Error: Failed to write image data.\n");
-        fclose(file);
-        return 6;
-    }
-    //}
-    fclose(file);
-    return 0;
-}
 
-void free_bitmap(Bitmap **bmp) {
-    // Check if bmp is valid
-    if (bmp && *bmp) {
-        if ((*bmp)->filename_in) {
-            free((*bmp)->filename_in);
-            (*bmp)->filename_in = NULL;
+        change_extension(filename, "txt");
+
+        file = fopen(filename, "w");
+        for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
+            fprintf(file, "%f\n", img->histogram_n[i]);
+            fclose(file);
+            return write_succesful = true;
         }
-        if ((*bmp)->filename_out) {
-            free((*bmp)->filename_out);
-            (*bmp)->filename_out = NULL;
+
+    } else {
+        filename = create_filename_with_suffix((*bmp)->filename_in, "_copy");
+
+        file = fopen(filename, "wb");
+        if (file == NULL) {
+            fprintf(stderr, "Error: failed to open output file %s\n", filename);
+            exit(EXIT_FAILURE);
         }
-        if ((*bmp)->pixel_data) {
-            free((*bmp)->pixel_data);
-            // Reset nested pointer
-            (*bmp)->pixel_data = NULL;
+
+        file = fopen((*bmp)->filename_out, "wb");
+        if (!file) {
+            fprintf(stderr, "Error: Could not open file %s for writing.\n",
+                    (*bmp)->filename_out);
+            return 2;
         }
-        if ((*bmp)->color_table) {
-            free((*bmp)->color_table);
-            // Reset nested pointer
-            (*bmp)->pixel_data = NULL;
+
+        // Image *img = (*bmp)->image;
+
+        (*bmp)->info_header.info_header_size_field = sizeof(Info_Header);
+        (*bmp)->file_header.offset_bytes = sizeof(File_Header) +
+                                           sizeof(Info_Header) +
+                                           (*bmp)->color_table_byte_count;
+        (*bmp)->file_header.file_size_field =
+            (*bmp)->file_header.offset_bytes +
+            (*bmp)->info_header.image_size_field;
+
+        // Processing
+
+        // Write file header, check that it successfully wrote 1 struct
+        if (fwrite(&(*bmp)->file_header, sizeof(File_Header), 1, file) != 1) {
+            fprintf(stderr, "Error: Failed to write file header.\n");
+            fclose(file);
+            return 3;
         }
-        // Free the top-level struct
-        free(*bmp);
-        // Reset the callers original pointer
-        *bmp = NULL;
+
+        // Write info header, check that it successfully wrote 1 struct
+        // fwrite(&bmp->info_header, sizeof(Info_Header), 1, file);
+        if (fwrite(&(*bmp)->info_header, sizeof(Info_Header), 1, file) != 1) {
+            fprintf(stderr, "Error: Failed to write info header.\n");
+            fclose(file);
+            return 4;
+        }
+
+        // Write color table, bit <= 8
+        if ((*bmp)->info_header.bit_depth <= 8) {
+            if ((*bmp)->color_table) {
+                // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
+                //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
+                //  *restrict File)
+                if (fwrite((*bmp)->color_table, 1,
+                           (*bmp)->color_table_byte_count,
+                           file) != (*bmp)->color_table_byte_count) {
+                    fprintf(stderr, "Error: Failed to write color table.\n");
+                    fclose(file);
+                    return 5;
+                }
+            }
+        }
+        // Write pixel data
+        // for (int i = 0; i < bmp->info_header.image_size_field; i++) {
+        if (fwrite((*bmp)->pixel_data, 1, (*bmp)->info_header.image_size_field,
+                   file) != (*bmp)->info_header.image_size_field) {
+            fprintf(stderr, "Error: Failed to write image data.\n");
+            fclose(file);
+            return 6;
+        }
+        //}
+        fclose(file);
+        return 0;
     }
-}
+
+    void free_bitmap(Bitmap * *bmp) {
+        // Check if bmp is valid
+        if (bmp && *bmp) {
+            if ((*bmp)->filename_in) {
+                free((*bmp)->filename_in);
+                (*bmp)->filename_in = NULL;
+            }
+            if ((*bmp)->filename_out) {
+                free((*bmp)->filename_out);
+                (*bmp)->filename_out = NULL;
+            }
+            if ((*bmp)->pixel_data) {
+                free((*bmp)->pixel_data);
+                // Reset nested pointer
+                (*bmp)->pixel_data = NULL;
+            }
+            if ((*bmp)->color_table) {
+                free((*bmp)->color_table);
+                // Reset nested pointer
+                (*bmp)->pixel_data = NULL;
+            }
+            // Free the top-level struct
+            free(*bmp);
+            // Reset the callers original pointer
+            *bmp = NULL;
+        }
+    }

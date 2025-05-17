@@ -103,7 +103,7 @@ char *create_filename_with_suffix(char *filename, char *suffix);
 void create_bitmap(Bitmap **bmp, const char *filename);
 int load_bitmap(Bitmap **bmp, const char *filename);
 void print_header_fields(Bitmap *bmp);
-int write_bitmap(Bitmap **bmp, char * filename);
+int write_bitmap(Bitmap **bmp);
 void free_bitmap(Bitmap **bmp);
 
 #endif // BMP_FILE_HANDLER_H
