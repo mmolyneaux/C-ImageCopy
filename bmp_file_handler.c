@@ -233,6 +233,8 @@ int write_bitmap(Bitmap **bmp, char *filename_out) {
         fprintf(stderr, "Error: Invalid arguments to write_bitmap.\n");
         return 1;
     }
+    Image *img = (*bmp)->image;
+    
 
     if (filename_out) {
         //(*bmp)->filename_out = strdup(filename_out);
