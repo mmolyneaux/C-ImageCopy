@@ -237,33 +237,45 @@ int write_bitmap(Bitmap **bmp) {
         return 1;
     }
     Image *img = (*bmp)->image;
-    char *filename = (*bmp)->filename_out;
+    char *filename = NULL;
+    if ((*bmp)->filename_out)){
+        strdup((*bmp)->filename_out);
+    }
     FILE *file = NULL;
     bool write_succesful = false;
 
-    if (img->mode == HIST || img->mode == HIST_N) {
-        if (img->mode == HIST) {
-            if (!filename) {
-                filename =
-                    create_filename_with_suffix((*bmp)->filename_in, "_hist");
-            }
-        } else if (img->mode == HIST_N) {
-            if (!filename) {
-                filename =
-                    create_filename_with_suffix((*bmp)->filename_in, "_hist_n");
-            }
+    // If the mode is histogram or histogram normalized [0..1)
+    // and the filename has not been supplied by filename_out,
+    // create a filename based on filename_in and change the extension
+    // to txt
+    if (img->mode == HIST) {
+        if (!filename) {
+            filename =
+                create_filename_with_suffix((*bmp)->filename_in, "_hist");
         }
-
         change_extension(filename, "txt");
-
+        file = fopen(filename, "w");
+        for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
+            fprintf(file, "%f\n", img->histogram1);
+            fclose(file);
+            return write_succesful = true;
+        }
+    } else if (img->mode == HIST_N) {
+        if (!filename) {
+            filename =
+                create_filename_with_suffix((*bmp)->filename_in, "_hist_n");
+        }
+        change_extension(filename, "txt");
         file = fopen(filename, "w");
         for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
             fprintf(file, "%f\n", img->histogram_n[i]);
             fclose(file);
             return write_succesful = true;
         }
+    }
 
-    } else {
+    //
+    else {
         filename = create_filename_with_suffix((*bmp)->filename_in, "_copy");
 
         file = fopen(filename, "wb");
@@ -278,7 +290,7 @@ int write_bitmap(Bitmap **bmp) {
                     (*bmp)->filename_out);
             return 2;
         }
-
+        free(filename);
         // Image *img = (*bmp)->image;
 
         (*bmp)->info_header.info_header_size_field = sizeof(Info_Header);
@@ -330,6 +342,7 @@ int write_bitmap(Bitmap **bmp) {
             return 6;
         }
         //}
+
         fclose(file);
         return 0;
     }
