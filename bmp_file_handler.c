@@ -247,15 +247,13 @@ int write_bitmap(Bitmap **bmp) {
     // to txt
     
     if (img->mode == HIST) {
+        
         if (!(*bmp)->filename_out) {
             (*bmp)->filename_out =
                 create_filename_with_suffix((*bmp)->filename_in, "_hist");
         }
-        change_extension(filename, "txt");
         
-        file = fopen(filename, "w");
         
-        (*bmp)->filename_out = strdup(filename);
         
 
 
@@ -266,12 +264,12 @@ int write_bitmap(Bitmap **bmp) {
         }
         // TODO: write out hist3 
     } else if (img->mode == HIST_N) {
-        if (!filename) {
-            filename =
+        if (!(*bmp)->filename_out) {
+            (*bmp)->filename_out =
                 create_filename_with_suffix((*bmp)->filename_in, "_hist_n");
         }
-        change_extension(filename, "txt");
-        file = fopen(filename, "w");
+change_extension((*bmp)->filename_out, "txt");        
+        file = fopen((*bmp)->filename_out, "w");
         for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
             fprintf(file, "%f\n", img->histogram_n[i]);
             fclose(file);
@@ -281,11 +279,11 @@ int write_bitmap(Bitmap **bmp) {
 
     //
     else {
-        filename = create_filename_with_suffix((*bmp)->filename_in, "_copy");
+        (*bmp)->filename_out = create_filename_with_suffix((*bmp)->filename_in, "_copy");
 
-        file = fopen(filename, "wb");
+        file = fopen((*bmp)->filename_out, "wb");
         if (file == NULL) {
-            fprintf(stderr, "Error: failed to open output file %s\n", filename);
+            fprintf(stderr, "Error: failed to open output file %s\n", (*bmp)->filename_out);
             exit(EXIT_FAILURE);
         }
 
@@ -295,7 +293,7 @@ int write_bitmap(Bitmap **bmp) {
                     (*bmp)->filename_out);
             return 2;
         }
-        free(filename);
+        
         // Image *img = (*bmp)->image;
 
         (*bmp)->info_header.info_header_size_field = sizeof(Info_Header);
