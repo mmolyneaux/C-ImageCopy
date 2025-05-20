@@ -237,10 +237,7 @@ int write_bitmap(Bitmap **bmp) {
         return 1;
     }
     Image *img = (*bmp)->image;
-    char *filename = NULL;
-    if ((*bmp)->filename_out)){
-        strdup((*bmp)->filename_out);
-    }
+    
     FILE *file = NULL;
     bool write_succesful = false;
 
@@ -248,18 +245,26 @@ int write_bitmap(Bitmap **bmp) {
     // and the filename has not been supplied by filename_out,
     // create a filename based on filename_in and change the extension
     // to txt
+    
     if (img->mode == HIST) {
-        if (!filename) {
-            filename =
+        if (!(*bmp)->filename_out) {
+            (*bmp)->filename_out =
                 create_filename_with_suffix((*bmp)->filename_in, "_hist");
         }
         change_extension(filename, "txt");
+        
         file = fopen(filename, "w");
+        
+        (*bmp)->filename_out = strdup(filename);
+        
+
+
         for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
-            fprintf(file, "%f\n", img->histogram1);
+            fprintf(file, "%hhu\n", img->histogram1[i]);
             fclose(file);
             return write_succesful = true;
         }
+        // TODO: write out hist3 
     } else if (img->mode == HIST_N) {
         if (!filename) {
             filename =
