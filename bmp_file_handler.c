@@ -61,6 +61,15 @@ char *create_filename_with_suffix(char *filename, char *suffix) {
 
 int load_bitmap(Bitmap **bmp, const char *filename_in) {
 
+    if ( !filename_in || !*filename_in) {
+        fprintf(stderr, "\n");
+    }
+    
+    
+    if ( !(*bmp)->filename_in || !*((*bmp)->filename_in)) {
+        fprintf(stderr, "\n");
+    }
+    
     // Open binary file for reading.
     FILE *file = fopen(filename_in, "rb");
 
