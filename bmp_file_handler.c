@@ -59,16 +59,26 @@ char *create_filename_with_suffix(char *filename, char *suffix) {
     return new_filename;
 }
 
-int load_bitmap(Bitmap **bmp, const char *filename_in) {
+int load_bitmap(Bitmap **bmp, char *filename_in) {
 
-    if ( !filename_in || !*filename_in) {
-        fprintf(stderr, "\n");
-    }
     
     
-    if ( !(*bmp)->filename_in || !*((*bmp)->filename_in)) {
-        fprintf(stderr, "\n");
+    // if filename_in is supplied as an argument, overwrite the one in struct
+    // regardless if it is null.
+    if ( filename_in ) {
+        if ( (*bmp)->filename_in) {
+            free(((*bmp)->filename_in));
+        }
+    }    
+    (*bmp)->filename_in = filename_in;
+    // if bmp filename_in is NULL or empty, exit
+    if ((*bmp)->filename_in || !*(*bmp)->filename_in) {
+        fprintf(stderr, "Error in load_bitmap: No filename supplied \n");
+        exit(EXIT_FAILURE);    
     }
+    
+
+        fprintf(stderr, "\n");
     
     // Open binary file for reading.
     FILE *file = fopen(filename_in, "rb");
