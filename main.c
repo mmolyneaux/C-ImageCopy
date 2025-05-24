@@ -61,6 +61,7 @@ char *get_default_ext(enum Mode mode) {
 
 // returns false early and prints an error message if operation not
 // complete. returns true on success of the operation.
+/* 
 bool read_image(Image *image, char *filename1) {
     bool file_read_completed = false;
 
@@ -137,6 +138,8 @@ bool read_image(Image *image, char *filename1) {
     printf("File read completed.\n");
     return file_read_completed;
 }
+*/
+/* 
 bool write_image(Image *img, char *filename) {
     // Write data
 
@@ -180,14 +183,6 @@ bool write_image(Image *img, char *filename) {
             if (img->CT_EXISTS) {
                 fwrite(img->colorTable, sizeof(char), CT_SIZE, streamOut);
             }
-
-            /*             // Print test
-                        printf("Output: \n");
-                        for (int i = 0; i < bmp->image_size; i++) {
-                            printf("%d ", bmp->imageBuffer1[i]);
-                        }
-                        printf(" End output.\n"); */
-
             fwrite(img->imageBuffer1, sizeof(char), img->image_size, streamOut);
         } else if (img->channels == RGB) {
             for (int x = img->padded_width - 16; x < img->padded_width - 1;
@@ -204,7 +199,7 @@ bool write_image(Image *img, char *filename) {
         return write_succesful = true;
     }
 }
-
+ */
 void print_version() { printf("Program version: %s\n", VERSION); }
 
 void print_usage(char *app_name) {
@@ -286,6 +281,10 @@ bool is_digit(char value) { return ((value >= '0' && value <= '9')); }
 bool is_digit_or_dot(char value) { return (is_digit(value) || value == '.'); }
 
 int main(int argc, char *argv[]) {
+    Bitmap bitmap;
+    Bitmap *bmp = &bitmap;
+    init_bitmap(&bmp);
+    
     enum Mode mode = NO_MODE; // default
 
     char *filename1 = NULL;

@@ -59,6 +59,11 @@ char *create_filename_with_suffix(char *filename, char *suffix) {
     return new_filename;
 }
 
+void init_bitmap(Bitmap **bmp){
+    
+}
+
+
 int load_bitmap(Bitmap **bmp, char *filename_in) {
 
     
@@ -94,7 +99,6 @@ int load_bitmap(Bitmap **bmp, char *filename_in) {
         return 1;
     }
 
-    (*bmp)->filename_in = strdup(filename_in);
     (*bmp)->filename_out = NULL;
     (*bmp)->color_table = NULL;
     (*bmp)->pixel_data = NULL;
