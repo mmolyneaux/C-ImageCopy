@@ -73,7 +73,7 @@ int load_bitmap(Bitmap **bmp, char *filename_in) {
     (*bmp)->filename_in = filename_in;
     // if bmp filename_in is NULL or empty, exit
     if ((*bmp)->filename_in || !*(*bmp)->filename_in) {
-        fprintf(stderr, "Error in load_bitmap: No filename supplied \n");
+        fprintf(stderr, "Error: No filename supplied to load_bitmap\n");
         exit(EXIT_FAILURE);    
     }
     
