@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-Image _img;
+Image_Data _img;
 
 uint32_t pad_width(int32_t width, uint16_t bit_depth) {
 
@@ -108,7 +108,7 @@ int load_bitmap(Bitmap **bmp, char *filename_in) {
     (*bmp)->image_bytes_calculated = 0;
 
     // Initialize the bmp's image struct.
-    Image *img = (*bmp)->image = &_img;
+    Image_Data *img = (*bmp)->image = &_img;
 
     init_image((*bmp)->image);
 
@@ -259,7 +259,7 @@ int write_bitmap(Bitmap **bmp) {
         fprintf(stderr, "Error: Invalid arguments to write_bitmap.\n");
         return 1;
     }
-    Image *img = (*bmp)->image;
+    Image_Data *img = (*bmp)->image;
     
     FILE *file = NULL;
     bool write_succesful = false;

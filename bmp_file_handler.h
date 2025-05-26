@@ -85,7 +85,7 @@ typedef struct {
     //uint8_t channels;
     // uint8_t *imageBuffer1;
     // uint8_t **imageBuffer3;
-    Image *image;
+    Image_Data *image;
 
 } Bitmap;
 #pragma pack(pop)

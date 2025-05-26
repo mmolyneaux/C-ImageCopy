@@ -61,7 +61,7 @@ char *get_default_ext(enum Mode mode) {
 
 // returns false early and prints an error message if operation not
 // complete. returns true on success of the operation.
-/* 
+/*
 bool read_image(Image *image, char *filename1) {
     bool file_read_completed = false;
 
@@ -139,7 +139,7 @@ bool read_image(Image *image, char *filename1) {
     return file_read_completed;
 }
 */
-/* 
+/*
 bool write_image(Image *img, char *filename) {
     // Write data
 
@@ -281,21 +281,26 @@ bool is_digit(char value) { return ((value >= '0' && value <= '9')); }
 bool is_digit_or_dot(char value) { return (is_digit(value) || value == '.'); }
 
 int main(int argc, char *argv[]) {
-    Bitmap bitmap;
-    Bitmap *bmp = &bitmap;
-    init_bitmap(&bmp);
-    
-    enum Mode mode = NO_MODE; // default
-
-    char *filename1 = NULL;
-    char *filename2 = NULL;
-    bool filename2_allocated = false;
 
     // if the program is called with no options, print usage and exit.
     if (argc == 1) {
         print_usage(argv[0]);
         exit(EXIT_SUCCESS);
     }
+
+    Bitmap bitmap;
+    Bitmap *bmp = &bitmap;
+    init_bitmap(bmp);
+    Image_data image;
+    Image_data *img = &image;
+    bmp->image_data = img;
+    init_image(img);
+
+    enum Mode mode = NO_MODE; // default
+
+    char *filename1 = NULL;
+    char *filename2 = NULL;
+    bool filename2_allocated = false;
 
     // Parse command-line options
     bool g_flag = false,      // gray
@@ -624,11 +629,7 @@ int main(int argc, char *argv[]) {
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
     }
-    /*
-        Image image;
-        Image *img = &image;
-        init_image(img);
-     */
+
     if (g_flag) {
         mode = GRAY;
         img->mode = mode;

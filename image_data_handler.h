@@ -67,37 +67,37 @@ typedef struct {
     int8_t filter_index;
     char* mode_suffix;
 
-} Image;
+} Image_Data;
 
-char *get_suffix(Image *img);
+char *get_suffix(Image_Data *img);
 char *mode_to_string(enum Mode mode);
-void init_image(Image *img);
+void init_image(Image_Data *img);
 uint8_t *create_buffer1(uint32_t image_byte_count);
 void create_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols);
 void pixel_data_to_buffer3(uint8_t **pixel_data, uint8_t ***buffer3, uint32_t rows, uint32_t padded_width);
-void process_image(Image *img);
-void free_mem(Image *img);
-void copy13(Image *img);
-void gray3(Image *img);
-void mono1(Image *img);
-void mono3(Image *img);
-void bright1(Image *img);
-void bright3(Image *img);
+void process_image(Image_Data *img);
+void free_mem(Image_Data *img);
+void copy13(Image_Data *img);
+void gray3(Image_Data *img);
+void mono1(Image_Data *img);
+void mono3(Image_Data *img);
+void bright1(Image_Data *img);
+void bright3(Image_Data *img);
 
-void hist1(Image *img);
-void hist1_normalized(Image *img);
-void hist3(Image *img);
+void hist1(Image_Data *img);
+void hist1_normalized(Image_Data *img);
+void hist3(Image_Data *img);
 
-void equal1(Image *img);
-void equal3(Image *img);
-void flip13(Image *img);
-void inv1(Image *img);
-void inv_rgb3(Image *img);
-void inv_hsv3(Image *img);
-void rot13(Image *img);
+void equal1(Image_Data *img);
+void equal3(Image_Data *img);
+void flip13(Image_Data *img);
+void inv1(Image_Data *img);
+void inv_rgb3(Image_Data *img);
+void inv_hsv3(Image_Data *img);
+void rot13(Image_Data *img);
 
-void blur1(Image *img);
-void blur3(Image *img);
-void sepia3(Image *img);
-void filter1(Image *img);
+void blur1(Image_Data *img);
+void blur3(Image_Data *img);
+void sepia3(Image_Data *img);
+void filter1(Image_Data *img);
 #endif

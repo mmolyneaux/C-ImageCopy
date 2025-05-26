@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void init_image(Image *img) {
+void init_image(Image_Data *img) {
     if (!img)
         return;
     img->width = 0;
@@ -38,7 +38,7 @@ void init_image(Image *img) {
     img->mode_suffix = NULL;
 }
 // Process image
-void process_image(Image *img) {
+void process_image(Image_Data *img) {
     printf("Output mode: %s\n", mode_to_string(img->mode));
     // aka if (bmp->bit_depth <= 8), checked earlier
     if (img->channels == 1) {
@@ -119,7 +119,7 @@ void process_image(Image *img) {
     }
 }
 
-char *get_suffix(Image *img) {
+char *get_suffix(Image_Data *img) {
     size_t len;
     switch (img->mode) {
     case NO_MODE:
@@ -327,7 +327,7 @@ uint8_t **buffer3_to_2Dbubu(uint8_t *buf1, uint32_t rows, uint32_t cols) {
 }
 
 // free memory allocated for image structs.
-void free_mem(Image *img) {
+void free_mem(Image_Data *img) {
     if (img) {
         if (img->histogram1) {
             free(img->histogram1);
@@ -367,9 +367,9 @@ void free_mem(Image *img) {
     }
 }
 
-void copy13(Image *img) {}
+void copy13(Image_Data *img) {}
 
-void gray3(Image *img) {
+void gray3(Image_Data *img) {
     printf("Gray3\n");
     // the values for mixing RGB to gray.
     // amount of rgb to keep, from 0.0 to 1.0.
@@ -391,7 +391,7 @@ void gray3(Image *img) {
     }
 }
 
-void mono1(Image *img) {
+void mono1(Image_Data *img) {
     printf("Mono1\n");
 
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15,
@@ -419,7 +419,7 @@ void mono1(Image *img) {
 }
 
 // converts to grayscale and then mono
-void mono3(Image *img) {
+void mono3(Image_Data *img) {
     printf("mono3\n");
     gray3(img);
 
@@ -458,7 +458,7 @@ void mono3(Image *img) {
         }
     }
 }
-void bright1(Image *img) {
+void bright1(Image_Data *img) {
     printf("Bright1\n");
     const uint8_t WHITE = (1 << img->bit_depth) - 1;
 
@@ -493,7 +493,7 @@ void bright1(Image *img) {
         }
     }
 }
-void bright3(Image *img) {
+void bright3(Image_Data *img) {
     printf("Bright3\n");
 
     // const uint8_t WHITE = (1 << (img->bit_depth / img->channels)) - 1;
@@ -544,7 +544,7 @@ void bright3(Image *img) {
     }
 }
 
-void hist1(Image *img) {
+void hist1(Image_Data *img) {
     // img->HIST_RANGE_MAX = (1 << img->bit_depth); // 256 for 8 bit images
     img->HIST_RANGE_MAX = 256; // 256 for 8 or less bit images
     img->hist_max_value1 = 0;
@@ -574,7 +574,7 @@ void hist1(Image *img) {
 
 // Creates a Creates a normalized histogram [0.0..1.0], from a histogram
 // [0..255] Takes a histogram or calculates it from img if hist is NULL
-void hist1_normalized(Image *img) {
+void hist1_normalized(Image_Data *img) {
     if (!img->histogram1) {
         hist1(img);
     }
@@ -587,7 +587,7 @@ void hist1_normalized(Image *img) {
     }
 }
 
-void equal1(Image *img) {
+void equal1(Image_Data *img) {
     if (!img->histogram1) {
         hist1(img);
     }
@@ -638,7 +638,7 @@ void equal1(Image *img) {
     equalized = NULL;
 }
 
-void hist3(Image *img) {
+void hist3(Image_Data *img) {
 
     img->HIST_RANGE_MAX = 256;
     img->hist_max_value3[0] = img->hist_max_value3[1] =
@@ -667,7 +667,7 @@ void hist3(Image *img) {
     }
 }
 
-void equal3(Image *img) {
+void equal3(Image_Data *img) {
     if (!img->histogram3) {
         hist3(img);
     }
@@ -727,7 +727,7 @@ void equal3(Image *img) {
     equalized = NULL;
 }
 
-void inv1(Image *img) {
+void inv1(Image_Data *img) {
     printf("inv13\n");
 
     // simple grayscale invert, 255 - color, ignores invert mode setting.
@@ -738,7 +738,7 @@ void inv1(Image *img) {
     }
 }
 
-void inv_rgb3(Image *img) {
+void inv_rgb3(Image_Data *img) {
     // RGB Simple invert for each RGB value and also the DEFAULT mode.
     for (int y = 0; y < img->height; y++) {
         for (int x = 0; x < img->width * 3; x += 3) {
@@ -751,7 +751,7 @@ void inv_rgb3(Image *img) {
 
 } // HSV based invert
 
-void inv_hsv3(Image *img) {
+void inv_hsv3(Image_Data *img) {
     float r, g, b, max, v, scale;
     for (int y = 0; y < img->height; y++) {
         for (int x = 0; x < img->width * 3; x += 3) {
@@ -774,7 +774,7 @@ void inv_hsv3(Image *img) {
         }
     }
 }
-void flip13(Image *img) {
+void flip13(Image_Data *img) {
 
     enum Dir dir = img->direction;
 
@@ -847,7 +847,7 @@ void flip13(Image *img) {
     }
 }
 
-void rot13(Image *img) {
+void rot13(Image_Data *img) {
 
     uint32_t org_width = 0;
     uint32_t org_height = 0;
@@ -978,7 +978,7 @@ void rot13(Image *img) {
     }
 }
 
-void blur1(Image *img) {
+void blur1(Image_Data *img) {
     printf("Inside blur1\n");
 
     uint32_t rows = img->height;
@@ -1145,7 +1145,7 @@ void blur1(Image *img) {
 
 //---
 
-void blur3(Image *img) {
+void blur3(Image_Data *img) {
     printf("Inside blur3\n");
 
     float kernel2D[3][3];
@@ -1390,7 +1390,7 @@ void blur3(Image *img) {
     free(buf2);
 }
 
-void sepia3(Image *img) {
+void sepia3(Image_Data *img) {
     printf("Sepia\n");
     const uint8_t WHITE = 255;
 
@@ -1423,7 +1423,7 @@ void sepia3(Image *img) {
     }
 }
 
-void filter1(Image *img) {
+void filter1(Image_Data *img) {
     printf("Inside filter1\n");
     char *filter_name = img->filter_name;
     int filter_index = img->filter_index;
