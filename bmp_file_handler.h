@@ -100,7 +100,7 @@ typedef struct {
 // Function prototypes
 uint32_t pad_width(int32_t width, uint16_t bit_depth);
 char *create_filename_with_suffix(char *filename, char *suffix);
-void init_bitmap(Bitmap **bmp );
+void init_bitmap(Bitmap *bmp );
 int load_bitmap(Bitmap **bmp, char *filename);
 void print_header_fields(Bitmap *bmp);
 int write_bitmap(Bitmap **bmp);

@@ -59,32 +59,61 @@ char *create_filename_with_suffix(char *filename, char *suffix) {
     return new_filename;
 }
 
-void init_bitmap(Bitmap **bmp){
-    
-}
+void init_bitmap(Bitmap *bmp) {
+    if (!bmp)
+        return; // Prevent null pointer issues
 
+    // Initialize File Header
+    bmp->file_header.type = 0x4D42; // "BM" signature
+    bmp->file_header.file_size_field = 0;
+    bmp->file_header.reserved1 = 0;
+    bmp->file_header.reserved2 = 0;
+    bmp->file_header.offset_bytes = 0;
+
+    // Initialize Info Header
+    bmp->info_header.info_header_size_field = sizeof(Info_Header);
+    bmp->info_header.width = 0;
+    bmp->info_header.height = 0;
+    bmp->info_header.planes = 1; // BMP format requires planes = 1
+    bmp->info_header.bit_depth = 0;
+    bmp->info_header.compression = 0;
+    bmp->info_header.image_size_field = 0;
+    bmp->info_header.x_pixels_per_meter = 0;
+    bmp->info_header.y_pixels_per_meter = 0;
+    bmp->info_header.colors_used_field = 0;
+    bmp->info_header.important_color_count = 0;
+
+    // Initialize other Bitmap fields
+    bmp->pixel_data = NULL;
+    bmp->color_table = NULL;
+    bmp->filename_in = NULL;
+    bmp->filename_out = NULL;
+    bmp->file_size_read = 0;
+    bmp->padded_width = 0;
+    bmp->image_bytes_calculated = 0;
+    bmp->color_table_byte_count = 0;
+    bmp->colors_used_actual = 0;
+    bmp->image = NULL;
+}
 
 int load_bitmap(Bitmap **bmp, char *filename_in) {
 
-    
-    
     // if filename_in is supplied as an argument, overwrite the one in struct
     // regardless if it is null.
-    if ( filename_in ) {
-        if ( (*bmp)->filename_in) {
+    if (filename_in) {
+        if ((*bmp)->filename_in) {
             free(((*bmp)->filename_in));
         }
-    }    
+    }
     (*bmp)->filename_in = filename_in;
     // if bmp filename_in is NULL or empty, exit
     if ((*bmp)->filename_in || !*(*bmp)->filename_in) {
         fprintf(stderr, "Error: No filename supplied to load_bitmap\n");
-        exit(EXIT_FAILURE);    
+        exit(EXIT_FAILURE);
     }
-    
 
-        fprintf(stderr, "\n");
-    
+    fprintf(stderr, "\n");
+
     // Open binary file for reading.
     FILE *file = fopen(filename_in, "rb");
 
@@ -260,7 +289,7 @@ int write_bitmap(Bitmap **bmp) {
         return 1;
     }
     Image_Data *img = (*bmp)->image;
-    
+
     FILE *file = NULL;
     bool write_succesful = false;
 
@@ -268,30 +297,26 @@ int write_bitmap(Bitmap **bmp) {
     // and the filename has not been supplied by filename_out,
     // create a filename based on filename_in and change the extension
     // to txt
-    
+
     if (img->mode == HIST) {
-        
+
         if (!(*bmp)->filename_out) {
             (*bmp)->filename_out =
                 create_filename_with_suffix((*bmp)->filename_in, "_hist");
         }
-        
-        
-        
-
 
         for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
             fprintf(file, "%hhu\n", img->histogram1[i]);
             fclose(file);
             return write_succesful = true;
         }
-        // TODO: write out hist3 
+        // TODO: write out hist3
     } else if (img->mode == HIST_N) {
         if (!(*bmp)->filename_out) {
             (*bmp)->filename_out =
                 create_filename_with_suffix((*bmp)->filename_in, "_hist_n");
         }
-change_extension((*bmp)->filename_out, "txt");        
+        change_extension((*bmp)->filename_out, "txt");
         file = fopen((*bmp)->filename_out, "w");
         for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
             fprintf(file, "%f\n", img->histogram_n[i]);
@@ -302,11 +327,13 @@ change_extension((*bmp)->filename_out, "txt");
 
     //
     else {
-        (*bmp)->filename_out = create_filename_with_suffix((*bmp)->filename_in, "_copy");
+        (*bmp)->filename_out =
+            create_filename_with_suffix((*bmp)->filename_in, "_copy");
 
         file = fopen((*bmp)->filename_out, "wb");
         if (file == NULL) {
-            fprintf(stderr, "Error: failed to open output file %s\n", (*bmp)->filename_out);
+            fprintf(stderr, "Error: failed to open output file %s\n",
+                    (*bmp)->filename_out);
             exit(EXIT_FAILURE);
         }
 
@@ -316,7 +343,7 @@ change_extension((*bmp)->filename_out, "txt");
                     (*bmp)->filename_out);
             return 2;
         }
-        
+
         // Image *img = (*bmp)->image;
 
         (*bmp)->info_header.info_header_size_field = sizeof(Info_Header);
