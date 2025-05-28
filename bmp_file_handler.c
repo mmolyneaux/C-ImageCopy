@@ -97,7 +97,8 @@ void init_bitmap(Bitmap *bmp) {
 }
 
 int load_bitmap(Bitmap **bmp, char *filename_in) {
-
+    if (!bmp)
+        return EXIT_FAILURE; // Prevent null pointer issues
     // if filename_in is supplied as an argument, overwrite the one in struct
     // regardless if it is null.
     if (filename_in) {
