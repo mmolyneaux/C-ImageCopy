@@ -96,19 +96,19 @@ void init_bitmap(Bitmap *bmp) {
     bmp->image = NULL;
 }
 
-int load_bitmap(Bitmap **bmp, char *filename_in) {
+int load_bitmap(Bitmap *bmp, char *filename_in) {
     if (!bmp)
         return EXIT_FAILURE; // Prevent null pointer issues
     // if filename_in is supplied as an argument, overwrite the one in struct
     // regardless if it is null.
     if (filename_in) {
-        if ((*bmp)->filename_in) {
-            free(((*bmp)->filename_in));
+        if (bmp->filename_in) {
+            bmp->filename_in = strdup(filename_in);
         }
     }
     (*bmp)->filename_in = filename_in;
     // if bmp filename_in is NULL or empty, exit
-    if ((*bmp)->filename_in || !*(*bmp)->filename_in) {
+    if (bmp->filename_in || !*bmp->filename_in) {
         fprintf(stderr, "Error: No filename supplied to load_bitmap\n");
         exit(EXIT_FAILURE);
     }
