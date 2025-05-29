@@ -99,19 +99,22 @@ void init_bitmap(Bitmap *bmp) {
 int load_bitmap(Bitmap *bmp, char *filename_in) {
     if (!bmp)
         return EXIT_FAILURE; // Prevent null pointer issues
-    // if filename_in is supplied as an argument, overwrite the one in struct
-    // regardless if it is null.
+
+    // If filename_in is supplied, overwrite the existing one properly
     if (filename_in) {
         if (bmp->filename_in) {
-            bmp->filename_in = strdup(filename_in);
+            free(bmp->filename_in);  // Free previously allocated memory
         }
+        bmp->filename_in = strdup(filename_in);  // Copy the new filename
     }
-    (*bmp)->filename_in = filename_in;
-    // if bmp filename_in is NULL or empty, exit
-    if (bmp->filename_in || !*bmp->filename_in) {
+
+    // Validate filename input
+    if (!bmp->filename_in || !*bmp->filename_in) {
         fprintf(stderr, "Error: No filename supplied to load_bitmap\n");
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
+
+
 
     fprintf(stderr, "\n");
 
@@ -123,22 +126,15 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         return 1;
     }
 
-    *bmp = malloc(sizeof(Bitmap));
-    if (!*bmp) {
-        fprintf(stderr, "Error: Memory allocation failed.\n");
-        return 1;
-    }
+    // *bmp = malloc(sizeof(Bitmap));
+    // if (!*bmp) {
+    //     fprintf(stderr, "Error: Memory allocation failed.\n");
+    //     return 1;
+    // }
 
-    (*bmp)->filename_out = NULL;
-    (*bmp)->color_table = NULL;
-    (*bmp)->pixel_data = NULL;
-    (*bmp)->color_table_byte_count = 0;
-    (*bmp)->file_size_read = 0;
-    (*bmp)->padded_width = 0;
-    (*bmp)->image_bytes_calculated = 0;
 
     // Initialize the bmp's image struct.
-    Image_Data *img = (*bmp)->image = &_img;
+    Image_Data *img = bmp)->image = &_img;
 
     init_image((*bmp)->image);
 
@@ -271,7 +267,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
                               (*bmp)->info_header.height, (*bmp)->padded_width);
     }
 
-    return 0;
+    return EXIT_SUCCESS;
+}
 }
 
 void change_extension(char *filename, char *ext) {
