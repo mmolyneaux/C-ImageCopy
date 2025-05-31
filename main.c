@@ -291,8 +291,8 @@ int main(int argc, char *argv[]) {
     Bitmap bitmap;
     Bitmap *bmp = &bitmap;
     init_bitmap(bmp);
-    Image_data image;
-    Image_data *img = &image;
+    Image_Data image;
+    Image_Data *img = &image;
     bmp->image_data = img;
     init_image(img);
 
