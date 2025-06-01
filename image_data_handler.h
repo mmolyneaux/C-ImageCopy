@@ -44,6 +44,7 @@ typedef struct {
     uint32_t image_size;
     uint8_t bit_depth;
     uint8_t channels;
+    enum Mode;
     float_t mono_threshold; // 0.0 to 1.0 inclusive
     int16_t bright_value;   // -255 to 255 inclusive
     float_t bright_percent; // -1.0 to 1.0 inclusive

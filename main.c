@@ -296,7 +296,7 @@ int main(int argc, char *argv[]) {
     bmp->image_data = img;
     init_image(img);
 
-    enum Mode mode = NO_MODE; // default
+     
 
     char *filename1 = NULL;
     char *filename2 = NULL;

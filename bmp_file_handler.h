@@ -75,6 +75,7 @@ typedef struct {
     // with a bit depth of 1, 4, or 8. Each color is 4 bytes (B, G, R, Reserved)
     uint8_t *color_table;
     uint8_t *pixel_data;
+    // meta data
     uint16_t color_table_byte_count;
     uint16_t colors_used_actual;
     char* filename_in;
