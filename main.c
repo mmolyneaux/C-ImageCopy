@@ -298,9 +298,9 @@ int main(int argc, char *argv[]) {
 
      
 
-    char *filename1 = NULL;
-    char *filename2 = NULL;
-    bool filename2_allocated = false;
+    // char *filename1 = NULL;
+    // char *filename2 = NULL;
+    // bool filename2_allocated = false;
 
     // Parse command-line options
     bool g_flag = false,      // gray

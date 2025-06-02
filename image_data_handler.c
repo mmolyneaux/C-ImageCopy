@@ -15,7 +15,6 @@ void init_image(Image_Data *img) {
     img->image_size = 0;
     img->bit_depth = 0;
     img->channels = 0;
-    img->mode = NO_MODE;
     img->mono_threshold = 0.0f;
     img->bright_value = 0;
     img->bright_percent = 0.0f;
