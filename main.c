@@ -296,11 +296,9 @@ int main(int argc, char *argv[]) {
     bmp->image_data = img;
     init_image(img);
 
-     
-
-    // char *filename1 = NULL;
-    // char *filename2 = NULL;
-    // bool filename2_allocated = false;
+    char *filename1 = NULL;
+    char *filename2 = NULL;
+    bool filename2_allocated = false;
 
     // Parse command-line options
     bool g_flag = false,      // gray
@@ -319,14 +317,14 @@ int main(int argc, char *argv[]) {
         version_flag = false; // version
 
     // Monochrome value with default
-    float m_flag_value = M_FLAG_DEFAULT;
-    float b_flag_float = 0.0;
-    int b_flag_int = 0;
-    int l_flag_int = 0;
-    int r_flag_int = 0;
+    // float m_flag_value = M_FLAG_DEFAULT;
+    // float b_flag_float = 0.0;
+    // int b_flag_int = 0;
+    // int l_flag_int = 0;
+    // int r_flag_int = 0;
 
-     char *filter_name = NULL;
-     int8_t filter_index = -1;
+    char *filter_name = NULL;
+    int8_t filter_index = -1;
     // enum Dir flip_dir = 0;
     // enum Invert invert_mode = 0;
 
@@ -382,16 +380,16 @@ int main(int argc, char *argv[]) {
                 filter_flag = true;
 
                 uint8_t filter_list_size = 0;
-                char **filter_list =
-                    get_filter_list(kernel_list, &filter_list_size);
+                char **filter_name_list =
+                    get_filter_name_list(kernel_list, &filter_list_size);
 
                 printf("Optarg: %s\n", optarg);
                 if (optarg) {
                     for (int i = 0;
                          (i < filter_list_size) && filter_index == -1; i++) {
-                        if (strcmp(optarg, filter_list[i]) == 0) {
-                            printf("Filter %s found at %d.", filter_list[i], i);
-                            filter_name = filter_list[i];
+                        if (strcmp(optarg, filter_name_list[i]) == 0) {
+                            printf("Filter %s found at %d.", filter_name_list[i], i);
+                            filter_name = filter_name_list[i];
                             filter_index = i;
                         }
                     }
@@ -409,17 +407,19 @@ int main(int argc, char *argv[]) {
                     printf("Available filter names:\n");
 
                     for (int i = 0; i < filter_list_size; i++) {
-                        printf(" %s\n", filter_list[i]);
+                        printf(" %s\n", filter_name_list[i]);
                     }
                 }
 
-                free(filter_list);
-                filter_list = NULL;
+                free(filter_name_list);
+                filter_name_list = NULL;
 
-                if (filter_index == -1) {
+                if (filter_index == -1 || filter_name == NULL ||
+                    *filter_name == '\0') {
                     exit(EXIT_FAILURE);
                 }
                 img->filter_index = filter_index;
+                img->filter_name = filter_name;
             }
 
             break;
@@ -631,7 +631,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    
     if (g_flag) {
         bitmap.image_data->mode = GRAY;
     } else if (m_flag) {

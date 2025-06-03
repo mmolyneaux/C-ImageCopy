@@ -25,7 +25,7 @@ typedef struct {
 // Global access
 extern Kernel kernel_list[];
 
-extern char **get_filter_list(Kernel *kernel_list, uint8_t *name_count);
+extern char **get_filter_name_list(Kernel *kernel_list, uint8_t *name_count);
 
 void conv1(Convolution *conv);
 

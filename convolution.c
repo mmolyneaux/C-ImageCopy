@@ -56,7 +56,7 @@ Kernel kernel_list[] = {{"identity", identity_kernel, 3},
 };
 
 // Function to retrieve the names of all kernels
-extern char **get_filter_list(Kernel *kernel_list, uint8_t *name_count) {
+extern char **get_filter_name_list(Kernel *kernel_list, uint8_t *name_count) {
     // Count the number of kernels (ignore the sentinel value at the end)
     int count = 0;
     while (kernel_list[count].name != NULL) {
