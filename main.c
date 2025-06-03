@@ -325,10 +325,10 @@ int main(int argc, char *argv[]) {
     int l_flag_int = 0;
     int r_flag_int = 0;
 
-    char *filter_name = NULL;
-    int8_t filter_index = -1;
-    enum Dir flip_dir = 0;
-    enum Invert invert_mode = 0;
+     char *filter_name = NULL;
+     int8_t filter_index = -1;
+    // enum Dir flip_dir = 0;
+    // enum Invert invert_mode = 0;
 
     struct option long_options[] = {
         {"help", no_argument, NULL, 'h'},
@@ -419,6 +419,7 @@ int main(int argc, char *argv[]) {
                 if (filter_index == -1) {
                     exit(EXIT_FAILURE);
                 }
+                img->filter_index = filter_index;
             }
 
             break;
@@ -630,15 +631,15 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    
     if (g_flag) {
-        mode = GRAY;
-        img->mode = mode;
+        bitmap.image_data->mode = GRAY;
     } else if (m_flag) {
-        mode = MONO;
+        bitmap.image_data->mode = MONO;
         img->mono_threshold = m_flag_value;
     } else if (i_flag) {
         if (invert_mode == 0) {
-            mode = INV;
+            bitmap.image_data->mode = INV;
         } else if (invert_mode == RGB_INVERT) {
             mode = INV_RGB;
         } else if (invert_mode == HSV_INVERT) {
