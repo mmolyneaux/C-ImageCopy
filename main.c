@@ -317,16 +317,16 @@ int main(int argc, char *argv[]) {
         version_flag = false; // version
 
     // Monochrome value with default
-    // float m_flag_value = M_FLAG_DEFAULT;
-    // float b_flag_float = 0.0;
-    // int b_flag_int = 0;
-    // int l_flag_int = 0;
-    // int r_flag_int = 0;
+    float m_flag_value = M_FLAG_DEFAULT;
+    float b_flag_float = 0.0;
+    int b_flag_int = 0;
+    int l_flag_int = 0;
+    int r_flag_int = 0;
 
     char *filter_name = NULL;
     int8_t filter_index = -1;
-    // enum Dir flip_dir = 0;
-    // enum Invert invert_mode = 0;
+    enum Dir flip_dir = 0;
+    enum Invert invert_mode = 0;
 
     struct option long_options[] = {
         {"help", no_argument, NULL, 'h'},
@@ -418,8 +418,6 @@ int main(int argc, char *argv[]) {
                     *filter_name == '\0') {
                     exit(EXIT_FAILURE);
                 }
-                img->filter_index = filter_index;
-                img->filter_name = filter_name;
             }
 
             break;
@@ -640,39 +638,39 @@ int main(int argc, char *argv[]) {
         if (invert_mode == 0) {
             bitmap.image_data->mode = INV;
         } else if (invert_mode == RGB_INVERT) {
-            mode = INV_RGB;
+            bitmap.image_data->mode = INV_RGB;
         } else if (invert_mode == HSV_INVERT) {
-            mode = INV_HSV;
+            bitmap.image_data->mode = INV_HSV;
         }
     } else if (b_flag) {
-        mode = BRIGHT;
+        bitmap.image_data->mode = BRIGHT;
         img->bright_percent = b_flag_float;
         img->bright_value = b_flag_int;
     } else if (hist_flag) {
-        mode = HIST;
+        bitmap.image_data->mode = HIST;
     } else if (histn_flag) {
-        mode = HIST_N;
+        bitmap.image_data->mode = HIST_N;
     } else if (e_flag) {
-        mode = EQUAL;
+        bitmap.image_data->mode = EQUAL;
     } else if (r_flag) {
-        mode = ROT;
+        bitmap.image_data->mode = ROT;
         img->degrees = r_flag_int;
     } else if (f_flag) {
-        mode = FLIP;
+        bitmap.image_data->mode = FLIP;
         img->direction = flip_dir;
     } else if (l_flag) {
-        mode = BLUR;
+        bitmap.image_data->mode = BLUR;
         img->blur_level = l_flag_int;
     } else if (s_flag) {
-        mode = SEPIA;
+        bitmap.image_data->mode = SEPIA;
     } else if (filter_flag) {
-        mode = FILTER;
+        bitmap.image_data->mode = FILTER;
         img->filter_name = filter_name;
         img->filter_index = filter_index;
     } else {
-        mode = COPY;
+        bitmap.image_data->mode = COPY;
     }
-    img->mode = mode;
+    
 
     // Check for required filename argument
     if (optind < argc) {
