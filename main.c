@@ -686,7 +686,7 @@ int main(int argc, char *argv[]) {
         filename2 = argv[optind];
     }
 
-    printf("Filename1: %s, and mode: %s.\n", filename1, mode_to_string(mode));
+    printf("Filename1: %s, and mode: %s.\n", filename1, mode_to_string(img->mode));
 
     // confirm filename1 ends with ".bmp"
     if (!ends_with(filename1, ".bmp")) {
@@ -699,9 +699,9 @@ int main(int argc, char *argv[]) {
     char *ext2;
     // if there is a filename2 but not a valid extension
     if (filename2) {
-        ext2 = get_filename_ext(filename2, mode);
+        ext2 = get_filename_ext(filename2, img->mode);
         if (!ext2) { // if incorrect filename extention for mode, print message
-            if (mode == HIST || mode == HIST_N) {
+            if (img->mode == HIST || img->mode == HIST_N) {
                 printf("Error: Output file %s does not end with %s or "
                        "%s\n",
                        filename2, ".txt", ".txt");
@@ -716,7 +716,7 @@ int main(int argc, char *argv[]) {
     else { // create filename2 with proper suffix from mode
         // Find the last position of the  '.' in the filename
         char *dot_pos = strrchr(filename1, '.');
-        ext2 = get_default_ext(mode);
+        ext2 = get_default_ext(img->mode);
         if (dot_pos == NULL) {
             fprintf(stderr, "\".\" not found in filename: %s\n", filename1);
             exit(EXIT_FAILURE);
@@ -725,7 +725,7 @@ int main(int argc, char *argv[]) {
         // char *suffix_temp = NULL;
         char *suffix = NULL;
 
-        if ((mode == BLUR) && (l_flag_int > 0)) {
+        if ((img->mode == BLUR) && (l_flag_int > 0)) {
             char *suffix_temp = get_suffix(img);
             size_t size =
                 snprintf(NULL, 0, "%s_%d", suffix_temp, l_flag_int) + 1;
@@ -788,7 +788,7 @@ int main(int argc, char *argv[]) {
         printf("mode: %s\n", mode_to_string(mode));
     }
 
-    bool imageRead = read_image(filename1, img);
+    bool imageRead = load_bitmap(bmp, filename1);
     if (!imageRead) {
         fprintf(stderr, "Image read failed.\n");
         exit(EXIT_FAILURE);
