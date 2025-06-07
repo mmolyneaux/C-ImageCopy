@@ -93,7 +93,7 @@ void init_bitmap(Bitmap *bmp) {
     bmp->image_bytes_calculated = 0;
     bmp->color_table_byte_count = 0;
     bmp->colors_used_actual = 0;
-    bmp->image = NULL;
+    bmp->image_data = NULL;
 }
 
 int load_bitmap(Bitmap *bmp, char *filename_in) {
@@ -134,7 +134,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
 
     // Initialize the bmp's image struct.
-    Image_Data *img = bmp)->image = &_img;
+    Image_Data *img = bmp->image = &_img;
 
     init_image((*bmp)->image);
 
