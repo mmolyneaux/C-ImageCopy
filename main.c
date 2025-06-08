@@ -298,7 +298,7 @@ int main(int argc, char *argv[]) {
 
     char *filename1 = NULL;
     char *filename2 = NULL;
-    bool filename2_allocated = false;
+    // bool filename2_allocated = false;
 
     // Parse command-line options
     bool g_flag = false,      // gray
@@ -388,7 +388,8 @@ int main(int argc, char *argv[]) {
                     for (int i = 0;
                          (i < filter_list_size) && filter_index == -1; i++) {
                         if (strcmp(optarg, filter_name_list[i]) == 0) {
-                            printf("Filter %s found at %d.", filter_name_list[i], i);
+                            printf("Filter %s found at %d.",
+                                   filter_name_list[i], i);
                             filter_name = filter_name_list[i];
                             filter_index = i;
                         }
@@ -670,11 +671,14 @@ int main(int argc, char *argv[]) {
     } else {
         bitmap.image_data->mode = COPY;
     }
-    
 
     // Check for required filename argument
     if (optind < argc) {
-        filename1 = argv[optind];
+        filename1 = strdup(argv[optind]);
+        if (filename1 == NULL) {
+            perror("Error copying filename1");
+            exit(EXIT_FAILURE);
+        }
         optind++;
     } else {
         print_usage(argv[0]);
@@ -683,10 +687,15 @@ int main(int argc, char *argv[]) {
 
     // Check for optional filename argument
     if (optind < argc) {
-        filename2 = argv[optind];
+        filename2 = strdup(argv[optind]);
+        if (filename2 == NULL) {
+            perror("Error copying filename2");
+            exit(EXIT_FAILURE);
+        }
     }
 
-    printf("Filename1: %s, and mode: %s.\n", filename1, mode_to_string(img->mode));
+    printf("Filename1: %s, and mode: %s.\n", filename1,
+           mode_to_string(img->mode));
 
     // confirm filename1 ends with ".bmp"
     if (!ends_with(filename1, ".bmp")) {
@@ -722,18 +731,17 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
-        // char *suffix_temp = NULL;
         char *suffix = NULL;
-
+        
         if ((img->mode == BLUR) && (l_flag_int > 0)) {
             char *suffix_temp = get_suffix(img);
-            size_t size =
+            size_t suffix_size =
                 snprintf(NULL, 0, "%s_%d", suffix_temp, l_flag_int) + 1;
-            suffix = malloc(size);
+            suffix = malloc(suffix_size);
             if (!suffix) {
                 fprintf(stderr, "Error: Could not create blur suffix.");
             }
-            snprintf(suffix, size, "%s_%d", suffix_temp, l_flag_int);
+            snprintf(suffix, suffix_size, "%s_%d", suffix_temp, l_flag_int);
         } else {
             suffix = get_suffix(img);
         }
