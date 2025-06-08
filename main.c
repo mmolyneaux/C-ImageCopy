@@ -40,7 +40,7 @@ char *get_filename_ext(char *filename, enum Mode mode) {
     if (mode == HIST || mode == HIST_N) {
         if (ends_with(filename, ".txt")) {
             return ".txt";
-        } else if (ends_with(filename, ".txt")) {
+        } else if (ends_with(filename, ".dat")) {
             return ".txt";
         }
     } else { // image
@@ -676,7 +676,7 @@ int main(int argc, char *argv[]) {
     if (optind < argc) {
         filename1 = strdup(argv[optind]);
         if (filename1 == NULL) {
-            perror("Error copying filename1");
+            perror("Error copying input filename");
             exit(EXIT_FAILURE);
         }
         optind++;
@@ -689,7 +689,7 @@ int main(int argc, char *argv[]) {
     if (optind < argc) {
         filename2 = strdup(argv[optind]);
         if (filename2 == NULL) {
-            perror("Error copying filename2");
+            perror("Error copying output filename");
             exit(EXIT_FAILURE);
         }
     }
@@ -706,14 +706,13 @@ int main(int argc, char *argv[]) {
     // if there is a filename2 we have to confirm the extension.
 
     char *ext2;
-    // if there is a filename2 but not a valid extension
     if (filename2) {
         ext2 = get_filename_ext(filename2, img->mode);
-        if (!ext2) { // if incorrect filename extention for mode, print message
+        if (!ext2) { // if wrong extention for mode, print a message for that error
             if (img->mode == HIST || img->mode == HIST_N) {
                 printf("Error: Output file %s does not end with %s or "
                        "%s\n",
-                       filename2, ".txt", ".txt");
+                       filename2, ".txt", ".dat");
             } else { // image
                 printf("Error: Output file %s does not end with %s\n",
                        filename2, ".bmp");
@@ -732,6 +731,8 @@ int main(int argc, char *argv[]) {
         }
 
         char *suffix = NULL;
+        
+        // TODO: Why is this BLUR here, testing? I don't remember
         
         if ((img->mode == BLUR) && (l_flag_int > 0)) {
             char *suffix_temp = get_suffix(img);
@@ -754,10 +755,9 @@ int main(int argc, char *argv[]) {
         filename2 = (char *)malloc(sizeof(char) *
                                    (base_len + suffix_len + extention_len + 1));
         if (filename2 == NULL) {
-            printf("Memory allocation for output filename has failed.\n");
+            perror("Error creating output filename");
             exit(EXIT_FAILURE);
         }
-        filename2_allocated = true;
         // Copy the base part of filename1 and append the suffix and
         // ".bmp". strncpy copies the first base_len number of chars
         // from filename1 into filename2
@@ -793,7 +793,7 @@ int main(int argc, char *argv[]) {
         printf("filename1: %s\n", filename1);
         if (filename2)
             printf("filename2: %s\n", filename2);
-        printf("mode: %s\n", mode_to_string(mode));
+        printf("mode: %s\n", mode_to_string(img->mode));
     }
 
     bool imageRead = load_bitmap(bmp, filename1);
@@ -806,18 +806,22 @@ int main(int argc, char *argv[]) {
     printf("height: %d\n", img->height);
     printf("bit_depth: %d\n", img->bit_depth);
     process_image(img);
-    write_image(img, filename2);
-
+    //write_image(img, filename2);
+    write_bitmap(&bmp);
     printf("width: %d\n", img->width);
     printf("height: %d\n", img->height);
-    // free filename2 memory if it was allocated
-    if (filename2_allocated && filename2 != NULL) {
+    
+    // free filename memory if it was allocated
+    if (filename1 != NULL) {
+        free(filename1);
+        filename1 = NULL;
+    }
+    if (filename2 != NULL) {
         free(filename2);
         filename2 = NULL;
-        filename2_allocated = false;
     }
 
-    free_mem(img);
+    free_img(img);
 
     return 0;
 }

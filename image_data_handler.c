@@ -327,7 +327,7 @@ uint8_t **buffer3_to_2Dbubu(uint8_t *buf1, uint32_t rows, uint32_t cols) {
 }
 
 // free memory allocated for image structs.
-void free_mem(Image_Data *img) {
+void free_img(Image_Data *img) {
     if (img) {
         if (img->histogram1) {
             free(img->histogram1);

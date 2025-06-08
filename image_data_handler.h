@@ -76,7 +76,7 @@ uint8_t *create_buffer1(uint32_t image_byte_count);
 void create_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols);
 void pixel_data_to_buffer3(uint8_t **pixel_data, uint8_t ***buffer3, uint32_t rows, uint32_t padded_width);
 void process_image(Image_Data *img);
-void free_mem(Image_Data *img);
+void free_img(Image_Data *img);
 void copy13(Image_Data *img);
 void gray3(Image_Data *img);
 void mono1(Image_Data *img);
