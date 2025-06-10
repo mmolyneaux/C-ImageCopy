@@ -134,7 +134,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
 
     // Initialize the bmp's image struct.
-    Image_Data *img = bmp->image = &_img;
+    // Image_Data *img = bmp->image = &_img;
 
     init_image((*bmp)->image);
 
