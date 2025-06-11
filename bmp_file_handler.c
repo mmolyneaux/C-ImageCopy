@@ -136,7 +136,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     // Initialize the bmp's image struct.
     // Image_Data *img = bmp->image = &_img;
 
-    init_image((*bmp)->image);
+    if (bmp->image_data == NULL)
+    init_image(bmp->image_data);
 
     fseek(file, 0, SEEK_END);
     (*bmp)->file_size_read = ftell(file);
