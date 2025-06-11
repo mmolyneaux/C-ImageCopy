@@ -97,13 +97,14 @@ void init_bitmap(Bitmap *bmp) {
 }
 
 int load_bitmap(Bitmap *bmp, char *filename_in) {
-    if (!bmp)
-        return EXIT_FAILURE; // Prevent null pointer issues
-
+    if (!bmp) {
+        fprintf(stderr,"Error: Unitialized bmp sent to load_bitmap.\n");
+        return EXIT_FAILURE; 
+    }
     // If filename_in is supplied, overwrite the existing one properly
     if (filename_in) {
         if (bmp->filename_in) {
-            free(bmp->filename_in);  // Free previously allocated memory
+            free(bmp->filename_in);  // Free previously allocated filename
         }
         bmp->filename_in = strdup(filename_in);  // Copy the new filename
     }
@@ -119,10 +120,10 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     fprintf(stderr, "\n");
 
     // Open binary file for reading.
-    FILE *file = fopen(filename_in, "rb");
+    FILE *file = fopen(bmp->filename_in, "rb");
 
     if (!file) {
-        fprintf(stderr, "Error opening file \"%s\"\n", filename_in);
+        fprintf(stderr, "Error opening file \"%s\"\n", bmp->filename_in);
         return 1;
     }
 
@@ -140,15 +141,15 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     init_image(bmp->image_data);
 
     fseek(file, 0, SEEK_END);
-    (*bmp)->file_size_read = ftell(file);
+    bmp->file_size_read = ftell(file);
     fseek(file, 0, SEEK_SET);
 
     // Read File Header 14 bytes
-    fread(&(*bmp)->file_header, sizeof(File_Header), 1, file);
+    fread(&bmp->file_header, sizeof(File_Header), 1, file);
 
     // Validate BMP file type
     // 0x4D42 == "BM" in ASCII
-    if ((*bmp)->file_header.type != 0x4D42) {
+    if (bmp->file_header.type != 0x4D42) {
         fprintf(stderr, "Error: File %s is not a valid BMP file.\n",
                 filename_in);
         fclose(file);
