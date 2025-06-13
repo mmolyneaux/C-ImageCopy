@@ -137,9 +137,10 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     // Initialize the bmp's image struct.
     // Image_Data *img = bmp->image = &_img;
 
-    if (bmp->image_data == NULL)
-    init_image(bmp->image_data);
-
+    if (bmp->image_data == NULL) {
+        fprintf(stderr, "Error: image_data not initialized in load image\n");
+        //init_image(bmp->image_data);
+    }
     fseek(file, 0, SEEK_END);
     bmp->file_size_read = ftell(file);
     fseek(file, 0, SEEK_SET);
