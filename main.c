@@ -807,10 +807,12 @@ int main(int argc, char *argv[]) {
     printf("bit_depth: %d\n", img->bit_depth);
     process_image(img);
     //write_image(img, filename2);
-    write_bitmap(&bmp);
+    write_bitmap(bmp, NULL);
     printf("width: %d\n", img->width);
     printf("height: %d\n", img->height);
-    
+   
+    free_bitmap(bmp);
+/* 
     // free filename memory if it was allocated
     if (filename1 != NULL) {
         free(filename1);
@@ -822,6 +824,6 @@ int main(int argc, char *argv[]) {
     }
 
     free_img(img);
-
+ */
     return 0;
 }

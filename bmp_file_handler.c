@@ -296,8 +296,8 @@ int write_bitmap(Bitmap *bmp, char* filename_out) {
     }    
     
     // Confirm filename_in is also set
-    if (!bmp || !bmp->filename_in) {
-        fprintf(stderr, "Error: Invalid filename_in to write_bitmap.\n");
+    if (!bmp->filename_in) {
+        fprintf(stderr, "Error: filename_in not set for write_bitmap.\n");
         return 1;
     }
     // Image_Data *img = bmp->image_data;
