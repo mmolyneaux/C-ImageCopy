@@ -51,6 +51,7 @@ char *get_filename_ext(char *filename, enum Mode mode) {
     return NULL;
 }
 
+// returns the default file extension for a mode.
 char *get_default_ext(enum Mode mode) {
     if (mode == HIST || mode == HIST_N) {
         return ".txt";
