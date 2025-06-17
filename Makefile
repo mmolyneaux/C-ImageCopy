@@ -26,7 +26,7 @@ main.o: main.c
 
 # Compile bmp_file_handler.o
 bmp_file_handler.o: bmp_file_handler.c bmp_file_handler.h
-	$(CC) $(CFLAGS) -c image_data_handler.c
+	$(CC) $(CFLAGS) -c bmp_file_handler.c
 
 # Compile image_data_handler.o
 image_data_handler.o: image_data_handler.c image_data_handler.h
