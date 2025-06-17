@@ -314,11 +314,11 @@ void pixel_data_to_buffer3(uint8_t **pixel_data, uint8_t ***buffer3,
     }
 
     for (int r = 0; r < rows; r++) {
-        (*buffer3)[r] = &pixel_data[r * padded_width];
+        (*buffer3)[r] = pixel_data[r * padded_width];
     }
 }
 
-uint8_t **buffer3_to_2Dbubu(uint8_t *buf1, uint32_t rows, uint32_t cols) {
+uint8_t **buffer3_to_2D(uint8_t *buf1, uint32_t rows, uint32_t cols) {
     uint8_t **array2D = (uint8_t **)malloc(sizeof(uint8_t *) * rows);
     for (int r = 0; r < rows; r++) {
         array2D[r] = &buf1[r * cols];
@@ -866,8 +866,8 @@ void rot13(Image_Data *img) {
             (img->width * 3 + 3) & ~3; // new padded width
 
         // Update header with rotated dimensions for output
-        *(int *)&img->header[18] = (uint32_t)img->width;
-        *(int *)&img->header[22] = (uint32_t)img->height;
+        //*(int *)&img->header[18] = (uint32_t)img->width;
+        //*(int *)&img->header[22] = (uint32_t)img->height;
 
     } else if (degrees == 180 || degrees == -180) {
         org_width = img->width; // Read in normal values for local variables
