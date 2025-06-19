@@ -39,7 +39,7 @@ void init_image(Image_Data *img) {
 }
 // Process image
 void process_image(Image_Data *img) {
-    printf("Output mode: %s\n", mode_to_string(img->mode));
+    printf("Output mode: %s\n", get_mode_string(img->mode));
     // aka if (bmp->bit_depth <= 8), checked earlier
     if (img->channels == 1) {
 
@@ -71,7 +71,7 @@ void process_image(Image_Data *img) {
             filter1(img);
         } else {
             fprintf(stderr, "%s mode not available for 1 channel grayscale.\n",
-                    mode_to_string(img->mode));
+                    get_mode_string(img->mode));
             exit(EXIT_FAILURE);
         }
 
@@ -113,59 +113,60 @@ void process_image(Image_Data *img) {
         } else {
             printf("CHANNEL FAIL\n");
             fprintf(stderr, "%s mode not available for 3 channel/RGB\n",
-                    mode_to_string(img->mode));
+                    get_mode_string(img->mode));
             exit(EXIT_FAILURE);
         }
     }
 }
 
+// Returns dynamically allocated string suffix
 char *get_suffix(Image_Data *img) {
     size_t len;
     switch (img->mode) {
     case NO_MODE:
-        return "_none"; // not used currently besides initializaton
+        return strdup("_none"); // not used currently besides initializaton
         break;
     case COPY:
-        return "_copy";
+        return strdup("_copy");
         break;
     case GRAY:
-        return "_gray";
+        return strdup("_gray");
         break;
     case MONO:
-        return "_mono";
+        return strdup("_mono");
         break;
     case INV:
-        return "_inv";
+        return strdup("_inv");
         break;
     case INV_RGB:
-        return "_inv_rgb";
+        return strdup("_inv_rgb");
         break;
     case INV_HSV:
-        return "_inv_hsv";
+        return strdup("_inv_hsv");
         break;
     case BRIGHT:
-        return "_bright";
+        return strdup("_bright");
         break;
     case HIST:
-        return "_hist_256";
+        return strdup("_hist_256");
         break;
     case HIST_N:
-        return "_hist_0_1";
+        return strdup("_hist_0_1");
         break;
     case EQUAL:
-        return "_equal";
+        return strdup("_equal");
         break;
     case ROT:
-        return "_rot";
+        return strdup("_rot");
         break;
     case FLIP:
-        return "_flip";
+        return strdup("_flip");
         break;
     case BLUR:
-        return "_blur";
+        return strdup("_blur");
         break;
     case SEPIA:
-        return "_sepia";
+        return strdup("_sepia");
         break;
     case FILTER:
         len = strlen(img->filter_name);
@@ -175,11 +176,11 @@ char *get_suffix(Image_Data *img) {
         return img->mode_suffix;
         break;
     default:
-        return "_suffix";
+        return strdup("_suffix");
     }
 }
 
-char *mode_to_string(enum Mode mode) {
+char *get_mode_string(enum Mode mode) {
     switch (mode) {
     case NO_MODE:
         return "No mode selected";

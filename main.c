@@ -696,7 +696,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Filename1: %s, and mode: %s.\n", filename1,
-           mode_to_string(img->mode));
+           get_mode_string(img->mode));
 
     // confirm filename1 ends with ".bmp"
     if (!ends_with(filename1, ".bmp")) {
@@ -709,7 +709,8 @@ int main(int argc, char *argv[]) {
     char *ext2;
     if (filename2) {
         ext2 = get_filename_ext(filename2, img->mode);
-        if (!ext2) { // if wrong extention for mode, print a message for that error
+        if (!ext2) { // if wrong extention for mode, print a message for that
+                     // error
             if (img->mode == HIST || img->mode == HIST_N) {
                 printf("Error: Output file %s does not end with %s or "
                        "%s\n",
@@ -732,9 +733,8 @@ int main(int argc, char *argv[]) {
         }
 
         char *suffix = NULL;
-        
-        // TODO: Why is this BLUR here, testing? I don't remember
-        
+
+        // Creates a suffix with the amount of blur levels.
         if ((img->mode == BLUR) && (l_flag_int > 0)) {
             char *suffix_temp = get_suffix(img);
             size_t suffix_size =
@@ -744,8 +744,14 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "Error: Could not create blur suffix.");
             }
             snprintf(suffix, suffix_size, "%s_%d", suffix_temp, l_flag_int);
+            free(suffix_temp);
         } else {
+            // create a suffix for anything other than a multi blur
             suffix = get_suffix(img);
+        }
+        if (!suffix) {
+            fprintf(stderr, "Error: Could not create %s filename suffix.",
+                    get_mode_string(img->mode));
         }
 
         // Calculate the length of the parts to create filename2
@@ -766,6 +772,7 @@ int main(int argc, char *argv[]) {
         // use ptr math to copy suffix to filename2ptr's + position +
         // (can't use strcat because strncpy doesn't null terminate.)
         strcpy(filename2 + base_len, suffix);
+        free(suffix);
         strcpy(filename2 + base_len + suffix_len, ext2);
     }
     printf("Filename 2: %s\n", filename2);
@@ -794,10 +801,12 @@ int main(int argc, char *argv[]) {
         printf("filename1: %s\n", filename1);
         if (filename2)
             printf("filename2: %s\n", filename2);
-        printf("mode: %s\n", mode_to_string(img->mode));
+        printf("mode: %s\n", get_mode_string(img->mode));
     }
 
     bool imageRead = load_bitmap(bmp, filename1);
+    free(filename1);
+    filename1 = NULL;
     if (!imageRead) {
         fprintf(stderr, "Image read failed.\n");
         exit(EXIT_FAILURE);
@@ -807,24 +816,26 @@ int main(int argc, char *argv[]) {
     printf("height: %d\n", img->height);
     printf("bit_depth: %d\n", img->bit_depth);
     process_image(img);
-    //write_image(img, filename2);
-    write_bitmap(bmp, NULL);
+    // write_image(img, filename2);
+    write_bitmap(bmp, filename2);
+    free(filename2);
+    filename2 = NULL;
     printf("width: %d\n", img->width);
     printf("height: %d\n", img->height);
-   
-    free_bitmap(bmp);
-/* 
-    // free filename memory if it was allocated
-    if (filename1 != NULL) {
-        free(filename1);
-        filename1 = NULL;
-    }
-    if (filename2 != NULL) {
-        free(filename2);
-        filename2 = NULL;
-    }
 
-    free_img(img);
- */
+    free_bitmap(bmp);
+    /*
+        // free filename memory if it was allocated
+        if (filename1 != NULL) {
+            free(filename1);
+            filename1 = NULL;
+        }
+        if (filename2 != NULL) {
+            free(filename2);
+            filename2 = NULL;
+        }
+
+        free_img(img);
+     */
     return 0;
 }

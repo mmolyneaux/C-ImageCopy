@@ -70,7 +70,7 @@ typedef struct {
 } Image_Data;
 
 char *get_suffix(Image_Data *img);
-char *mode_to_string(enum Mode mode);
+char *get_mode_string(enum Mode mode);
 void init_image(Image_Data *img);
 uint8_t *create_buffer1(uint32_t image_byte_count);
 void create_buffer3(uint8_t ***buffer, uint32_t rows, uint32_t cols);
