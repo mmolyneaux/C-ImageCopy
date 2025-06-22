@@ -1,6 +1,7 @@
 #include "bmp_file_handler.h"
 #include "convolution.h"
 #include "image_data_handler.h"
+//#include <cstdint>
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
@@ -804,11 +805,11 @@ int main(int argc, char *argv[]) {
         printf("mode: %s\n", get_mode_string(img->mode));
     }
 
-    bool imageRead = load_bitmap(bmp, filename1);
+    int32_t imageRead = load_bitmap(bmp, filename1);
     free(filename1);
     filename1 = NULL;
-    if (!imageRead) {
-        fprintf(stderr, "Image read failed.\n");
+    if (imageRead != 0) {
+        fprintf(stderr, "Image read fail Error val = %d.\n", imageRead);
         exit(EXIT_FAILURE);
     }
 

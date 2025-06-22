@@ -141,12 +141,22 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     fseek(file, 0, SEEK_END);
     bmp->file_size_read = ftell(file);
     fseek(file, 0, SEEK_SET);
-
     // Read File Header 14 bytes
     fread(&bmp->file_header, sizeof(File_Header), 1, file);
 
-    // Validate BMP file type
     // 0x4D42 == "BM" in ASCII
+    // char first = bmp->file_header.type & 0xFF;         // least significant
+    // byte char second = (bmp->file_header.type >> 8) & 0xFF; // most
+    // significant byte
+
+    // Print BMP file type
+    printf("Type field (hex): %04X\n", bmp->file_header.type);
+    printf("Type field (ASCII): %c%c\n", bmp->file_header.type & 0xFF,
+           (bmp->file_header.type >> 8) & 0xFF);
+    printf("File size read: %d\n", bmp->file_size_read);
+    printf("File size field: %d\n", bmp->file_header.file_size_field);
+
+    // Validate BMP file type
     if (bmp->file_header.type != 0x4D42) {
         fprintf(stderr, "Error: File %s is not a valid BMP file.\n",
                 filename_in);
@@ -156,12 +166,12 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
     // Read info header 40 bytes
     fread(&bmp->info_header, sizeof(Info_Header), 1, file);
+    printf("");
+        // Read color table size or calculate if missing
 
-    // Read color table size or calculate if missing
-
-    // For bit_depth <= 8, colors are stored in and referenced from the color
-    // table
-    if (bmp->info_header.bit_depth <= 8) {
+        // For bit_depth <= 8, colors are stored in and referenced from the
+        // color table
+        if (bmp->info_header.bit_depth <= 8) {
         bmp->image_data->channels = 1;
 
         // each color table entry is 4 bytes (one byte each for Blue, Green,
@@ -213,10 +223,11 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         // Align to the newrest multiple of 4 bytes
         bmp->padded_width = (bytes_per_row + 3) & ~3;
        */
-
-    } else if (bmp->info_header.bit_depth == 24) {
+    }
+    else if (bmp->info_header.bit_depth == 24) {
         bmp->image_data->channels = 3;
-    } else {
+    }
+    else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
                 bmp->info_header.bit_depth);
     }
@@ -276,8 +287,8 @@ void change_extension(char *filename, char *ext) {
     }
 }
 
-int write_bitmap(Bitmap *bmp, char* filename_out) {
-        if (!bmp) {
+int write_bitmap(Bitmap *bmp, char *filename_out) {
+    if (!bmp) {
         fprintf(stderr, "Error: Unitialized bmp sent to load_bitmap.\n");
         return EXIT_FAILURE;
     }
@@ -293,8 +304,8 @@ int write_bitmap(Bitmap *bmp, char* filename_out) {
     if (!bmp->filename_out || !*bmp->filename_out) {
         fprintf(stderr, "Error: No filename supplied to write_bitmap\n");
         return EXIT_FAILURE;
-    }    
-    
+    }
+
     // Confirm filename_in is also set
     if (!bmp->filename_in) {
         fprintf(stderr, "Error: filename_in not set for write_bitmap.\n");
