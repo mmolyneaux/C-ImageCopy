@@ -38,8 +38,8 @@ enum Dir { H = 1, V = 2 };
 
 typedef struct {
     //unsigned char header[HEADER_SIZE];
-    uint32_t height;
     uint32_t width;
+    uint32_t height;
     uint32_t padded_width;
     uint32_t image_size;
     uint8_t bit_depth;

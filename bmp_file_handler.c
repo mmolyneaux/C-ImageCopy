@@ -155,7 +155,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
            (bmp->file_header.type >> 8) & 0xFF);
     printf("File size read: %d\n", bmp->file_size_read);
     printf("File size field: %d\n", bmp->file_header.file_size_field);
-
+    printf("Offset to pixel array: %d\n", bmp->file_header.offset_bytes);
     // Validate BMP file type
     if (bmp->file_header.type != 0x4D42) {
         fprintf(stderr, "Error: File %s is not a valid BMP file.\n",
@@ -167,11 +167,11 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     // Read info header 40 bytes
     fread(&bmp->info_header, sizeof(Info_Header), 1, file);
     printf("");
-        // Read color table size or calculate if missing
+    // Read color table size or calculate if missing
 
-        // For bit_depth <= 8, colors are stored in and referenced from the
-        // color table
-        if (bmp->info_header.bit_depth <= 8) {
+    // For bit_depth <= 8, colors are stored in and referenced from the
+    // color table
+    if (bmp->info_header.bit_depth <= 8) {
         bmp->image_data->channels = 1;
 
         // each color table entry is 4 bytes (one byte each for Blue, Green,
@@ -223,13 +223,18 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         // Align to the newrest multiple of 4 bytes
         bmp->padded_width = (bytes_per_row + 3) & ~3;
        */
-    }
-    else if (bmp->info_header.bit_depth == 24) {
+    } else if (bmp->info_header.bit_depth == 24) {
         bmp->image_data->channels = 3;
-    }
-    else {
+    } else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
                 bmp->info_header.bit_depth);
+    }
+
+    if (bmp->file_header.file_size_field != bmp->file_size_read){
+        bmp->file_header.file_size_field = bmp->file_size_read;
+        fprintf(stderr,
+                "Corrected File Size field from %d bytes to %d bytes.\n",
+                bmp->file_header.file_size_field, bmp->file_size_read);
     }
 
     bmp->padded_width =
@@ -262,6 +267,16 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         fprintf(stderr, "Error: Could not read image data.\n");
     }
     fclose(file);
+
+    /*
+    * Update image data.    
+    */
+    bmp->image_data->width = bmp->info_header.width;
+    bmp->image_data->height = bmp->info_header.height;
+    bmp->image_data->padded_width = bmp->padded_width;
+    bmp->image_data->padded_width = bmp->padded_width;
+    bmp->image_data->image_size = bmp->info_header.image_size_field;
+    bmp->image_data->bit_depth = bmp->info_header.bit_depth;
 
     if (bmp->image_data->channels == 1) {
         bmp->image_data->imageBuffer1 = bmp->pixel_data;

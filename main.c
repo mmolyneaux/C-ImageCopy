@@ -821,6 +821,7 @@ int main(int argc, char *argv[]) {
     write_bitmap(bmp, filename2);
     free(filename2);
     filename2 = NULL;
+    printf("Planes: %d\n", bmp->info_header.planes );
     printf("width: %d\n", img->width);
     printf("height: %d\n", img->height);
 
