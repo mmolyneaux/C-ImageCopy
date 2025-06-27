@@ -231,10 +231,10 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     }
 
     if (bmp->file_header.file_size_field != bmp->file_size_read){
-        bmp->file_header.file_size_field = bmp->file_size_read;
         fprintf(stderr,
-                "Corrected File Size field from %d bytes to %d bytes.\n",
-                bmp->file_header.file_size_field, bmp->file_size_read);
+            "Corrected File Size field from %d bytes to %d bytes.\n",
+            bmp->file_header.file_size_field, bmp->file_size_read);
+            bmp->file_header.file_size_field = bmp->file_size_read;
     }
 
     bmp->padded_width =
@@ -372,22 +372,26 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
             exit(EXIT_FAILURE);
         }
 
-        file = fopen(bmp->filename_out, "wb");
-        if (!file) {
-            fprintf(stderr, "Error: Could not open file %s for writing.\n",
-                    bmp->filename_out);
-            return 2;
-        }
-
         // Image *img = bmp->image;
 
         bmp->info_header.info_header_size_field = sizeof(Info_Header);
+        printf("Info Header size: %d\n", bmp->info_header.info_header_size_field);
+        
+        
         bmp->file_header.offset_bytes = sizeof(File_Header) +
-                                        sizeof(Info_Header) +
-                                        bmp->color_table_byte_count;
-        bmp->file_header.file_size_field =
+        sizeof(Info_Header) +
+        bmp->color_table_byte_count;
+        printf("File header bytes: %llu\n", sizeof(File_Header));
+        printf("Info header bytes: %llu\n", sizeof(Info_Header));
+        printf("Color table bytes: %d\n", bmp->color_table_byte_count);
+        printf("Offset bytes: %d\n", bmp->file_header.offset_bytes);
+        printf("Image size bytes: %d\n", bmp->info_header.image_size_field);
+        
+        
+                                        bmp->file_header.file_size_field =
             bmp->file_header.offset_bytes + bmp->info_header.image_size_field;
-
+        
+            printf("File size field bytes: %d\n", bmp->file_header.file_size_field);
         // Processing
 
         // Write file header, check that it successfully wrote 1 struct
