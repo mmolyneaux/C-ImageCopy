@@ -1,6 +1,7 @@
 
 #include "bmp_file_handler.h"
 #include "image_data_handler.h"
+//#include <cstdint>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,6 +151,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     // significant byte
 
     // Print BMP file type
+    printf("Input file\n---\n");
     printf("Type field (hex): %04X\n", bmp->file_header.type);
     printf("Type field (ASCII): %c%c\n", bmp->file_header.type & 0xFF,
            (bmp->file_header.type >> 8) & 0xFF);
@@ -179,19 +181,21 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
+        uint16_t table_color_count = 1 << bmp->info_header.bit_depth;
+        
+        if (bmp->info_header.colors_used_field == 0) {
+            bmp->colors_used_actual = table_color_count;
+        } else {
+            bmp->colors_used_actual = bmp->info_header.colors_used_field;
+        }
 
-        /*         if (bmp->info_header.colors_used_field == 0) {
-                    bmp->colors_used_actual = 1 <<
-           bmp->info_header.bit_depth; } else {
-                    bmp->colors_used_actual =
-           bmp->info_header.colors_used_field;
-                }
-                // Each color table entry is 4 bytes
-                bmp->color_table_byte_count =
-                    bmp->colors_used_actual * sizeof(Color);
-         */
+        printf("Colors used actual: %d\n", bmp->colors_used_actual);
+        // Each color table entry is 4 bytes
+        bmp->color_table_byte_count = table_color_count * sizeof(Color);
+
         // Allocate color table
         bmp->color_table = NULL;
+        printf("COLOR TABLE BYTE COUNT: %d\n", bmp->color_table_byte_count);
         bmp->color_table = malloc(bmp->color_table_byte_count);
         if (!bmp->color_table) {
             fprintf(stderr,
@@ -230,11 +234,11 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
                 bmp->info_header.bit_depth);
     }
 
-    if (bmp->file_header.file_size_field != bmp->file_size_read){
+    if (bmp->file_header.file_size_field != bmp->file_size_read) {
         fprintf(stderr,
-            "Corrected File Size field from %d bytes to %d bytes.\n",
-            bmp->file_header.file_size_field, bmp->file_size_read);
-            bmp->file_header.file_size_field = bmp->file_size_read;
+                "Corrected File Size field from %d bytes to %d bytes.\n",
+                bmp->file_header.file_size_field, bmp->file_size_read);
+        bmp->file_header.file_size_field = bmp->file_size_read;
     }
 
     bmp->padded_width =
@@ -269,8 +273,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     fclose(file);
 
     /*
-    * Update image data.    
-    */
+     * Update image data.
+     */
     bmp->image_data->width = bmp->info_header.width;
     bmp->image_data->height = bmp->info_header.height;
     bmp->image_data->padded_width = bmp->padded_width;
@@ -375,23 +379,22 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         // Image *img = bmp->image;
 
         bmp->info_header.info_header_size_field = sizeof(Info_Header);
-        printf("Info Header size: %d\n", bmp->info_header.info_header_size_field);
-        
-        
+        printf("Info Header size: %d\n",
+               bmp->info_header.info_header_size_field);
+
         bmp->file_header.offset_bytes = sizeof(File_Header) +
-        sizeof(Info_Header) +
-        bmp->color_table_byte_count;
+                                        sizeof(Info_Header) +
+                                        bmp->color_table_byte_count;
         printf("File header bytes: %llu\n", sizeof(File_Header));
         printf("Info header bytes: %llu\n", sizeof(Info_Header));
         printf("Color table bytes: %d\n", bmp->color_table_byte_count);
         printf("Offset bytes: %d\n", bmp->file_header.offset_bytes);
         printf("Image size bytes: %d\n", bmp->info_header.image_size_field);
-        
-        
-                                        bmp->file_header.file_size_field =
+
+        bmp->file_header.file_size_field =
             bmp->file_header.offset_bytes + bmp->info_header.image_size_field;
-        
-            printf("File size field bytes: %d\n", bmp->file_header.file_size_field);
+
+        printf("File size field bytes: %d\n", bmp->file_header.file_size_field);
         // Processing
 
         // Write file header, check that it successfully wrote 1 struct
