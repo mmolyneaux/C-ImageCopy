@@ -411,6 +411,7 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
 
         // Write color table, bit <= 8
         if (bmp->info_header.bit_depth <= 8) {
+            printf("Color table bytes: %d\n", bmp->color_table_byte_count);
             if (bmp->color_table) {
                 // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
                 //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
