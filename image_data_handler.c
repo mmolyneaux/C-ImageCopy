@@ -304,7 +304,7 @@ void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
 
 // use width(cols) for buffer 1 or padded_width for buffer3
 // consider changing this to pixel_data_to_buffer_rc
-void pixel_data_to_buffer3(uint8_t **pixel_data, uint8_t ***buffer3,
+void pixel_data_to_buffer3(uint8_t *pixel_data, uint8_t ***buffer3,
                            uint32_t rows, uint32_t padded_width) {
     printf("pixel_data_to_buffer3\n");
 

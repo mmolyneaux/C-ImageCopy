@@ -289,7 +289,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         // create_buffer3(&bmp->imageBuffer3, bmp->info_header.height,
         // bmp->padded_width);
 
-        pixel_data_to_buffer3(&bmp->pixel_data, &bmp->image_data->imageBuffer3,
+        pixel_data_to_buffer3(bmp->pixel_data, &bmp->image_data->imageBuffer3,
                               bmp->info_header.height, bmp->padded_width);
     }
 
