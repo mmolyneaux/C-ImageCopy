@@ -1,5 +1,7 @@
 #include "image_data_handler.h"
+#include "bmp_file_handler.h"
 #include "convolution.h"
+#include <cstdint>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -302,12 +304,30 @@ void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
     }
 }
 
-// use width(cols) for buffer 1 or padded_width for buffer3
-// consider changing this to pixel_data_to_buffer_rc
-void pixel_data_to_buffer3(uint8_t *pixel_data, uint8_t ***buffer3,
-                           uint32_t rows, uint32_t padded_width) {
-    printf("pixel_data_to_buffer3\n");
+uint8_t **get_pixel_rows(uint8_t pixel_data, uint8_t width, uint8_t height, uint8_t bit_depth) {
+    
+    uint32_t bits_per_row = width * bit_depth;
+    uint32_t padded_bits = ((bits_per_row + 31) / 32) * 32 ;
+    uint32_t row_size = padded_bits / 8; // /8 convert to bytes >> 3
+    uint8_t ** rows = malloc(height * sizeof(uint8_t *));
+    if (!rows) return NULL;
 
+    for (uint32_t i = 0; i < height; ++i) {
+        // BMP stores pixels bottom-up
+        rows[i] = pixel_data + (height -1 - i) * row_size
+    }
+}
+
+// use width(cols) for buffer 1 or padded_width for buffer3
+// consider changing this to pixel_data_to_buffer_wh
+// Create a buffer3 to treat the pixel data from a BMP as a 2D array.
+// Creates a pointer to a "pointer to a row" so that you can access pixels as pixels[row][col].
+// 3 channel/24 bit 
+uint8_t **pixel_data_to_buffer3(uint8_t *pixel_data, uint32_t width, uint32_t height) {
+    printf("pixel_data_to_buffer3\n");
+    
+    // bit depth = 24
+    uint32_t padded_width = pad_width(width, 24);
     *buffer3 = (uint8_t **)malloc(rows * sizeof(uint8_t *));
     if (*buffer3 == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");

@@ -9,7 +9,7 @@
 
 // Image_Data _img;
 
-uint32_t pad_width(int32_t width, uint16_t bit_depth) {
+uint32_t pad_width(int32_t width, uint8_t bit_depth) {
 
     if (bit_depth <= 8) {
         // Calculate unpadded row size in bits
