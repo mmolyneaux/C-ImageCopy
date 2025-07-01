@@ -1,7 +1,6 @@
 #include "image_data_handler.h"
-#include "bmp_file_handler.h"
 #include "convolution.h"
-#include <cstdint>
+//#include <cstdint>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -304,18 +303,31 @@ void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
     }
 }
 
-uint8_t **get_pixel_rows(uint8_t pixel_data, uint8_t width, uint8_t height, uint8_t bit_depth) {
-    
+#include <stdint.h>
+#include <stdlib.h>
+
+// Return an array of row pointers into the pixel buffer
+uint8_t **get_pixel_rows(uint8_t *pixel_data, uint32_t width, uint32_t height, uint8_t bit_depth) {
+    if (!pixel_data || width <= 0 || height <= 0 || (bit_depth != 1 && bit_depth != 2 &&
+        bit_depth != 4 && bit_depth != 8 && bit_depth != 24)) {
+        return NULL; // validate input
+    }
+
+    // Each row is padded to the next 4-byte boundary
     uint32_t bits_per_row = width * bit_depth;
-    uint32_t padded_bits = ((bits_per_row + 31) / 32) * 32 ;
-    uint32_t row_size = padded_bits / 8; // /8 convert to bytes >> 3
-    uint8_t ** rows = malloc(height * sizeof(uint8_t *));
+    uint32_t padded_bits = ((bits_per_row + 31) / 32) * 32;
+    uint32_t row_size = padded_bits / 8;
+
+    // Allocate an array of row pointers
+    uint8_t **rows = malloc(height * sizeof(uint8_t *));
     if (!rows) return NULL;
 
+    // Populate the row pointers (BMP stores rows bottom-up)
     for (uint32_t i = 0; i < height; ++i) {
-        // BMP stores pixels bottom-up
-        rows[i] = pixel_data + (height -1 - i) * row_size
+        rows[i] = pixel_data + (height - 1 - i) * row_size;
     }
+
+    return rows;
 }
 
 // use width(cols) for buffer 1 or padded_width for buffer3
@@ -325,18 +337,12 @@ uint8_t **get_pixel_rows(uint8_t pixel_data, uint8_t width, uint8_t height, uint
 // 3 channel/24 bit 
 uint8_t **pixel_data_to_buffer3(uint8_t *pixel_data, uint32_t width, uint32_t height) {
     printf("pixel_data_to_buffer3\n");
-    
-    // bit depth = 24
-    uint32_t padded_width = pad_width(width, 24);
-    *buffer3 = (uint8_t **)malloc(rows * sizeof(uint8_t *));
-    if (*buffer3 == NULL) {
-        fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
-        exit(EXIT_FAILURE);
+    uint8_t **buffer3 = get_pixel_rows(pixel_data, width, height, 24);
+   
+    if (buffer3 == NULL) {
+        fprintf(stderr, "Failed to get rows in buffer3.\n");
     }
-
-    for (int r = 0; r < rows; r++) {
-        (*buffer3)[r] = pixel_data[r * padded_width];
-    }
+    return buffer3;
 }
 
 uint8_t **buffer3_to_2D(uint8_t *buf1, uint32_t rows, uint32_t cols) {
