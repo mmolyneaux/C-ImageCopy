@@ -1,7 +1,7 @@
 
 #include "bmp_file_handler.h"
 #include "image_data_handler.h"
-//#include <cstdint>
+// #include <cstdint>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -181,17 +181,18 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
-        uint16_t table_color_count = 1 << bmp->info_header.bit_depth;
-        
+        uint16_t *table_color_count = &bmp->image_data->table_color_count;
+        *table_color_count = 1 << bmp->info_header.bit_depth;
+
         if (bmp->info_header.colors_used_field == 0) {
-            bmp->colors_used_actual = table_color_count;
+            bmp->colors_used_actual = *table_color_count;
         } else {
             bmp->colors_used_actual = bmp->info_header.colors_used_field;
         }
 
         printf("Colors used actual: %d\n", bmp->colors_used_actual);
         // Each color table entry is 4 bytes
-        bmp->color_table_byte_count = table_color_count * sizeof(Color);
+        bmp->color_table_byte_count = *table_color_count * sizeof(Color);
 
         // Allocate color table
         bmp->color_table = NULL;
@@ -289,10 +290,11 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         // create_buffer3(&bmp->imageBuffer3, bmp->info_header.height,
         // bmp->padded_width);
 
-    //    pixel_data_to_buffer3(bmp->pixel_data, &bmp->image_data->imageBuffer3,
-    //       bmp->info_header.height, bmp->padded_width);
-        bmp->image_data->imageBuffer3 = pixel_data_to_buffer3(bmp->pixel_data, 
-                              bmp->info_header.width, bmp->info_header.height);
+        //    pixel_data_to_buffer3(bmp->pixel_data,
+        //    &bmp->image_data->imageBuffer3,
+        //       bmp->info_header.height, bmp->padded_width);
+        bmp->image_data->imageBuffer3 = pixel_data_to_buffer3(
+            bmp->pixel_data, bmp->info_header.width, bmp->info_header.height);
     }
 
     return EXIT_SUCCESS;
@@ -368,8 +370,8 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
             return write_succesful = true;
         }
     } else {
-        bmp->filename_out =
-            create_filename_with_suffix(bmp->filename_in, bmp->image_data->mode_suffix);
+        bmp->filename_out = create_filename_with_suffix(
+            bmp->filename_in, bmp->image_data->mode_suffix);
 
         file = fopen(bmp->filename_out, "wb");
         if (file == NULL) {

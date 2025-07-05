@@ -1,6 +1,5 @@
 #include "image_data_handler.h"
-#include "convolution.h"
-//#include <cstdint>
+//#include "convolution.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -20,6 +19,7 @@ void init_image(Image_Data *img) {
     img->bright_value = 0;
     img->bright_percent = 0.0f;
     img->CT_EXISTS = false;
+    img->table_color_count = 0;
     img->colorTable = NULL;
     img->imageBuffer1 = NULL;
     img->imageBuffer3 = NULL;
@@ -398,6 +398,42 @@ void free_img(Image_Data *img) {
 }
 
 void copy13(Image_Data *img) {}
+
+uint16_t get_CT_color_count(uint8_t bit_depth) {
+    if (bit_depth > 8) return 0; // no color table for high bit depths
+    return 1 << bit_depth;       // 2^bit_depth
+}
+
+void gray13(Image_Data *img) {
+    printf("Gray13\n");
+    // the values for mixing RGB to gray.
+    // amount of rgb to keep, from 0.0 to 1.0.
+    uint8_t bit_depth = img->bit_depth;
+    
+    float r = 0.30;
+    float g = 0.59;
+    float b = 0.11;
+
+    uint32_t temp = 0;
+
+    if (img->bit_depth == 4 || img->bit_depth == 8) {
+        unsigned char *colorTable = img->colorTable;
+        uint16_t CT_SIZE = 1 << bit_depth;
+    
+    } else if (img->bit_depth == 24) {
+    for (size_t y = 0; y < img->height; y++) {
+        for (size_t x = 0; x < img->width * 3; x += 3) {
+            temp = (img->imageBuffer3[y][x + 0] * r) +
+                   (img->imageBuffer3[y][x + 1] * g) +
+                   (img->imageBuffer3[y][x + 2] * b);
+            for (uint8_t rgb = 0; rgb < 3; rgb++) {
+                // Write equally for each channel.
+                img->imageBuffer3[y][x + rgb] = temp;
+            }
+        }
+    
+    }
+}
 
 void gray3(Image_Data *img) {
     printf("Gray3\n");

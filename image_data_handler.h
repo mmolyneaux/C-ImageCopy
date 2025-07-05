@@ -57,6 +57,7 @@ typedef struct {
     int16_t degrees;
     uint16_t blur_level;
     bool CT_EXISTS;
+    uint16_t table_color_count;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
