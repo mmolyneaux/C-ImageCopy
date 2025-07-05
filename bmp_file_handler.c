@@ -369,7 +369,7 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         }
     } else {
         bmp->filename_out =
-            create_filename_with_suffix(bmp->filename_in, "_copy");
+            create_filename_with_suffix(bmp->filename_in, bmp->image_data->mode_suffix);
 
         file = fopen(bmp->filename_out, "wb");
         if (file == NULL) {

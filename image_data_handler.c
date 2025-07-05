@@ -118,6 +118,9 @@ void process_image(Image_Data *img) {
             exit(EXIT_FAILURE);
         }
     }
+
+    img->mode_suffix = get_suffix(img);
+
 }
 
 // Returns dynamically allocated string suffix
