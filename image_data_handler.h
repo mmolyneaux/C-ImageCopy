@@ -57,7 +57,7 @@ typedef struct {
     int16_t degrees;
     uint16_t blur_level;
     bool CT_EXISTS;
-    uint16_t table_color_count;
+    //uint16_t color_table_count;
     unsigned char *colorTable;
     unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
@@ -70,6 +70,7 @@ typedef struct {
 
 } Image_Data;
 
+uint16_t get_CT_color_count(uint8_t bit_depth);
 char *get_suffix(Image_Data *img);
 char *get_mode_string(enum Mode mode);
 void init_image(Image_Data *img);
@@ -79,11 +80,16 @@ uint8_t **pixel_data_to_buffer3(uint8_t *pixel_data, uint32_t width, uint32_t he
 void process_image(Image_Data *img);
 void free_img(Image_Data *img);
 void copy13(Image_Data *img);
-void gray3(Image_Data *img);
+void gray13(Image_Data *img); // *new*
+//void gray3(Image_Data *img);
 void mono1(Image_Data *img);
 void mono3(Image_Data *img);
 void bright1(Image_Data *img);
 void bright3(Image_Data *img);
+
+
+
+
 
 void hist1(Image_Data *img);
 void hist1_normalized(Image_Data *img);

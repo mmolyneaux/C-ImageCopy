@@ -181,18 +181,19 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
-        uint16_t *table_color_count = &bmp->image_data->table_color_count;
-        *table_color_count = 1 << bmp->info_header.bit_depth;
+        uint16_t color_table_count = 
+        //bmp->image_data->color_table_count =
+            1 << bmp->info_header.bit_depth;
 
         if (bmp->info_header.colors_used_field == 0) {
-            bmp->colors_used_actual = *table_color_count;
+            bmp->colors_used_actual = color_table_count;
         } else {
             bmp->colors_used_actual = bmp->info_header.colors_used_field;
         }
 
         printf("Colors used actual: %d\n", bmp->colors_used_actual);
         // Each color table entry is 4 bytes
-        bmp->color_table_byte_count = *table_color_count * sizeof(Color);
+        bmp->color_table_byte_count = color_table_count * sizeof(Color);
 
         // Allocate color table
         bmp->color_table = NULL;

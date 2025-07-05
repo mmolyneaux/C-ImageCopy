@@ -1,25 +1,30 @@
 #include "image_data_handler.h"
-//#include "convolution.h"
+#include "convolution.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+uint16_t get_CT_color_count(uint8_t bit_depth) {
+    if (bit_depth > 8)
+        return 0;          // no color table for high bit depths
+    return 1 << bit_depth; // 2^bit_depth
+}
+
 void init_image(Image_Data *img) {
     if (!img)
         return;
     img->width = 0;
     img->height = 0;
-    // img->padded_width = 0;
-    img->image_size = 0;
-    img->bit_depth = 0;
+    img->padded_width = 0;
+    img->image_size = 0; img->bit_depth = 0;
     img->channels = 0;
     img->mono_threshold = 0.0f;
     img->bright_value = 0;
     img->bright_percent = 0.0f;
     img->CT_EXISTS = false;
-    img->table_color_count = 0;
+    //img->color_table_count = 0;
     img->colorTable = NULL;
     img->imageBuffer1 = NULL;
     img->imageBuffer3 = NULL;
@@ -49,7 +54,8 @@ void process_image(Image_Data *img) {
 
         if (img->mode == COPY) {
             copy13(img);
-
+        } else if (img->mode == GRAY) {
+            gray13(img);
         } else if (img->mode == MONO) {
             mono1(img);
         } else if (img->mode == BRIGHT) {
@@ -83,7 +89,7 @@ void process_image(Image_Data *img) {
             copy13(img);
         } else if (img->mode == GRAY) {
             printf("G3\n");
-            gray3(img);
+            //gray13(img);
         } else if (img->mode == MONO) {
             printf("M3\n");
             mono3(img);
@@ -120,7 +126,6 @@ void process_image(Image_Data *img) {
     }
 
     img->mode_suffix = get_suffix(img);
-
 }
 
 // Returns dynamically allocated string suffix
@@ -310,9 +315,11 @@ void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
 #include <stdlib.h>
 
 // Return an array of row pointers into the pixel buffer
-uint8_t **get_pixel_rows(uint8_t *pixel_data, uint32_t width, uint32_t height, uint8_t bit_depth) {
-    if (!pixel_data || width <= 0 || height <= 0 || (bit_depth != 1 && bit_depth != 2 &&
-        bit_depth != 4 && bit_depth != 8 && bit_depth != 24)) {
+uint8_t **get_pixel_rows(uint8_t *pixel_data, uint32_t width, uint32_t height,
+                         uint8_t bit_depth) {
+    if (!pixel_data || width <= 0 || height <= 0 ||
+        (bit_depth != 1 && bit_depth != 2 && bit_depth != 4 && bit_depth != 8 &&
+         bit_depth != 24)) {
         return NULL; // validate input
     }
 
@@ -323,7 +330,8 @@ uint8_t **get_pixel_rows(uint8_t *pixel_data, uint32_t width, uint32_t height, u
 
     // Allocate an array of row pointers
     uint8_t **rows = malloc(height * sizeof(uint8_t *));
-    if (!rows) return NULL;
+    if (!rows)
+        return NULL;
 
     // Populate the row pointers (BMP stores rows bottom-up)
     for (uint32_t i = 0; i < height; ++i) {
@@ -336,12 +344,13 @@ uint8_t **get_pixel_rows(uint8_t *pixel_data, uint32_t width, uint32_t height, u
 // use width(cols) for buffer 1 or padded_width for buffer3
 // consider changing this to pixel_data_to_buffer_wh
 // Create a buffer3 to treat the pixel data from a BMP as a 2D array.
-// Creates a pointer to a "pointer to a row" so that you can access pixels as pixels[row][col].
-// 3 channel/24 bit 
-uint8_t **pixel_data_to_buffer3(uint8_t *pixel_data, uint32_t width, uint32_t height) {
+// Creates a pointer to a "pointer to a row" so that you can access pixels as
+// pixels[row][col]. 3 channel/24 bit
+uint8_t **pixel_data_to_buffer3(uint8_t *pixel_data, uint32_t width,
+                                uint32_t height) {
     printf("pixel_data_to_buffer3\n");
     uint8_t **buffer3 = get_pixel_rows(pixel_data, width, height, 24);
-   
+
     if (buffer3 == NULL) {
         fprintf(stderr, "Failed to get rows in buffer3.\n");
     }
@@ -399,66 +408,71 @@ void free_img(Image_Data *img) {
 
 void copy13(Image_Data *img) {}
 
-uint16_t get_CT_color_count(uint8_t bit_depth) {
-    if (bit_depth > 8) return 0; // no color table for high bit depths
-    return 1 << bit_depth;       // 2^bit_depth
-}
+
 
 void gray13(Image_Data *img) {
     printf("Gray13\n");
     // the values for mixing RGB to gray.
     // amount of rgb to keep, from 0.0 to 1.0.
     uint8_t bit_depth = img->bit_depth;
-    
+
     float r = 0.30;
     float g = 0.59;
     float b = 0.11;
 
-    uint32_t temp = 0;
+    uint8_t gray = 0;
 
-    if (img->bit_depth == 4 || img->bit_depth == 8) {
+    if (img->bit_depth == 24) {
+        // convert all colors in the image buffer to gray
+        for (size_t y = 0; y < img->height; y++) {
+            for (size_t x = 0; x < img->width * 3; x += 3) {
+                gray = (img->imageBuffer3[y][x + 0] * r) +
+                       (img->imageBuffer3[y][x + 1] * g) +
+                       (img->imageBuffer3[y][x + 2] * b);
+                for (uint8_t rgb = 0; rgb < 3; rgb++) {
+                    // Write equally for each channel.
+                    img->imageBuffer3[y][x + rgb] = gray;
+                }
+            }
+        }
+    } else if (img->bit_depth == 8 || img->bit_depth == 4 ||
+               img->bit_depth == 2) {
+        // Convert all colors in the color table to gray
         unsigned char *colorTable = img->colorTable;
-        uint16_t CT_SIZE = 1 << bit_depth;
-    
-    } else if (img->bit_depth == 24) {
-    for (size_t y = 0; y < img->height; y++) {
-        for (size_t x = 0; x < img->width * 3; x += 3) {
-            temp = (img->imageBuffer3[y][x + 0] * r) +
-                   (img->imageBuffer3[y][x + 1] * g) +
-                   (img->imageBuffer3[y][x + 2] * b);
-            for (uint8_t rgb = 0; rgb < 3; rgb++) {
-                // Write equally for each channel.
-                img->imageBuffer3[y][x + rgb] = temp;
-            }
-        }
-    
-    }
-}
-
-void gray3(Image_Data *img) {
-    printf("Gray3\n");
-    // the values for mixing RGB to gray.
-    // amount of rgb to keep, from 0.0 to 1.0.
-    float r = 0.30;
-    float g = 0.59;
-    float b = 0.11;
-
-    uint32_t temp = 0;
-    for (size_t y = 0; y < img->height; y++) {
-        for (size_t x = 0; x < img->width * 3; x += 3) {
-            temp = (img->imageBuffer3[y][x + 0] * r) +
-                   (img->imageBuffer3[y][x + 1] * g) +
-                   (img->imageBuffer3[y][x + 2] * b);
-            for (uint8_t rgb = 0; rgb < 3; rgb++) {
-                // Write equally for each channel.
-                img->imageBuffer3[y][x + rgb] = temp;
-            }
+        uint16_t color_table_count = 1 << img->bit_depth; //img->color_table_count;
+        for (size_t i = 0; i < color_table_count * 4; i += 4) {
+            gray = colorTable[i + 0] * r + colorTable[i + 1] * g +
+                   colorTable[i + 2] * b;
+            colorTable[i + 0] = colorTable[i + 1] = colorTable[i + 2] = gray;
         }
     }
 }
+
+// void gray3(Image_Data *img) {
+//     printf("Gray3\n");
+//     // the values for mixing RGB to gray.
+//     // amount of rgb to keep, from 0.0 to 1.0.
+//     float r = 0.30;
+//     float g = 0.59;
+//     float b = 0.11;
+
+//     uint32_t temp = 0;
+//     for (size_t y = 0; y < img->height; y++) {
+//         for (size_t x = 0; x < img->width * 3; x += 3) {
+//             temp = (img->imageBuffer3[y][x + 0] * r) +
+//                    (img->imageBuffer3[y][x + 1] * g) +
+//                    (img->imageBuffer3[y][x + 2] * b);
+//             for (uint8_t rgb = 0; rgb < 3; rgb++) {
+//                 // Write equally for each channel.
+//                 img->imageBuffer3[y][x + rgb] = temp;
+//             }
+//         }
+//     }
+// }
 
 void mono1(Image_Data *img) {
     printf("Mono1\n");
+    gray13(img);
 
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15,
     // 8:255 same as: WHITE = POW(2, img-bit_depth) - 1, POW from
@@ -487,11 +501,11 @@ void mono1(Image_Data *img) {
 // converts to grayscale and then mono
 void mono3(Image_Data *img) {
     printf("mono3\n");
-    gray3(img);
+    gray13(img);
 
-    // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15, 8:255, rgb =
-    // 8,8,8:255,255,255 same as: WHITE = POW(2, img-bit_depth) - 1, POW from
-    // math.h
+    // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15, 8:255,
+    // rgb = 8,8,8:255,255,255 same as: WHITE = POW(2, img-bit_depth) - 1,
+    // POW from math.h
     const uint8_t WHITE = (1 << (img->bit_depth / img->channels)) - 1;
     printf("White is %d\n", WHITE);
 

@@ -43,4 +43,4 @@ clamp.o: clamp.c clamp.h
 # Clean up the generated files
 # WIN
 clean:
-	@del /F /Q $(OBJS) $(TARGET) || rm -f $(OBJS) $(TARGET)
+	@del /F /Q $(OBJS) $(TARGET) *.gch *.bak *~ 2>nul || rm -f $(OBJS) $(TARGET) *.gch *.bak *~
