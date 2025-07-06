@@ -284,6 +284,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     bmp->image_data->bit_depth = bmp->info_header.bit_depth;
 
     if (bmp->image_data->channels == 1) {
+        bmp->image_data->colorTable = bmp->color_table;
         bmp->image_data->imageBuffer1 = bmp->pixel_data;
     } else if (bmp->image_data->channels == 3) {
 
