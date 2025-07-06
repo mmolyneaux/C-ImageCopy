@@ -1,46 +1,50 @@
 # Compiler
 CC = gcc
 
-# Compiler flags
-#CFLAGS = -Wall
+# Default compiler flags (debug mode)
+CFLAGS = -Wall
 
 # Target executable
 TARGET = imagecopy
 
-# Source files
-SRCS = main.c bmp_file_handler.c bmp_file_handler.h image_data_handler.c image_data_handler.h convolution.c convolution.h clamp.c clamp.h
+# Source and object files
+SRCS = main.c bmp_file_handler.c image_data_handler.c convolution.c clamp.c
+OBJS = $(SRCS:.c=.o)
 
-# Object files
-OBJS = main.o bmp_file_handler.o image_data_handler.o convolution.o clamp.o
-
-# Default target
+# Default debug build
 all: $(TARGET)
 
 # Link object files to create the executable
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS)
 
-# Compile main.o
-main.o: main.c
-	$(CC) $(CFLAGS) -c main.c
+# Generic rule for compiling .c to .o
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Compile bmp_file_handler.o
-bmp_file_handler.o: bmp_file_handler.c bmp_file_handler.h
-	$(CC) $(CFLAGS) -c bmp_file_handler.c
-
-# Compile image_data_handler.o
-image_data_handler.o: image_data_handler.c image_data_handler.h
-	$(CC) $(CFLAGS) -c image_data_handler.c
-
-# Compile convolution.o
-convolution.o: convolution.c convolution.h
-	$(CC) $(CFLAGS) -c convolution.c
-
-# Compile clamp.o
-clamp.o: clamp.c clamp.h
-	$(CC) $(CFLAGS) -c clamp.c
-
-# Clean up the generated files
-# WIN
+# Clean intermediate and output files
 clean:
-	@del /F /Q $(OBJS) $(TARGET) *.gch *.bak *~ 2>nul || rm -f $(OBJS) $(TARGET) *.gch *.bak *~
+	@echo Cleaning up...
+	@del /F /Q $(OBJS) $(TARGET).exe *.gch *.bak *~ 2>nul || rm -f $(OBJS) $(TARGET) *.gch *.bak *~
+
+# Cross-platform release build with timing and cleanup
+release: CFLAGS += -DNDEBUG
+release:
+ifeq ($(OS),Windows_NT)
+	@echo.
+	@echo Starting clean release build...
+	@powershell -Command "$$start = Get-Date; $$null = (make clean); $$null = (make all); if (!(Test-Path 'bin')) { New-Item -ItemType Directory -Path 'bin' } ; Move-Item -Force .\$(TARGET).exe bin\ ; $$null = (make clean); $$end = Get-Date; $$elapsed = ($$end - $$start).TotalSeconds; Write-Host ''; Write-Host 'Release build complete in' $$elapsed 'seconds.'; Write-Host 'Executable is at bin\\$(TARGET).exe'"
+else
+	@echo
+	@echo Starting clean release build...
+	@START=$$(date +%s); \
+	$(MAKE) --no-print-directory clean; \
+	echo Building release with assertions disabled...; \
+	$(MAKE) --no-print-directory all; \
+	mkdir -p bin; \
+	mv -f $(TARGET) bin/; \
+	$(MAKE) --no-print-directory clean; \
+	END=$$(date +%s); \
+	echo; echo "Release build complete in $$((END - START)) seconds."; \
+	echo "Executable is at bin/$(TARGET)"
+endif

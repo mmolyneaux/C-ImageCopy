@@ -1,5 +1,6 @@
 #include "image_data_handler.h"
 #include "convolution.h"
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -89,7 +90,7 @@ void process_image(Image_Data *img) {
             copy13(img);
         } else if (img->mode == GRAY) {
             printf("G3\n");
-            //gray13(img);
+            gray13(img);
         } else if (img->mode == MONO) {
             printf("M3\n");
             mono3(img);
@@ -415,35 +416,43 @@ void gray13(Image_Data *img) {
     // the values for mixing RGB to gray.
     // amount of rgb to keep, from 0.0 to 1.0.
     uint8_t bit_depth = img->bit_depth;
-
+    printf("Gray bit depth: %d\n", bit_depth);
+    
     float r = 0.30;
     float g = 0.59;
     float b = 0.11;
 
     uint8_t gray = 0;
 
-    if (img->bit_depth == 24) {
+    if (bit_depth == 24) {
+        printf("Gray 24\n");
         // convert all colors in the image buffer to gray
         for (size_t y = 0; y < img->height; y++) {
             for (size_t x = 0; x < img->width * 3; x += 3) {
                 gray = (img->imageBuffer3[y][x + 0] * r) +
-                       (img->imageBuffer3[y][x + 1] * g) +
-                       (img->imageBuffer3[y][x + 2] * b);
+                (img->imageBuffer3[y][x + 1] * g) +
+                (img->imageBuffer3[y][x + 2] * b);
                 for (uint8_t rgb = 0; rgb < 3; rgb++) {
                     // Write equally for each channel.
                     img->imageBuffer3[y][x + rgb] = gray;
                 }
             }
         }
-    } else if (img->bit_depth == 8 || img->bit_depth == 4 ||
-               img->bit_depth == 2) {
-        // Convert all colors in the color table to gray
+    } else if (bit_depth == 8 || bit_depth == 4 ||
+        bit_depth == 2) {
+            // Convert all colors in the color table to gray
+            printf("Gray %d\n", bit_depth);
         unsigned char *colorTable = img->colorTable;
-        uint16_t color_table_count = 1 << img->bit_depth; //img->color_table_count;
+        assert(colorTable != NULL);
+        uint16_t color_table_count = 1 << bit_depth; //img->color_table_count;
+        printf("Color table count inside %d: %d", bit_depth, color_table_count);
+        printf("CT[0]: %d\n", colorTable[0]);
         for (size_t i = 0; i < color_table_count * 4; i += 4) {
+            printf("(%d %d %d):", colorTable[i + 0], colorTable[i + 1], colorTable[i + 2]);
             gray = colorTable[i + 0] * r + colorTable[i + 1] * g +
-                   colorTable[i + 2] * b;
+            colorTable[i + 2] * b;
             colorTable[i + 0] = colorTable[i + 1] = colorTable[i + 2] = gray;
+            printf("(%d %d %d), ", colorTable[i + 0], colorTable[i + 1], colorTable[i + 2]);
         }
     }
 }
@@ -1505,7 +1514,7 @@ void sepia3(Image_Data *img) {
 
 void filter1(Image_Data *img) {
     printf("Inside filter1\n");
-    char *filter_name = img->filter_name;
+    //char *filter_name = img->filter_name;
     int filter_index = img->filter_index;
 
     Convolution *c1 = malloc(sizeof(Convolution));

@@ -168,7 +168,6 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
     // Read info header 40 bytes
     fread(&bmp->info_header, sizeof(Info_Header), 1, file);
-    printf("");
     // Read color table size or calculate if missing
 
     // For bit_depth <= 8, colors are stored in and referenced from the
