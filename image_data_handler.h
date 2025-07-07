@@ -14,6 +14,7 @@
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
 
+
 enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
 enum Mode {
     NO_MODE = 0,

@@ -443,6 +443,48 @@ void gray13(Image_Data *img) {
             // Convert all colors in the color table to gray
             printf("Gray %d\n", bit_depth);
         unsigned char *colorTable = img->colorTable;
+        unsigned char *buffer1 = img->imageBuffer1;
+
+        assert(colorTable != NULL);
+        assert(buffer1 != NULL);
+
+        uint16_t color_table_count = 1 << bit_depth; //img->color_table_count;
+        //printf("Color table count inside %d: %d", bit_depth, color_table_count);
+        //printf("CT[0]: %d\n", colorTable[0]);
+        for (uint16_t i = 0; i < color_table_count * 4; i += 4) {
+            //printf("(%d %d %d):", colorTable[i + 0], colorTable[i + 1], colorTable[i + 2]);
+            gray = colorTable[i + 0] * r + colorTable[i + 1] * g +
+            colorTable[i + 2] * b;
+            colorTable[i + 0] = colorTable[i + 1] = colorTable[i + 2] = gray;
+            //printf("(%d %d %d), ", colorTable[i + 0], colorTable[i + 1], colorTable[i + 2]);
+        }
+        // find out what shade of gray the buffer points to [r,g,b,0]  and set it to where
+        // the new position will be after we re-map the gray values 0-255
+        uint16_t table_pos = 0;
+        for (size_t i = 0; i < img->image_size; ++i ) {
+            table_pos = 4*buffer1[i];
+            gray = colorTable[table_pos];
+            buffer1[i] = gray;
+        }
+        // set every value in the color table to (0,0,0), (1,1,1)
+        gray = 0;
+        uint8_t inc = 8 / bit_depth;
+        for (uint16_t i = 0; i < 4*color_table_count; i +=4){
+            colorTable[i + 0] = gray;
+            colorTable[i + 1] = gray;
+            colorTable[i + 2] = gray;
+            //colorTable[i + 3] = 0; // always 0
+            j += bit_depth;
+        }
+        
+    
+    }
+
+    /*else if (bit_depth == 8 || bit_depth == 4 ||
+        bit_depth == 2) {
+            // Convert all colors in the color table to gray
+            printf("Gray %d\n", bit_depth);
+        unsigned char *colorTable = img->colorTable;
         assert(colorTable != NULL);
         uint16_t color_table_count = 1 << bit_depth; //img->color_table_count;
         printf("Color table count inside %d: %d", bit_depth, color_table_count);
@@ -454,7 +496,8 @@ void gray13(Image_Data *img) {
             colorTable[i + 0] = colorTable[i + 1] = colorTable[i + 2] = gray;
             printf("(%d %d %d), ", colorTable[i + 0], colorTable[i + 1], colorTable[i + 2]);
         }
-    }
+    }*/
+
 }
 
 // void gray3(Image_Data *img) {
@@ -481,6 +524,36 @@ void gray13(Image_Data *img) {
 
 void mono1(Image_Data *img) {
     printf("Mono1\n");
+    gray13(img);
+
+    // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15,
+    // 8:255 same as: WHITE = POW(2, img-bit_depth) - 1, POW from
+    // math.h
+    const uint8_t CT_MAX = (1 << img->bit_depth) - 1;
+    const uint8_t WHITE = 255;
+
+    uint8_t threshold = WHITE * img->mono_threshold;
+    uint8_t current_color = 0;
+    if (threshold >= WHITE) {
+        for (int i = 0; i < img->image_size; i++) {
+            
+            img->imageBuffer1[i] = 1;
+        }
+    } else if (threshold <= BLACK) {
+        for (int i = 0; i < img->image_size; i++) {
+            img->imageBuffer1[i] = 0;
+        }
+    } else {
+        // Black and White converter
+        for (int i = 0; i < CT_MAX; i++) {
+            img->imageBuffer1[i] =
+                (img->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
+        }
+    }
+}
+
+void mono2(Image_Data *img) {
+    printf("Mono2\n");
     gray13(img);
 
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15,
