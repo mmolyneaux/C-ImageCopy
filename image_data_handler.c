@@ -468,13 +468,17 @@ void gray13(Image_Data *img) {
         }
         // set every value in the color table to (0,0,0), (1,1,1)
         gray = 0;
-        uint8_t inc = 8 / bit_depth;
-        for (uint16_t i = 0; i < 4*color_table_count; i +=4){
+        //uint8_t inc = 8 / bit_depth;
+        
+        uint32_t padded_bits = ((bits_per_row + 31) / 32) * 32;
+    uint32_t row_size = padded_bits / 8;
+
+        for (uint16_t i,j = 0; i < 4*color_table_count; i +=4){
             colorTable[i + 0] = gray;
             colorTable[i + 1] = gray;
             colorTable[i + 2] = gray;
-            //colorTable[i + 3] = 0; // always 0
-            j += bit_depth;
+            //colorTable[i + 3] = 0; // reserved bit, always 0
+            j += inc;
         }
         
     
