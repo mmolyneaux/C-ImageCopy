@@ -422,22 +422,21 @@ void gray13(Image_Data *img) {
     const float b = 0.114f;
 
     if (bit_depth == 24) {
-        printf("Gray 24\n");
-        // Convert RGB pixels to grayscale by rewriting each channel
+        printf("Gray 24-bit\n");
         for (size_t y = 0; y < img->height; y++) {
             for (size_t x = 0; x < img->width * 3; x += 3) {
-                uint8_t red   = img->imageBuffer3[y][x + 2];
-                uint8_t green = img->imageBuffer3[y][x + 1];
                 uint8_t blue  = img->imageBuffer3[y][x + 0];
+                uint8_t green = img->imageBuffer3[y][x + 1];
+                uint8_t red   = img->imageBuffer3[y][x + 2];
 
-                uint8_t gray = (uint8_t)(r * red + g * green + b * blue);
+                uint8_t gray = (uint8_t)(r * red + g * green + b * blue + 0.5f);
                 img->imageBuffer3[y][x + 0] = gray;
                 img->imageBuffer3[y][x + 1] = gray;
                 img->imageBuffer3[y][x + 2] = gray;
             }
         }
     } else if (bit_depth == 8 || bit_depth == 4 || bit_depth == 2) {
-        printf("Gray %d\n", bit_depth);
+        printf("Gray %d-bit indexed\n", bit_depth);
 
         assert(img->colorTable != NULL);
         assert(img->imageBuffer1 != NULL);
@@ -448,25 +447,47 @@ void gray13(Image_Data *img) {
         uint16_t color_table_count = 1 << bit_depth;
         uint8_t step = (bit_depth == 2) ? 85 : (bit_depth == 4) ? 17 : 1;
 
-        // Convert each pixel’s palette index to grayscale level
-        for (size_t i = 0; i < img->image_size; i++) {
-            uint8_t index = buffer1[i];
-            uint32_t offset = index * 4;
-            uint8_t blue  = colorTable[offset + 0];
-            uint8_t green = colorTable[offset + 1];
-            uint8_t red   = colorTable[offset + 2];
+        if (bit_depth == 4) {
+            for (size_t i = 0; i < img->image_size; i++) {
+                uint8_t byte = buffer1[i];
+                uint8_t hi = byte >> 4;
+                uint8_t lo = byte & 0x0F;
 
-            float gray_f = r * red + g * green + b * blue;
-            uint8_t gray_level = (uint8_t)(gray_f + 0.5f);  // round to nearest
+                uint32_t hi_offset = hi * 4;
+                uint32_t lo_offset = lo * 4;
 
-            // Map gray level back to a palette index
-            uint8_t new_index = (uint8_t)(gray_level / step);
-            if (new_index >= color_table_count) new_index = color_table_count - 1;
+                uint8_t hi_gray = (uint8_t)(r * colorTable[hi_offset + 2] +
+                                            g * colorTable[hi_offset + 1] +
+                                            b * colorTable[hi_offset + 0] + 0.5f);
+                uint8_t lo_gray = (uint8_t)(r * colorTable[lo_offset + 2] +
+                                            g * colorTable[lo_offset + 1] +
+                                            b * colorTable[lo_offset + 0] + 0.5f);
 
-            buffer1[i] = new_index;
+                uint8_t hi_index = hi_gray / step;
+                uint8_t lo_index = lo_gray / step;
+                if (hi_index >= color_table_count) hi_index = color_table_count - 1;
+                if (lo_index >= color_table_count) lo_index = color_table_count - 1;
+
+                buffer1[i] = (hi_index << 4) | lo_index;
+            }
+        } else {
+            for (size_t i = 0; i < img->image_size; i++) {
+                uint8_t index = buffer1[i];
+                uint32_t offset = index * 4;
+                uint8_t blue  = colorTable[offset + 0];
+                uint8_t green = colorTable[offset + 1];
+                uint8_t red   = colorTable[offset + 2];
+
+                float gray_f = r * red + g * green + b * blue;
+                uint8_t gray_level = (uint8_t)(gray_f + 0.5f);
+
+                uint8_t new_index = gray_level / step;
+                if (new_index >= color_table_count) new_index = color_table_count - 1;
+                buffer1[i] = new_index;
+            }
         }
 
-        // Create evenly spaced grayscale palette
+        // Create grayscale palette
         for (uint16_t i = 0; i < color_table_count; i++) {
             uint8_t gray = i * step;
             uint32_t offset = i * 4;
