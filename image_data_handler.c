@@ -19,13 +19,14 @@ void init_image(Image_Data *img) {
     img->width = 0;
     img->height = 0;
     img->padded_width = 0;
-    img->image_size = 0; img->bit_depth = 0;
+    img->image_size = 0;
+    img->bit_depth = 0;
     img->channels = 0;
     img->mono_threshold = 0.0f;
     img->bright_value = 0;
     img->bright_percent = 0.0f;
     img->CT_EXISTS = false;
-    //img->color_table_count = 0;
+    // img->color_table_count = 0;
     img->colorTable = NULL;
     img->imageBuffer1 = NULL;
     img->imageBuffer3 = NULL;
@@ -409,8 +410,6 @@ void free_img(Image_Data *img) {
 
 void copy13(Image_Data *img) {}
 
-
-
 void gray13(Image_Data *img) {
     printf("Gray13\n");
 
@@ -425,9 +424,9 @@ void gray13(Image_Data *img) {
         printf("Gray 24-bit\n");
         for (size_t y = 0; y < img->height; y++) {
             for (size_t x = 0; x < img->width * 3; x += 3) {
-                uint8_t blue  = img->imageBuffer3[y][x + 0];
+                uint8_t blue = img->imageBuffer3[y][x + 0];
                 uint8_t green = img->imageBuffer3[y][x + 1];
-                uint8_t red   = img->imageBuffer3[y][x + 2];
+                uint8_t red = img->imageBuffer3[y][x + 2];
 
                 uint8_t gray = (uint8_t)(r * red + g * green + b * blue + 0.5f);
                 img->imageBuffer3[y][x + 0] = gray;
@@ -456,17 +455,21 @@ void gray13(Image_Data *img) {
                 uint32_t hi_offset = hi * 4;
                 uint32_t lo_offset = lo * 4;
 
-                uint8_t hi_gray = (uint8_t)(r * colorTable[hi_offset + 2] +
-                                            g * colorTable[hi_offset + 1] +
-                                            b * colorTable[hi_offset + 0] + 0.5f);
-                uint8_t lo_gray = (uint8_t)(r * colorTable[lo_offset + 2] +
-                                            g * colorTable[lo_offset + 1] +
-                                            b * colorTable[lo_offset + 0] + 0.5f);
+                uint8_t hi_gray =
+                    (uint8_t)(r * colorTable[hi_offset + 2] +
+                              g * colorTable[hi_offset + 1] +
+                              b * colorTable[hi_offset + 0] + 0.5f);
+                uint8_t lo_gray =
+                    (uint8_t)(r * colorTable[lo_offset + 2] +
+                              g * colorTable[lo_offset + 1] +
+                              b * colorTable[lo_offset + 0] + 0.5f);
 
                 uint8_t hi_index = hi_gray / step;
                 uint8_t lo_index = lo_gray / step;
-                if (hi_index >= color_table_count) hi_index = color_table_count - 1;
-                if (lo_index >= color_table_count) lo_index = color_table_count - 1;
+                if (hi_index >= color_table_count)
+                    hi_index = color_table_count - 1;
+                if (lo_index >= color_table_count)
+                    lo_index = color_table_count - 1;
 
                 buffer1[i] = (hi_index << 4) | lo_index;
             }
@@ -482,29 +485,33 @@ void gray13(Image_Data *img) {
                 uint8_t grays[4];
 
                 for (int k = 0; k < 4; k++) {
-                    uint8_t blue  = colorTable[offsets[k] + 0];
+                    uint8_t blue = colorTable[offsets[k] + 0];
                     uint8_t green = colorTable[offsets[k] + 1];
-                    uint8_t red   = colorTable[offsets[k] + 2];
+                    uint8_t red = colorTable[offsets[k] + 2];
 
-                    grays[k] = (uint8_t)(r * red + g * green + b * blue + 0.5f) / step;
-                    if (grays[k] >= color_table_count) grays[k] = color_table_count - 1;
+                    grays[k] =
+                        (uint8_t)(r * red + g * green + b * blue + 0.5f) / step;
+                    if (grays[k] >= color_table_count)
+                        grays[k] = color_table_count - 1;
                 }
 
-                buffer1[i] = (grays[3] << 6) | (grays[2] << 4) | (grays[1] << 2) | grays[0];
+                buffer1[i] = (grays[3] << 6) | (grays[2] << 4) |
+                             (grays[1] << 2) | grays[0];
             }
         } else {
             for (size_t i = 0; i < img->image_size; i++) {
                 uint8_t index = buffer1[i];
                 uint32_t offset = index * 4;
-                uint8_t blue  = colorTable[offset + 0];
+                uint8_t blue = colorTable[offset + 0];
                 uint8_t green = colorTable[offset + 1];
-                uint8_t red   = colorTable[offset + 2];
+                uint8_t red = colorTable[offset + 2];
 
                 float gray_f = r * red + g * green + b * blue;
                 uint8_t gray_level = (uint8_t)(gray_f + 0.5f);
 
                 uint8_t new_index = gray_level / step;
-                if (new_index >= color_table_count) new_index = color_table_count - 1;
+                if (new_index >= color_table_count)
+                    new_index = color_table_count - 1;
                 buffer1[i] = new_index;
             }
         }
@@ -532,10 +539,10 @@ void mono1(Image_Data *img) {
     const uint8_t WHITE = 255;
 
     uint8_t threshold = WHITE * img->mono_threshold;
-    //uint8_t current_color = 0;
+    // uint8_t current_color = 0;
     if (threshold >= WHITE) {
         for (int i = 0; i < img->image_size; i++) {
-            
+
             img->imageBuffer1[i] = 1;
         }
     } else if (threshold <= BLACK) {
@@ -554,7 +561,6 @@ void mono1(Image_Data *img) {
 // converts to mono
 void mono3(Image_Data *img) {
     printf("mono3\n");
-    
 
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15, 8:255,
     // rgb = 8,8,8:255,255,255 same as: WHITE = POW(2, img-bit_depth) - 1,
@@ -563,6 +569,9 @@ void mono3(Image_Data *img) {
     printf("White is %d\n", WHITE);
 
     uint8_t threshold = WHITE * img->mono_threshold;
+    // uint8_t shade = 0;
+
+    assert(img->bit_depth == 24);
 
     if (threshold >= WHITE) {
         for (size_t y = 0; y < img->height; y++) {
@@ -584,9 +593,15 @@ void mono3(Image_Data *img) {
         // Black and White converter
         for (size_t y = 0; y < img->height; y++) {
             for (size_t x = 0; x < img->width * 3; x += 3) {
-                img->imageBuffer3[y][x] = img->imageBuffer3[y][x + 1] =
+
+                img->imageBuffer3[y][x + 0] = img->imageBuffer3[y][x + 1] =
                     img->imageBuffer3[y][x + 2] =
-                        (img->imageBuffer3[y][x] >= threshold) ? WHITE : BLACK;
+                        img->imageBuffer3[y][x + 0] +
+                                    img->imageBuffer3[y][x + 1] +
+                                    img->imageBuffer3[y][x + 2] / 3.0f >=
+                                threshold
+                            ? WHITE
+                            : BLACK;
             }
         }
     }
@@ -1558,7 +1573,7 @@ void sepia3(Image_Data *img) {
 
 void filter1(Image_Data *img) {
     printf("Inside filter1\n");
-    //char *filter_name = img->filter_name;
+    // char *filter_name = img->filter_name;
     int filter_index = img->filter_index;
 
     Convolution *c1 = malloc(sizeof(Convolution));
