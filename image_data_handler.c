@@ -551,43 +551,15 @@ void mono1(Image_Data *img) {
     }
 }
 
-void mono2(Image_Data *img) {
-    printf("Mono2\n");
-    gray13(img);
-
-    // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15,
-    // 8:255 same as: WHITE = POW(2, img-bit_depth) - 1, POW from
-    // math.h
-    const uint8_t WHITE = (1 << img->bit_depth) - 1;
-
-    uint8_t threshold = WHITE * img->mono_threshold;
-
-    if (threshold >= WHITE) {
-        for (int i = 0; i < img->image_size; i++) {
-            img->imageBuffer1[i] = WHITE;
-        }
-    } else if (threshold <= BLACK) {
-        for (int i = 0; i < img->image_size; i++) {
-            img->imageBuffer1[i] = BLACK;
-        }
-    } else {
-        // Black and White converter
-        for (int i = 0; i < img->image_size; i++) {
-            img->imageBuffer1[i] =
-                (img->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
-        }
-    }
-}
-
-// converts to grayscale and then mono
+// converts to mono
 void mono3(Image_Data *img) {
     printf("mono3\n");
-    gray13(img);
+    
 
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15, 8:255,
     // rgb = 8,8,8:255,255,255 same as: WHITE = POW(2, img-bit_depth) - 1,
     // POW from math.h
-    const uint8_t WHITE = (1 << (img->bit_depth / img->channels)) - 1;
+    const uint8_t WHITE = 255;
     printf("White is %d\n", WHITE);
 
     uint8_t threshold = WHITE * img->mono_threshold;
