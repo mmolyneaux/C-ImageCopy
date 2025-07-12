@@ -470,6 +470,28 @@ void gray13(Image_Data *img) {
 
                 buffer1[i] = (hi_index << 4) | lo_index;
             }
+        } else if (bit_depth == 2) {
+            for (size_t i = 0; i < img->image_size; i++) {
+                uint8_t byte = buffer1[i];
+                uint8_t p0 = byte & 0x03;
+                uint8_t p1 = (byte >> 2) & 0x03;
+                uint8_t p2 = (byte >> 4) & 0x03;
+                uint8_t p3 = (byte >> 6) & 0x03;
+
+                uint32_t offsets[4] = {p0 * 4, p1 * 4, p2 * 4, p3 * 4};
+                uint8_t grays[4];
+
+                for (int k = 0; k < 4; k++) {
+                    uint8_t blue  = colorTable[offsets[k] + 0];
+                    uint8_t green = colorTable[offsets[k] + 1];
+                    uint8_t red   = colorTable[offsets[k] + 2];
+
+                    grays[k] = (uint8_t)(r * red + g * green + b * blue + 0.5f) / step;
+                    if (grays[k] >= color_table_count) grays[k] = color_table_count - 1;
+                }
+
+                buffer1[i] = (grays[3] << 6) | (grays[2] << 4) | (grays[1] << 2) | grays[0];
+            }
         } else {
             for (size_t i = 0; i < img->image_size; i++) {
                 uint8_t index = buffer1[i];
@@ -487,14 +509,14 @@ void gray13(Image_Data *img) {
             }
         }
 
-        // Create grayscale palette
+        // Build grayscale color table
         for (uint16_t i = 0; i < color_table_count; i++) {
             uint8_t gray = i * step;
             uint32_t offset = i * 4;
-            colorTable[offset + 0] = gray; // Blue
-            colorTable[offset + 1] = gray; // Green
-            colorTable[offset + 2] = gray; // Red
-            colorTable[offset + 3] = 0;    // Reserved
+            colorTable[offset + 0] = gray;
+            colorTable[offset + 1] = gray;
+            colorTable[offset + 2] = gray;
+            colorTable[offset + 3] = 0;
         }
     }
 }
