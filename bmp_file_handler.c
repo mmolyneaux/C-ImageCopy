@@ -180,8 +180,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
-        uint16_t color_table_count = 
-        //bmp->image_data->color_table_count =
+        uint16_t color_table_count =
+            // bmp->image_data->color_table_count =
             1 << bmp->info_header.bit_depth;
 
         if (bmp->info_header.colors_used_field == 0) {
@@ -316,7 +316,7 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         fprintf(stderr, "Error: Unitialized bmp sent to load_bitmap.\n");
         return EXIT_FAILURE;
     }
-    // If filename_out is supplied, overwrite the existing one properly
+    // If filename_out is supplied to the function, overwrite the existing one
     if (filename_out) {
         if (bmp->filename_out) {
             free(bmp->filename_out); // Free previously allocated filename
@@ -329,6 +329,8 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         fprintf(stderr, "Error: No filename supplied to write_bitmap\n");
         return EXIT_FAILURE;
     }
+
+    // printf("filename out in write bitmap: %s \n", bmp->filename_out);
 
     // Confirm filename_in is also set
     if (!bmp->filename_in) {
@@ -345,13 +347,14 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
     // create a filename based on filename_in and change the extension
     // to txt
 
+    if (!bmp->filename_out) {
+        bmp->filename_out = create_filename_with_suffix(
+            bmp->filename_in, bmp->image_data->mode_suffix);
+    }
+
+    // Open file for writing
     if (bmp->image_data->mode == HIST) {
-
-        if (!bmp->filename_out) {
-            bmp->filename_out =
-                create_filename_with_suffix(bmp->filename_in, "_hist");
-        }
-
+        change_extension(bmp->filename_out, "txt");
         for (int i = 0; i < bmp->image_data->HIST_RANGE_MAX; i++) {
             fprintf(file, "%hhu\n", bmp->image_data->histogram1[i]);
             fclose(file);
@@ -359,10 +362,7 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         }
         // TODO: write out hist3
     } else if (bmp->image_data->mode == HIST_N) {
-        if (!bmp->filename_out) {
-            bmp->filename_out =
-                create_filename_with_suffix(bmp->filename_in, "_hist_n");
-        }
+
         change_extension(bmp->filename_out, "txt");
         file = fopen(bmp->filename_out, "w");
         for (int i = 0; i < bmp->image_data->HIST_RANGE_MAX; i++) {
@@ -371,8 +371,6 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
             return write_succesful = true;
         }
     } else {
-        bmp->filename_out = create_filename_with_suffix(
-            bmp->filename_in, bmp->image_data->mode_suffix);
 
         file = fopen(bmp->filename_out, "wb");
         if (file == NULL) {
