@@ -78,7 +78,7 @@ void init_bitmap(Bitmap *bmp) {
     bmp->info_header.planes = 1; // BMP format requires planes = 1
     bmp->info_header.bit_depth = 0;
     bmp->info_header.compression = 0;
-    bmp->info_header.image_size_field = 0;
+    bmp->info_header.image_size_field_bytes = 0;
     bmp->info_header.x_pixels_per_meter = 0;
     bmp->info_header.y_pixels_per_meter = 0;
     bmp->info_header.colors_used_field = 0;
@@ -249,16 +249,16 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     bmp->image_bytes_calculated = bmp->padded_width * bmp->info_header.height;
 
     // Validate image size field with calculated image size
-    if (bmp->info_header.image_size_field != bmp->image_bytes_calculated) {
+    if (bmp->info_header.image_size_field_bytes != bmp->image_bytes_calculated) {
         fprintf(stderr,
                 "Corrected Image Size field from %d bytes to %d bytes.\n",
-                bmp->info_header.image_size_field, bmp->image_bytes_calculated);
-        bmp->info_header.image_size_field = bmp->image_bytes_calculated;
+                bmp->info_header.image_size_field_bytes, bmp->image_bytes_calculated);
+        bmp->info_header.image_size_field_bytes = bmp->image_bytes_calculated;
     }
 
     // Create pixel data buffer
     // bmp->pixel_data = NULL; // already initialized to NULL
-    bmp->pixel_data = malloc(bmp->info_header.image_size_field);
+    bmp->pixel_data = malloc(bmp->info_header.image_size_field_bytes);
     if (!bmp->pixel_data) {
         fprintf(stderr, "Error: Memory allocation failed for pixel data.\n");
         fclose(file);
@@ -267,8 +267,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
     // Read pixel data
     fseek(file, bmp->file_header.offset_bytes, SEEK_SET);
-    if (bmp->info_header.image_size_field !=
-        fread(bmp->pixel_data, 1, bmp->info_header.image_size_field, file)) {
+    if (bmp->info_header.image_size_field_bytes !=
+        fread(bmp->pixel_data, 1, bmp->info_header.image_size_field_bytes, file)) {
         fprintf(stderr, "Error: Could not read image data.\n");
     }
     fclose(file);
@@ -280,7 +280,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     bmp->image_data->height = bmp->info_header.height;
     bmp->image_data->padded_width = bmp->padded_width;
     bmp->image_data->padded_width = bmp->padded_width;
-    bmp->image_data->image_size = bmp->info_header.image_size_field;
+    bmp->image_data->image_byte_count = bmp->info_header.image_size_field_bytes;
+    bmp->image_data->image_pixel_count = bmp->info_header.height * bmp->info_header.width;
     bmp->image_data->bit_depth = bmp->info_header.bit_depth;
 
     if (bmp->image_data->channels == 1) {
@@ -392,10 +393,10 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         printf("Info header bytes: %llu\n", sizeof(Info_Header));
         printf("Color table bytes: %d\n", bmp->color_table_byte_count);
         printf("Offset bytes: %d\n", bmp->file_header.offset_bytes);
-        printf("Image size bytes: %d\n", bmp->info_header.image_size_field);
+        printf("Image size bytes: %d\n", bmp->info_header.image_size_field_bytes);
 
         bmp->file_header.file_size_field =
-            bmp->file_header.offset_bytes + bmp->info_header.image_size_field;
+            bmp->file_header.offset_bytes + bmp->info_header.image_size_field_bytes;
 
         printf("File size field bytes: %d\n", bmp->file_header.file_size_field);
         // Processing
@@ -431,9 +432,9 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
             }
         }
         // Write pixel data
-        // for (int i = 0; i < bmp->info_header.image_size_field; i++) {
-        if (fwrite(bmp->pixel_data, 1, bmp->info_header.image_size_field,
-                   file) != bmp->info_header.image_size_field) {
+        // for (int i = 0; i < bmp->info_header.image_size_field_bytes; i++) {
+        if (fwrite(bmp->pixel_data, 1, bmp->info_header.image_size_field_bytes,
+                   file) != bmp->info_header.image_size_field_bytes) {
             fprintf(stderr, "Error: Failed to write image data.\n");
             fclose(file);
             return 6;

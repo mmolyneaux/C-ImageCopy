@@ -185,7 +185,7 @@ bool write_image(Image *img, char *filename) {
             if (img->CT_EXISTS) {
                 fwrite(img->colorTable, sizeof(char), CT_SIZE, streamOut);
             }
-            fwrite(img->imageBuffer1, sizeof(char), img->image_size, streamOut);
+            fwrite(img->imageBuffer1, sizeof(char), img->image_byte_count, streamOut);
         } else if (img->channels == RGB) {
             for (int x = img->padded_width - 16; x < img->padded_width - 1;
                  x++) {

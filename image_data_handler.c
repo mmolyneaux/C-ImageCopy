@@ -19,7 +19,8 @@ void init_image(Image_Data *img) {
     img->width = 0;
     img->height = 0;
     img->padded_width = 0;
-    img->image_size = 0;
+    img->image_byte_count = 0;
+    img->image_pixel_count = 0;
     img->bit_depth = 0;
     img->channels = 0;
     img->mono_threshold = 0.0f;
@@ -447,7 +448,7 @@ void gray13(Image_Data *img) {
         uint8_t step = (bit_depth == 2) ? 85 : (bit_depth == 4) ? 17 : 1;
 
         if (bit_depth == 4) {
-            for (size_t i = 0; i < img->image_size; i++) {
+            for (size_t i = 0; i < img->image_byte_count; i++) {
                 uint8_t byte = buffer1[i];
                 uint8_t hi = byte >> 4;
                 uint8_t lo = byte & 0x0F;
@@ -474,7 +475,7 @@ void gray13(Image_Data *img) {
                 buffer1[i] = (hi_index << 4) | lo_index;
             }
         } else if (bit_depth == 2) {
-            for (size_t i = 0; i < img->image_size; i++) {
+            for (size_t i = 0; i < img->image_byte_count; i++) {
                 uint8_t byte = buffer1[i];
                 uint8_t p0 = byte & 0x03;
                 uint8_t p1 = (byte >> 2) & 0x03;
@@ -499,7 +500,7 @@ void gray13(Image_Data *img) {
                              (grays[1] << 2) | grays[0];
             }
         } else {
-            for (size_t i = 0; i < img->image_size; i++) {
+            for (size_t i = 0; i < img->image_byte_count; i++) {
                 uint8_t index = buffer1[i];
                 uint32_t offset = index * 4;
                 uint8_t blue = colorTable[offset + 0];
@@ -530,7 +531,7 @@ void gray13(Image_Data *img) {
 
 void mono1(Image_Data *img) {
     printf("Mono1\n");
-    gray13(img);
+    // gray13(img);
 
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15,
     // 8:255 same as: WHITE = POW(2, img-bit_depth) - 1, POW from
@@ -541,21 +542,36 @@ void mono1(Image_Data *img) {
     uint8_t threshold = WHITE * img->mono_threshold;
     // uint8_t current_color = 0;
     if (threshold >= WHITE) {
-        for (int i = 0; i < img->image_size; i++) {
+        for (int i = 0; i < img->image_byte_count; i++) {
 
             img->imageBuffer1[i] = 1;
         }
     } else if (threshold <= BLACK) {
-        for (int i = 0; i < img->image_size; i++) {
+        for (int i = 0; i < img->image_byte_count; i++) {
             img->imageBuffer1[i] = 0;
         }
     } else {
         // Black and White converter
-        for (int i = 0; i < CT_MAX; i++) {
+        int8_t ct_val = 0;
+
+        for (size_t i = 0; i < img_; i++) {
             img->imageBuffer1[i] =
+                img->colorTable
                 (img->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
-        }
+        
+        
+            
+            
+        img->imageBuffer1[i] = 
+                (img->colorTable[i + 0] + img->imageBuffer3[y][x + 1] +
+                 img->imageBuffer3[y][x + 2]) /
+                                3.0f +
+                            0.5f >=
+                        threshold
+                    ? WHITE
+                    : BLACK;
     }
+                }
 }
 
 // converts to mono
@@ -596,9 +612,11 @@ void mono3(Image_Data *img) {
 
                 img->imageBuffer3[y][x + 0] = img->imageBuffer3[y][x + 1] =
                     img->imageBuffer3[y][x + 2] =
-                        img->imageBuffer3[y][x + 0] +
-                                    img->imageBuffer3[y][x + 1] +
-                                    img->imageBuffer3[y][x + 2] / 3.0f >=
+                        (img->imageBuffer3[y][x + 0] +
+                         img->imageBuffer3[y][x + 1] +
+                         img->imageBuffer3[y][x + 2]) /
+                                        3.0f +
+                                    0.5f >=
                                 threshold
                             ? WHITE
                             : BLACK;
@@ -611,7 +629,7 @@ void bright1(Image_Data *img) {
     const uint8_t WHITE = (1 << img->bit_depth) - 1;
 
     if (img->bright_value) {
-        for (int i = 0, value = 0; i < img->image_size; i++) {
+        for (int i = 0, value = 0; i < img->image_byte_count; i++) {
             // Adds the positive or negative value with black and white
             // bounds.
 
@@ -627,7 +645,7 @@ void bright1(Image_Data *img) {
         }
     } else { // img->bright_percent
              // if (img->bright_percent) {
-        for (int i = 0, value = 0; i < img->image_size; i++) {
+        for (int i = 0, value = 0; i < img->image_byte_count; i++) {
             // Adds the positive or negative value with black and white
             // bounds.
             value = img->imageBuffer1[i] + (int)(img->bright_percent * WHITE);
@@ -712,7 +730,7 @@ void hist1(Image_Data *img) {
     }
 
     // Create histogram / count pixels
-    for (size_t i = 0; i < img->image_size; i++) {
+    for (size_t i = 0; i < img->image_byte_count; i++) {
         img->histogram1[img->imageBuffer1[i]]++;
         if (img->histogram1[img->imageBuffer1[i]] > img->hist_max_value1) {
             img->hist_max_value1 = img->histogram1[img->imageBuffer1[i]];
@@ -776,7 +794,7 @@ void equal1(Image_Data *img) {
     for (int i = 0; i < img->HIST_RANGE_MAX; i++) {
     }
     //  Map the equalized values back to image data
-    for (size_t i = 0; i < img->image_size; i++) {
+    for (size_t i = 0; i < img->image_byte_count; i++) {
         img->imageBuffer1[i] = equalized[img->imageBuffer1[i]];
     }
 
@@ -880,7 +898,7 @@ void inv1(Image_Data *img) {
 
     // simple grayscale invert, 255 - color, ignores invert mode setting.
     if (img->channels == 1) {
-        for (int i = 0; i < img->image_size; i++) {
+        for (int i = 0; i < img->image_byte_count; i++) {
             img->imageBuffer1[i] = 255 - img->imageBuffer1[i];
         }
     }
@@ -928,7 +946,7 @@ void flip13(Image_Data *img) {
 
     uint32_t width = img->width;
     uint32_t height = img->height;
-    uint32_t image_size = img->image_size;
+    uint32_t image_byte_count = img->image_byte_count;
     uint32_t rows = height;
     uint32_t cols = width;
 
@@ -1025,7 +1043,7 @@ void rot13(Image_Data *img) {
         return;
     }
     // For transformation algorithm, pre-transform.
-    uint32_t image_size = img->image_size;
+    uint32_t image_size = img->image_byte_count;
     uint32_t rows = org_height;
     uint32_t cols = org_width;
 
@@ -1582,7 +1600,7 @@ void filter1(Image_Data *img) {
     c1->width = img->width;        // Image width
     c1->kernel = &kernel_list[filter_index];
     c1->output =
-        create_buffer1(img->image_size); // Pointer to the output image buffer
+        create_buffer1(img->image_byte_count); // Pointer to the output image buffer
 
     printf("Kernel: %s\n", c1->kernel->name);
 
@@ -1601,7 +1619,7 @@ void filter1(Image_Data *img) {
     printf("After conv1\n");
 
     // transfer back to the original input buffer.
-    for (int i = 0; i < img->image_size; i++) {
+    for (int i = 0; i < img->image_byte_count; i++) {
         if (i < 10) {
             printf("I:%d,O:%d", c1->input[i], c1->output[i]);
         }

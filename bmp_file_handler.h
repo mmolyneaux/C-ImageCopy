@@ -55,7 +55,7 @@ typedef struct {
     uint16_t planes;
     uint16_t bit_depth;
     uint32_t compression;
-    uint32_t image_size_field;
+    uint32_t image_size_field_bytes;
     int32_t x_pixels_per_meter;
     int32_t y_pixels_per_meter;
     // Colors Used defines how many colors exist in the table.

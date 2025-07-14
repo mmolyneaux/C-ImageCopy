@@ -42,7 +42,8 @@ typedef struct {
     uint32_t width;
     uint32_t height;
     uint32_t padded_width;
-    uint32_t image_size;
+    uint32_t image_byte_count;
+    uint32_t image_pixel_count;
     uint8_t bit_depth;
     uint8_t channels;
     float_t mono_threshold; // 0.0 to 1.0 inclusive

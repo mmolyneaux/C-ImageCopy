@@ -82,7 +82,7 @@ void print_header_fields(Bitmap *bmp) {
     printf("Pixel bit depth: %d\n", bmp->info_header.bit_depth);
     printf("Compression: ");
     print_compression(bmp->info_header.compression);
-    printf("Image bytes field     : %d\n", bmp->info_header.image_size_field);
+    printf("Image bytes field     : %d\n", bmp->info_header.image_size_field_bytes);
     printf("Image bytes calculated: %u\n", bmp->image_bytes_calculated);
     printf("X pixels per meter: %d (%.1f DPI)\n",
            bmp->info_header.x_pixels_per_meter,
