@@ -48,22 +48,23 @@ typedef struct {
   read.
  */
 typedef struct {
-    // info header size
-    uint32_t info_header_size_field;
-    int32_t width;
-    int32_t height;
-    uint16_t planes;
-    uint16_t bit_depth;
-    uint32_t compression;
-    uint32_t image_size_field_bytes;
-    int32_t x_pixels_per_meter;
-    int32_t y_pixels_per_meter;
+    // info header size (40 bytes)
+    uint32_t bi_info_header_size; 
+    // in pixels
+    int32_t bi_width;
+    int32_t bi_height;
+    uint16_t bi_planes;
+    uint16_t bi_bit_depth;
+    uint32_t bi_compression;
+    uint32_t bi_image_size_field_bytes;
+    int32_t bi_x_pixels_per_meter;
+    int32_t bi_y_pixels_per_meter;
     // Colors Used defines how many colors exist in the table.
-    uint32_t colors_used_field; // Colors in color table, or 0 for default
+    bi_uint32_t colors_used_field; // Colors in color table, or 0 for default
     // Important Colors defines how many colors matter for rendering.
     // If 0, all colors in the Color Table are important. If nonzero, only the
     // specified number of colors matter for rendering.
-    uint32_t important_color_count; 
+    bi_uint32_t important_color_count; 
 
 } Info_Header;
 
