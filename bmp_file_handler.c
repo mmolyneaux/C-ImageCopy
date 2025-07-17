@@ -72,17 +72,17 @@ void init_bitmap(Bitmap *bmp) {
     bmp->file_header.offset_bytes = 0;
 
     // Initialize Info Header
-    bmp->info_header.info_header_size_field = sizeof(Info_Header);
-    bmp->info_header.width = 0;
-    bmp->info_header.height = 0;
-    bmp->info_header.planes = 1; // BMP format requires planes = 1
-    bmp->info_header.bit_depth = 0;
-    bmp->info_header.compression = 0;
-    bmp->info_header.image_size_field_bytes = 0;
-    bmp->info_header.x_pixels_per_meter = 0;
-    bmp->info_header.y_pixels_per_meter = 0;
-    bmp->info_header.colors_used_field = 0;
-    bmp->info_header.important_color_count = 0;
+    bmp->info_header.bi_byte_count = sizeof(Info_Header);
+    bmp->info_header.bi_width_pixels = 0;
+    bmp->info_header.bi_height_pixels = 0;
+    bmp->info_header.bi_planes = 1; // BMP format requires planes = 1
+    bmp->info_header.bi_bit_depth = 0;
+    bmp->info_header.bi_compression = 0;
+    bmp->info_header.bi_image_byte_count = 0;
+    bmp->info_header.bi_x_pixels_per_meter = 0;
+    bmp->info_header.bi_y_pixels_per_meter = 0;
+    bmp->info_header.bi_colors_used_count = 0;
+    bmp->info_header.bi_important_color_count = 0;
 
     // Initialize other Bitmap fields
     bmp->pixel_data = NULL;
@@ -172,7 +172,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
     // For bit_depth <= 8, colors are stored in and referenced from the
     // color table
-    if (bmp->info_header.bit_depth <= 8) {
+    if (bmp->info_header.bi_bit_depth <= 8) {
         bmp->image_data->channels = 1;
 
         // each color table entry is 4 bytes (one byte each for Blue, Green,
@@ -182,12 +182,12 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         // 2^bit_depth if unset).
         uint16_t color_table_count =
             // bmp->image_data->color_table_count =
-            1 << bmp->info_header.bit_depth;
+            1 << bmp->info_header.bi_bit_depth;
 
-        if (bmp->info_header.colors_used_field == 0) {
+        if (bmp->info_header.bi_colors_used_count == 0) {
             bmp->colors_used_actual = color_table_count;
         } else {
-            bmp->colors_used_actual = bmp->info_header.colors_used_field;
+            bmp->colors_used_actual = bmp->info_header.bi_colors_used_count;
         }
 
         printf("Colors used actual: %d\n", bmp->colors_used_actual);
@@ -228,11 +228,11 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         // Align to the newrest multiple of 4 bytes
         bmp->padded_width = (bytes_per_row + 3) & ~3;
        */
-    } else if (bmp->info_header.bit_depth == 24) {
+    } else if (bmp->info_header.bi_bit_depth == 24) {
         bmp->image_data->channels = 3;
     } else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
-                bmp->info_header.bit_depth);
+                bmp->info_header.bi_bit_depth);
     }
 
     if (bmp->file_header.file_size_field != bmp->file_size_read) {
@@ -243,22 +243,22 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     }
 
     bmp->padded_width =
-        pad_width(bmp->info_header.width, bmp->info_header.bit_depth);
+        pad_width(bmp->info_header.bi_width_pixels, bmp->info_header.bi_bit_depth);
 
     // Total image size in bytes
-    bmp->image_bytes_calculated = bmp->padded_width * bmp->info_header.height;
+    bmp->image_bytes_calculated = bmp->padded_width * bmp->info_header.bi_height_pixels;
 
     // Validate image size field with calculated image size
-    if (bmp->info_header.image_size_field_bytes != bmp->image_bytes_calculated) {
+    if (bmp->info_header.bi_image_byte_count != bmp->image_bytes_calculated) {
         fprintf(stderr,
                 "Corrected Image Size field from %d bytes to %d bytes.\n",
-                bmp->info_header.image_size_field_bytes, bmp->image_bytes_calculated);
-        bmp->info_header.image_size_field_bytes = bmp->image_bytes_calculated;
+                bmp->info_header.bi_image_byte_count, bmp->image_bytes_calculated);
+        bmp->info_header.bi_image_byte_count = bmp->image_bytes_calculated;
     }
 
     // Create pixel data buffer
     // bmp->pixel_data = NULL; // already initialized to NULL
-    bmp->pixel_data = malloc(bmp->info_header.image_size_field_bytes);
+    bmp->pixel_data = malloc(bmp->info_header.bi_image_byte_count);
     if (!bmp->pixel_data) {
         fprintf(stderr, "Error: Memory allocation failed for pixel data.\n");
         fclose(file);
@@ -267,8 +267,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
     // Read pixel data
     fseek(file, bmp->file_header.offset_bytes, SEEK_SET);
-    if (bmp->info_header.image_size_field_bytes !=
-        fread(bmp->pixel_data, 1, bmp->info_header.image_size_field_bytes, file)) {
+    if (bmp->info_header.bi_image_byte_count !=
+        fread(bmp->pixel_data, 1, bmp->info_header.bi_image_byte_count, file)) {
         fprintf(stderr, "Error: Could not read image data.\n");
     }
     fclose(file);
@@ -276,13 +276,13 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     /*
      * Update image data.
      */
-    bmp->image_data->width = bmp->info_header.width;
-    bmp->image_data->height = bmp->info_header.height;
+    bmp->image_data->width = bmp->info_header.bi_width_pixels;
+    bmp->image_data->height = bmp->info_header.bi_height_pixels;
     bmp->image_data->padded_width = bmp->padded_width;
     bmp->image_data->padded_width = bmp->padded_width;
-    bmp->image_data->image_byte_count = bmp->info_header.image_size_field_bytes;
-    bmp->image_data->image_pixel_count = bmp->info_header.height * bmp->info_header.width;
-    bmp->image_data->bit_depth = bmp->info_header.bit_depth;
+    bmp->image_data->image_byte_count = bmp->info_header.bi_image_byte_count;
+    bmp->image_data->image_pixel_count = bmp->info_header.bi_height_pixels * bmp->info_header.bi_height_pixels;
+    bmp->image_data->bit_depth = bmp->info_header.bi_bit_depth;
 
     if (bmp->image_data->channels == 1) {
         bmp->image_data->colorTable = bmp->color_table;
@@ -296,7 +296,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         //    &bmp->image_data->imageBuffer3,
         //       bmp->info_header.height, bmp->padded_width);
         bmp->image_data->imageBuffer3 = pixel_data_to_buffer3(
-            bmp->pixel_data, bmp->info_header.width, bmp->info_header.height);
+            bmp->pixel_data, bmp->info_header.bi_width_pixels, bmp->info_header.bi_height_pixels);
     }
 
     return EXIT_SUCCESS;

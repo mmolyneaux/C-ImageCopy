@@ -552,26 +552,16 @@ void mono1(Image_Data *img) {
         }
     } else {
         // Black and White converter
-        int8_t ct_val = 0;
+        int8_t ct_avg = 0;
 
-        for (size_t i = 0; i < img_; i++) {
+        for (size_t i = 0; i < img->Image_Data.color_table_count*3; i+=3) {
+            // average luminance + 0.5 for rounding
+            ct_avg = (uint8_t)(img->colorTable[i + 0] + img->colorTable[i + 1] +
+                               img->colorTable[i + 2] + 0.5f) / 3.0f;
             img->imageBuffer1[i] =
-                img->colorTable
                 (img->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
-        
-        
-            
-            
-        img->imageBuffer1[i] = 
-                (img->colorTable[i + 0] + img->imageBuffer3[y][x + 1] +
-                 img->imageBuffer3[y][x + 2]) /
-                                3.0f +
-                            0.5f >=
-                        threshold
-                    ? WHITE
-                    : BLACK;
+        }
     }
-                }
 }
 
 // converts to mono
@@ -1599,8 +1589,8 @@ void filter1(Image_Data *img) {
     c1->height = img->height;      // Image height
     c1->width = img->width;        // Image width
     c1->kernel = &kernel_list[filter_index];
-    c1->output =
-        create_buffer1(img->image_byte_count); // Pointer to the output image buffer
+    c1->output = create_buffer1(
+        img->image_byte_count); // Pointer to the output image buffer
 
     printf("Kernel: %s\n", c1->kernel->name);
 
