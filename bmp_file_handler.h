@@ -97,7 +97,7 @@ typedef struct {
     uint8_t green; // Green component (1 byte)
     uint8_t blue;  // Blue component (1 byte)
     uint8_t reserved; // Reserved or Alpha component (1 byte, often unused or 0)
-} Color;
+} Indexed_Color;
 
 // Function prototypes
 uint32_t pad_width(int32_t width, uint8_t bit_depth);

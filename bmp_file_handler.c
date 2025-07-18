@@ -1,7 +1,6 @@
 
 #include "bmp_file_handler.h"
 #include "image_data_handler.h"
-// #include <cstdint>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -180,19 +179,20 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
-        uint16_t color_table_count =
-            // bmp->image_data->color_table_count =
-            1 << bmp->info_header.bi_bit_depth;
+        uint16_t ct_color_count=
+        bmp->image_data->ct_color_count  =
+            get_CT_color_count(bmp->info_header.bi_bit_depth);
+          
 
         if (bmp->info_header.bi_colors_used_count == 0) {
-            bmp->colors_used_actual = color_table_count;
+            bmp->colors_used_actual = ct_color_count;
         } else {
             bmp->colors_used_actual = bmp->info_header.bi_colors_used_count;
         }
 
         printf("Colors used actual: %d\n", bmp->colors_used_actual);
         // Each color table entry is 4 bytes
-        bmp->color_table_byte_count = color_table_count * sizeof(Color);
+        bmp->color_table_byte_count = ct_color_count * sizeof(Indexed_Color); 
 
         // Allocate color table
         bmp->color_table = NULL;
@@ -382,9 +382,9 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
 
         // Image *img = bmp->image;
 
-        bmp->info_header.info_header_size_field = sizeof(Info_Header);
+        bmp->info_header.bi_byte_count = sizeof(Info_Header);
         printf("Info Header size: %d\n",
-               bmp->info_header.info_header_size_field);
+               bmp->info_header.bi_byte_count);
 
         bmp->file_header.offset_bytes = sizeof(File_Header) +
                                         sizeof(Info_Header) +
@@ -393,10 +393,10 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         printf("Info header bytes: %llu\n", sizeof(Info_Header));
         printf("Color table bytes: %d\n", bmp->color_table_byte_count);
         printf("Offset bytes: %d\n", bmp->file_header.offset_bytes);
-        printf("Image size bytes: %d\n", bmp->info_header.image_size_field_bytes);
+        printf("Image size bytes: %d\n", bmp->info_header.bi_image_byte_count);
 
         bmp->file_header.file_size_field =
-            bmp->file_header.offset_bytes + bmp->info_header.image_size_field_bytes;
+            bmp->file_header.offset_bytes + bmp->info_header.bi_image_byte_count;
 
         printf("File size field bytes: %d\n", bmp->file_header.file_size_field);
         // Processing
@@ -417,7 +417,7 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         }
 
         // Write color table, bit <= 8
-        if (bmp->info_header.bit_depth <= 8) {
+        if (bmp->info_header.bi_bit_depth <= 8) {
             printf("Color table bytes: %d\n", bmp->color_table_byte_count);
             if (bmp->color_table) {
                 // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
@@ -433,8 +433,8 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         }
         // Write pixel data
         // for (int i = 0; i < bmp->info_header.image_size_field_bytes; i++) {
-        if (fwrite(bmp->pixel_data, 1, bmp->info_header.image_size_field_bytes,
-                   file) != bmp->info_header.image_size_field_bytes) {
+        if (fwrite(bmp->pixel_data, 1, bmp->info_header.bi_image_byte_count,
+                   file) != bmp->info_header.bi_image_byte_count) {
             fprintf(stderr, "Error: Failed to write image data.\n");
             fclose(file);
             return 6;

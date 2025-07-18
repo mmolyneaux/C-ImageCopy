@@ -27,7 +27,7 @@ void init_image(Image_Data *img) {
     img->bright_value = 0;
     img->bright_percent = 0.0f;
     img->CT_EXISTS = false;
-    // img->color_table_count = 0;
+    img->ct_color_count = 0;
     img->colorTable = NULL;
     img->imageBuffer1 = NULL;
     img->imageBuffer3 = NULL;
@@ -241,18 +241,18 @@ char *get_mode_string(enum Mode mode) {
     }
 }
 
-uint8_t *create_buffer1(uint32_t image_size) {
-    if (!image_size) {
+uint8_t *create_buffer1(uint32_t image_byte_count) {
+    if (!image_byte_count) {
         fprintf(stderr,
                 "Error: Buffer creation failed, Image size not defined.\n");
         exit(EXIT_FAILURE);
     }
-    uint8_t *buf1 = (uint8_t *)calloc(image_size, sizeof(uint8_t));
+    uint8_t *buf1 = (uint8_t *)calloc(image_byte_count, sizeof(uint8_t));
     if (buf1 == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
         exit(EXIT_FAILURE);
     }
-    printf("Size created: %d\n", image_size);
+    printf("Size created: %d\n", image_byte_count);
 
     // img->imageBuffer1 = buf1;
     return buf1;
@@ -536,7 +536,7 @@ void mono1(Image_Data *img) {
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15,
     // 8:255 same as: WHITE = POW(2, img-bit_depth) - 1, POW from
     // math.h
-    const uint8_t CT_MAX = (1 << img->bit_depth) - 1;
+    //const uint8_t CT_MAX = (1 << img->bit_depth) - 1;
     const uint8_t WHITE = 255;
 
     uint8_t threshold = WHITE * img->mono_threshold;
@@ -554,15 +554,21 @@ void mono1(Image_Data *img) {
         // Black and White converter
         int8_t ct_avg = 0;
 
-        for (size_t i = 0; i < img->Image_Data.color_table_count*3; i+=3) {
-            // average luminance + 0.5 for rounding
+        for (size_t i = 0; i < img->image_pixel_count; i+=4) {
+            // average brightness + 0.5 for rounding
             ct_avg = (uint8_t)(img->colorTable[i + 0] + img->colorTable[i + 1] +
                                img->colorTable[i + 2] + 0.5f) / 3.0f;
             img->imageBuffer1[i] =
-                (img->imageBuffer1[i] >= threshold) ? WHITE : BLACK;
+                (ct_avg >= threshold) ? WHITE : BLACK;
         }
     }
+    img->colorTable[0] = img->colorTable[1] = img->colorTable[2] = BLACK;
+    for (size_t i = 1; i < img->ct_color_count; i++) {
+        img->colorTable[4*i + 0] = img->colorTable[4*i + 1] = img->colorTable[4*i + 2] = WHITE;
+    }
 }
+
+
 
 // converts to mono
 void mono3(Image_Data *img) {
@@ -946,7 +952,7 @@ void flip13(Image_Data *img) {
     uint8_t **output_buffer3 = NULL;
 
     if (img->channels == 1) {
-        output_buffer1 = create_buffer1(image_size);
+        output_buffer1 = create_buffer1(image_byte_count);
 
         if (dir == H) {
             for (int r = 0; r < rows; r++) {
