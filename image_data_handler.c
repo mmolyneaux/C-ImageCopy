@@ -536,8 +536,8 @@ void mono1(Image_Data *img) {
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15,
     // 8:255 same as: WHITE = POW(2, img-bit_depth) - 1, POW from
     // math.h
-    //const uint8_t CT_MAX = (1 << img->bit_depth) - 1;
-    const uint8_t WHITE = 255;
+    // const uint8_t CT_MAX = (1 << img->bit_depth) - 1;
+    const uint8_t WHITE = (1 << img->bit_depth) - 1;
 
     uint8_t threshold = WHITE * img->mono_threshold;
     // uint8_t current_color = 0;
@@ -552,23 +552,32 @@ void mono1(Image_Data *img) {
         }
     } else {
         // Black and White converter
-        int8_t ct_avg = 0;
-
-        for (size_t i = 0; i < img->image_pixel_count; i+=4) {
+        int8_t b = 0, g = 0, r = 0, ct_avg = 0;
+        uint32_t offset = 0;
+        for (size_t i = 0; i < img->image_pixel_count; i++) {
             // average brightness + 0.5 for rounding
+            offset = i * 4; // each palette entry is 4 bytes
+            b = img->colorTable[offset + 0];
+            g = img->colorTable[offset + 1];
+            r = img->colorTable[offset + 2];
+
             ct_avg = (uint8_t)(img->colorTable[i + 0] + img->colorTable[i + 1] +
-                               img->colorTable[i + 2] + 0.5f) / 3.0f;
-            img->imageBuffer1[i] =
-                (ct_avg >= threshold) ? WHITE : BLACK;
+                               img->colorTable[i + 2]) /
+                         3.0f +
+                     0.5f;
+            img->imageBuffer1[i] = (ct_avg >= threshold) ? WHITE : BLACK;
         }
     }
     img->colorTable[0] = img->colorTable[1] = img->colorTable[2] = BLACK;
     for (size_t i = 1; i < img->ct_color_count; i++) {
-        img->colorTable[4*i + 0] = img->colorTable[4*i + 1] = img->colorTable[4*i + 2] = WHITE;
+        uint32_t offset = i * 4; // each palette entry is 4 bytes
+        uint8_t blue = img->colorTable[offset + 0];
+        uint8_t green = img->colorTable[offset + 1];
+        uint8_t red = img->colorTable[offset + 2];
+        // img->colorTable[4*i + 0] = img->colorTable[4*i + 1] =
+        // img->colorTable[4*i + 2] = WHITE;
     }
 }
-
-
 
 // converts to mono
 void mono3(Image_Data *img) {
