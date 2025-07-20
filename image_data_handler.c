@@ -535,9 +535,9 @@ static uint8_t get_luminance(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 // Calculate row size with BMP padding
-static size_t bmp_row_size(int width, uint8_t bit_depth) {
-    int bits_per_row = width * bit_depth;
-    int padded_bits = ((bits_per_row + 31) / 32) * 32;
+static size_t bmp_row_size_bytes(int width, uint8_t bit_depth) {
+    uint32_t bits_per_row = width * bit_depth;
+    uint32_t padded_bits = ((bits_per_row + 31) / 32) * 32;
     return padded_bits / 8;
 }
 
@@ -556,11 +556,11 @@ void mono1(Image_Data *img) {
     uint32_t width = img->width;
     uint32_t height = img->height;
     uint8_t *buffer = img->imageBuffer1;
-    size_t row_size = bmp_row_size(width, bit_depth);
+    size_t row_size_bytes = bmp_row_size_bytes(width, bit_depth);
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            size_t byte_index = row_size * y;
+            size_t byte_index = row_size_bytes * y;
             uint8_t index = 0;
 
             // Bit-depth-aware reading
@@ -625,7 +625,6 @@ void mono1(Image_Data *img) {
             img->colorTable[offset + 3] = 0;
         }
     }
-
     printf("Monochrome conversion complete at threshold %d\n", threshold);
 }
 
