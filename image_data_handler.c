@@ -529,103 +529,96 @@ void gray13(Image_Data *img) {
     }
 }
 
-// Helper for grayscale luminance
+
+// --- Helpers ---
+
+static size_t bmp_row_size_bytes(int width, uint8_t bit_depth) {
+    int bits = width * bit_depth;
+    return ((bits + 31) / 32) * 4; // bytes
+}
+
+uint8_t read_pixel1(uint8_t *buffer1, int width, int height, int x, int y, uint8_t bit_depth) {
+    size_t row_size = bmp_row_size_bytes(width, bit_depth);
+    size_t byte_index = row_size * y;
+
+    switch (bit_depth) {
+        case 8: return buffer1[byte_index + x];
+        case 4: {
+            uint8_t b = buffer1[byte_index + x / 2];
+            return (x % 2 == 0) ? (b >> 4) & 0x0F : b & 0x0F;
+        }
+        case 2: {
+            uint8_t b = buffer1[byte_index + x / 4];
+            return (b >> (6 - 2 * (x % 4))) & 0x03;
+        }
+        default: assert(0 && "Unsupported bit depth"); return 0;
+    }
+}
+
+void write_pixel1(uint8_t *buffer1, int width, int height, int x, int y, uint8_t bit_depth, uint8_t value) {
+    size_t row_size = bmp_row_size_bytes(width, bit_depth);
+    size_t byte_index = row_size * y;
+
+    switch (bit_depth) {
+        case 8: buffer1[byte_index + x] = value; break;
+        case 4: {
+            uint8_t *b = &buffer1[byte_index + x / 2];
+            *b = (x % 2 == 0) ? (*b & 0x0F) | (value << 4) : (*b & 0xF0) | (value & 0x0F);
+            break;
+        }
+        case 2: {
+            uint8_t *b = &buffer1[byte_index + x / 4];
+            uint8_t shift = 6 - 2 * (x % 4);
+            *b = (*b & ~(0x03 << shift)) | ((value & 0x03) << shift);
+            break;
+        }
+        default: assert(0 && "Unsupported bit depth");
+    }
+}
+
 static uint8_t get_luminance(uint8_t r, uint8_t g, uint8_t b) {
     return (uint8_t)(0.299f * r + 0.587f * g + 0.114f * b + 0.5f);
 }
 
-// Calculate row size with BMP padding
-static size_t bmp_row_size_bytes(int width, uint8_t bit_depth) {
-    uint32_t bits_per_row = width * bit_depth;
-    uint32_t padded_bits = ((bits_per_row + 31) / 32) * 32;
-    return padded_bits / 8;
-}
+// --- Main Mono1 ---
 
 void mono1(Image_Data *img) {
-    printf("Mono1 — converting to monochrome (bit depth preserved)\n");
+    printf("Mono1 — grayscale threshold to monochrome (bit depth preserved)\n");
 
-    uint8_t bit_depth = img->bit_depth;
-    assert(bit_depth == 2 || bit_depth == 4 || bit_depth == 8);
+    assert(img->bit_depth == 2 || img->bit_depth == 4 || img->bit_depth == 8);
     assert(img->imageBuffer1 != NULL);
     assert(img->colorTable != NULL);
 
-    //const uint8_t BLACK = 0;
-    const uint8_t WHITE = 1;
     uint8_t threshold = (uint8_t)(255 * img->mono_threshold + 0.5f);
-
-    uint32_t width = img->width;
-    uint32_t height = img->height;
+    int width = img->width, height = img->height;
+    uint8_t bit_depth = img->bit_depth;
     uint8_t *buffer = img->imageBuffer1;
-    size_t row_size_bytes = bmp_row_size_bytes(width, bit_depth);
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            size_t byte_index = row_size_bytes * y;
-            uint8_t index = 0;
+            uint8_t index = read_pixel1(buffer, width, height, x, y, bit_depth);
+            uint32_t ct_offset = index * 4;
 
-            // Bit-depth-aware reading
-            if (bit_depth == 8) {
-                index = buffer[byte_index + x];
-            }
-            else if (bit_depth == 4) {
-                uint8_t b = buffer[byte_index + x / 2];
-                index = (x % 2 == 0) ? (b >> 4) & 0x0F : b & 0x0F;
-            }
-            else if (bit_depth == 2) {
-                uint8_t b = buffer[byte_index + x / 4];
-                uint8_t shift = 6 - 2 * (x % 4);
-                index = (b >> shift) & 0x03;
-            }
+            uint8_t b = img->colorTable[ct_offset + 0];
+            uint8_t g = img->colorTable[ct_offset + 1];
+            uint8_t r = img->colorTable[ct_offset + 2];
+            uint8_t lum = get_luminance(r, g, b);
 
-            // Convert palette color to luminance
-            uint32_t offset = index * 4;
-            uint8_t blue  = img->colorTable[offset + 0];
-            uint8_t green = img->colorTable[offset + 1];
-            uint8_t red   = img->colorTable[offset + 2];
-            uint8_t lum   = get_luminance(red, green, blue);
-
-            // Map pixel to mono index (0 or 1)
-            uint8_t mono_index = (lum >= threshold) ? WHITE : BLACK;
-
-            // Bit-depth-aware writing
-            if (bit_depth == 8) {
-                buffer[byte_index + x] = mono_index;
-            }
-            else if (bit_depth == 4) {
-                uint8_t *b = &buffer[byte_index + x / 2];
-                if (x % 2 == 0) {
-                    *b = (*b & 0x0F) | (mono_index << 4);
-                } else {
-                    *b = (*b & 0xF0) | (mono_index & 0x0F);
-                }
-            }
-            else if (bit_depth == 2) {
-                uint8_t *b = &buffer[byte_index + x / 4];
-                uint8_t shift = 6 - 2 * (x % 4);
-                *b = (*b & ~(0x03 << shift)) | (mono_index << shift);
-            }
+            uint8_t mono = (lum >= threshold) ? 1 : 0;
+            write_pixel1(buffer, width, height, x, y, bit_depth, mono);
         }
     }
 
-    // Update palette: 0 = black, 1 = white; rest can stay unused
-    for (uint16_t i = 0; i < (1 << bit_depth); i++) {
-        uint32_t offset = i * 4;
-        if (i == BLACK) {
-            img->colorTable[offset + 0] = 0;
-            img->colorTable[offset + 1] = 0;
-            img->colorTable[offset + 2] = 0;
-            img->colorTable[offset + 3] = 0;
-        } else if (i == WHITE) {
-            img->colorTable[offset + 0] = 255;
-            img->colorTable[offset + 1] = 255;
-            img->colorTable[offset + 2] = 255;
-            img->colorTable[offset + 3] = 0;
-        } else {
-            img->colorTable[offset + 0] = img->colorTable[offset + 1] = img->colorTable[offset + 2] = 0;
-            img->colorTable[offset + 3] = 0;
-        }
-    }
-    printf("Monochrome conversion complete at threshold %d\n", threshold);
+    // Color table reset: index 0 = black, index 1 = white
+    memset(img->colorTable, 0, img->ct_color_count * 4); // zero all
+
+    // Set index 1 to white
+    img->colorTable[4 * 1 + 0] = 255; // Blue
+    img->colorTable[4 * 1 + 1] = 255; // Green
+    img->colorTable[4 * 1 + 2] = 255; // Red
+    img->colorTable[4 * 1 + 3] = 0;   // Reserved
+
+    printf("Monochrome conversion done with threshold = %d\n", threshold);
 }
 
 // converts to mono
