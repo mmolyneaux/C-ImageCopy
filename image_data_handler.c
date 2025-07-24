@@ -531,9 +531,9 @@ void gray13(Image_Data *img) {
 
 
 // --- Helpers ---
-
-static size_t bmp_row_size_bytes(int width, uint8_t bit_depth) {
-    int bits = width * bit_depth;
+// Calculate padded row size in bytes
+static size_t bmp_row_size_bytes(int width_pixels, uint8_t bit_depth) {
+    int bits = width_pixels * bit_depth;
     return ((bits + 31) / 32) * 4; // bytes
 }
 
