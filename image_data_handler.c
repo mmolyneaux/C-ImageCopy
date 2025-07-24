@@ -24,6 +24,7 @@ void init_image(Image_Data *img) {
     img->bit_depth = 0;
     img->channels = 0;
     img->mono_threshold = 0.0f;
+    img->dithering = false;
     img->bright_value = 0;
     img->bright_percent = 0.0f;
     img->CT_EXISTS = false;
@@ -60,6 +61,7 @@ void process_image(Image_Data *img) {
         } else if (img->mode == GRAY) {
             gray13(img);
         } else if (img->mode == MONO) {
+            img->dithering = true;
             mono1(img);
         } else if (img->mode == BRIGHT) {
             bright1(img);
@@ -583,42 +585,74 @@ static uint8_t get_luminance(uint8_t r, uint8_t g, uint8_t b) {
 // --- Main Mono1 ---
 
 void mono1(Image_Data *img) {
-    printf("Mono1 — grayscale threshold to monochrome (bit depth preserved)\n");
+    printf("Mono1 — %s\n", img->dithering ? "Dithering enabled" : "Thresholding only");
 
     assert(img->bit_depth == 2 || img->bit_depth == 4 || img->bit_depth == 8);
     assert(img->imageBuffer1 != NULL);
     assert(img->colorTable != NULL);
 
-    uint8_t threshold = (uint8_t)(255 * img->mono_threshold + 0.5f);
-    int width = img->width, height = img->height;
+    int width = img->width;
+    int height = img->height;
     uint8_t bit_depth = img->bit_depth;
     uint8_t *buffer = img->imageBuffer1;
+    uint8_t threshold = (uint8_t)(255 * img->mono_threshold + 0.5f);
 
-    for (int y = 0; y < height; y++) {
+    if (img->dithering) {
+        // DITHERED CONVERSION
+        float *brightness = calloc(width * height, sizeof(float));
+
+        for (int y = 0; y < height; y++)
         for (int x = 0; x < width; x++) {
             uint8_t index = read_pixel1(buffer, width, height, x, y, bit_depth);
-            uint32_t ct_offset = index * 4;
+            uint32_t offset = index * 4;
+            uint8_t r = img->colorTable[offset + 2];
+            uint8_t g = img->colorTable[offset + 1];
+            uint8_t b = img->colorTable[offset + 0];
+            brightness[y * width + x] = get_luminance(r, g, b);
+        }
 
-            uint8_t b = img->colorTable[ct_offset + 0];
-            uint8_t g = img->colorTable[ct_offset + 1];
-            uint8_t r = img->colorTable[ct_offset + 2];
+        for (int y = 0; y < height - 1; y++) {
+            for (int x = 1; x < width - 1; x++) {
+                int i = y * width + x;
+                float old = brightness[i];
+                uint8_t mono = (old >= 128.0f) ? 1 : 0;
+                float new_val = mono * 255.0f;
+                float err = old - new_val;
+
+                brightness[i] = new_val;
+                brightness[i + 1]          += err * 7 / 16;
+                brightness[i + width - 1]  += err * 3 / 16;
+                brightness[i + width]      += err * 5 / 16;
+                brightness[i + width + 1]  += err * 1 / 16;
+
+                write_pixel1(buffer, width, height, x, y, bit_depth, mono);
+            }
+        }
+
+        free(brightness);
+    } else {
+        // SIMPLE THRESHOLDING
+        for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++) {
+            uint8_t index = read_pixel1(buffer, width, height, x, y, bit_depth);
+            uint32_t offset = index * 4;
+            uint8_t r = img->colorTable[offset + 2];
+            uint8_t g = img->colorTable[offset + 1];
+            uint8_t b = img->colorTable[offset + 0];
             uint8_t lum = get_luminance(r, g, b);
-
             uint8_t mono = (lum >= threshold) ? 1 : 0;
             write_pixel1(buffer, width, height, x, y, bit_depth, mono);
         }
     }
 
-    // Color table reset: index 0 = black, index 1 = white
-    memset(img->colorTable, 0, img->ct_color_count * 4); // zero all
+    // Update palette: only index 0 (black) and 1 (white) used
+    memset(img->colorTable, 0, img->ct_color_count * 4); // zero all entries
 
-    // Set index 1 to white
-    img->colorTable[4 * 1 + 0] = 255; // Blue
-    img->colorTable[4 * 1 + 1] = 255; // Green
-    img->colorTable[4 * 1 + 2] = 255; // Red
-    img->colorTable[4 * 1 + 3] = 0;   // Reserved
+    img->colorTable[4 * 1 + 0] = 255;
+    img->colorTable[4 * 1 + 1] = 255;
+    img->colorTable[4 * 1 + 2] = 255;
 
-    printf("Monochrome conversion done with threshold = %d\n", threshold);
+    printf("Monochrome conversion complete using %s mode.\n", img->dithering ? "dithering" : "threshold");
 }
 
 // converts to mono
