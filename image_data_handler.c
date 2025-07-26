@@ -531,7 +531,6 @@ void gray13(Image_Data *img) {
     }
 }
 
-
 // --- Helpers ---
 // Calculate padded row size in bytes
 static size_t bmp_row_size_bytes(int width_pixels, uint8_t bit_depth) {
@@ -539,42 +538,51 @@ static size_t bmp_row_size_bytes(int width_pixels, uint8_t bit_depth) {
     return ((bits + 31) / 32) * 4; // bytes
 }
 
-uint8_t read_pixel1(uint8_t *buffer1, int width, int height, int x, int y, uint8_t bit_depth) {
+uint8_t read_pixel1(uint8_t *buffer1, int width, int height, int x, int y,
+                    uint8_t bit_depth) {
     size_t row_size = bmp_row_size_bytes(width, bit_depth);
     size_t byte_index = row_size * y;
 
     switch (bit_depth) {
-        case 8: return buffer1[byte_index + x];
-        case 4: {
-            uint8_t b = buffer1[byte_index + x / 2];
-            return (x % 2 == 0) ? (b >> 4) & 0x0F : b & 0x0F;
-        }
-        case 2: {
-            uint8_t b = buffer1[byte_index + x / 4];
-            return (b >> (6 - 2 * (x % 4))) & 0x03;
-        }
-        default: assert(0 && "Unsupported bit depth"); return 0;
+    case 8:
+        return buffer1[byte_index + x];
+    case 4: {
+        uint8_t b = buffer1[byte_index + x / 2];
+        return (x % 2 == 0) ? (b >> 4) & 0x0F : b & 0x0F;
+    }
+    case 2: {
+        uint8_t b = buffer1[byte_index + x / 4];
+        return (b >> (6 - 2 * (x % 4))) & 0x03;
+    }
+    default:
+        assert(0 && "Unsupported bit depth");
+        return 0;
     }
 }
 
-void write_pixel1(uint8_t *buffer1, int width, int height, int x, int y, uint8_t bit_depth, uint8_t value) {
+void write_pixel1(uint8_t *buffer1, int width, int height, int x, int y,
+                  uint8_t bit_depth, uint8_t value) {
     size_t row_size = bmp_row_size_bytes(width, bit_depth);
     size_t byte_index = row_size * y;
 
     switch (bit_depth) {
-        case 8: buffer1[byte_index + x] = value; break;
-        case 4: {
-            uint8_t *b = &buffer1[byte_index + x / 2];
-            *b = (x % 2 == 0) ? (*b & 0x0F) | (value << 4) : (*b & 0xF0) | (value & 0x0F);
-            break;
-        }
-        case 2: {
-            uint8_t *b = &buffer1[byte_index + x / 4];
-            uint8_t shift = 6 - 2 * (x % 4);
-            *b = (*b & ~(0x03 << shift)) | ((value & 0x03) << shift);
-            break;
-        }
-        default: assert(0 && "Unsupported bit depth");
+    case 8:
+        buffer1[byte_index + x] = value;
+        break;
+    case 4: {
+        uint8_t *b = &buffer1[byte_index + x / 2];
+        *b = (x % 2 == 0) ? (*b & 0x0F) | (value << 4)
+                          : (*b & 0xF0) | (value & 0x0F);
+        break;
+    }
+    case 2: {
+        uint8_t *b = &buffer1[byte_index + x / 4];
+        uint8_t shift = 6 - 2 * (x % 4);
+        *b = (*b & ~(0x03 << shift)) | ((value & 0x03) << shift);
+        break;
+    }
+    default:
+        assert(0 && "Unsupported bit depth");
     }
 }
 
@@ -585,7 +593,8 @@ static uint8_t get_luminance(uint8_t r, uint8_t g, uint8_t b) {
 // --- Main Mono1 ---
 
 void mono1(Image_Data *img) {
-    printf("Mono1 — %s\n", img->dithering ? "Dithering enabled" : "Thresholding only");
+    printf("Mono1 — %s\n",
+           img->dithering ? "Dithering enabled" : "Thresholding only");
 
     assert(img->bit_depth == 2 || img->bit_depth == 4 || img->bit_depth == 8);
     assert(img->imageBuffer1 != NULL);
@@ -602,14 +611,15 @@ void mono1(Image_Data *img) {
         float *brightness = calloc(width * height, sizeof(float));
 
         for (int y = 0; y < height; y++)
-        for (int x = 0; x < width; x++) {
-            uint8_t index = read_pixel1(buffer, width, height, x, y, bit_depth);
-            uint32_t offset = index * 4;
-            uint8_t r = img->colorTable[offset + 2];
-            uint8_t g = img->colorTable[offset + 1];
-            uint8_t b = img->colorTable[offset + 0];
-            brightness[y * width + x] = get_luminance(r, g, b);
-        }
+            for (int x = 0; x < width; x++) {
+                uint8_t index =
+                    read_pixel1(buffer, width, height, x, y, bit_depth);
+                uint32_t offset = index * 4;
+                uint8_t r = img->colorTable[offset + 2];
+                uint8_t g = img->colorTable[offset + 1];
+                uint8_t b = img->colorTable[offset + 0];
+                brightness[y * width + x] = get_luminance(r, g, b);
+            }
 
         for (int y = 0; y < height - 1; y++) {
             for (int x = 1; x < width - 1; x++) {
@@ -620,10 +630,10 @@ void mono1(Image_Data *img) {
                 float err = old - new_val;
 
                 brightness[i] = new_val;
-                brightness[i + 1]          += err * 7 / 16;
-                brightness[i + width - 1]  += err * 3 / 16;
-                brightness[i + width]      += err * 5 / 16;
-                brightness[i + width + 1]  += err * 1 / 16;
+                brightness[i + 1] += err * 7 / 16;
+                brightness[i + width - 1] += err * 3 / 16;
+                brightness[i + width] += err * 5 / 16;
+                brightness[i + width + 1] += err * 1 / 16;
 
                 write_pixel1(buffer, width, height, x, y, bit_depth, mono);
             }
@@ -633,16 +643,17 @@ void mono1(Image_Data *img) {
     } else {
         // SIMPLE THRESHOLDING
         for (int y = 0; y < height; y++)
-        for (int x = 0; x < width; x++) {
-            uint8_t index = read_pixel1(buffer, width, height, x, y, bit_depth);
-            uint32_t offset = index * 4;
-            uint8_t r = img->colorTable[offset + 2];
-            uint8_t g = img->colorTable[offset + 1];
-            uint8_t b = img->colorTable[offset + 0];
-            uint8_t lum = get_luminance(r, g, b);
-            uint8_t mono = (lum >= threshold) ? 1 : 0;
-            write_pixel1(buffer, width, height, x, y, bit_depth, mono);
-        }
+            for (int x = 0; x < width; x++) {
+                uint8_t index =
+                    read_pixel1(buffer, width, height, x, y, bit_depth);
+                uint32_t offset = index * 4;
+                uint8_t r = img->colorTable[offset + 2];
+                uint8_t g = img->colorTable[offset + 1];
+                uint8_t b = img->colorTable[offset + 0];
+                uint8_t lum = get_luminance(r, g, b);
+                uint8_t mono = (lum >= threshold) ? 1 : 0;
+                write_pixel1(buffer, width, height, x, y, bit_depth, mono);
+            }
     }
 
     // Update palette: only index 0 (black) and 1 (white) used
@@ -652,7 +663,8 @@ void mono1(Image_Data *img) {
     img->colorTable[4 * 1 + 1] = 255;
     img->colorTable[4 * 1 + 2] = 255;
 
-    printf("Monochrome conversion complete using %s mode.\n", img->dithering ? "dithering" : "threshold");
+    printf("Monochrome conversion complete using %s mode.\n",
+           img->dithering ? "dithering" : "threshold");
 }
 
 // converts to mono
