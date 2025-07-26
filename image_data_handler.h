@@ -21,6 +21,7 @@ enum Mode {
     COPY,
     GRAY,
     MONO,
+    DITHER,
     INV,
     INV_RGB,
     INV_HSV,
@@ -47,7 +48,7 @@ typedef struct {
     uint8_t bit_depth;
     uint8_t channels;
     float_t mono_threshold; // 0.0 to 1.0 inclusive
-    bool dithering;
+    bool dither;
     int16_t bright_value;   // -255 to 255 inclusive
     float_t bright_percent; // -1.0 to 1.0 inclusive
     uint8_t *histogram1; // In the raw color range (hist1) or equalized (equal1),

@@ -1,7 +1,7 @@
 #include "bmp_file_handler.h"
 #include "convolution.h"
 #include "image_data_handler.h"
-//#include <cstdint>
+// #include <cstdint>
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
@@ -185,11 +185,10 @@ bool write_image(Image *img, char *filename) {
             if (img->CT_EXISTS) {
                 fwrite(img->colorTable, sizeof(char), CT_SIZE, streamOut);
             }
-            fwrite(img->imageBuffer1, sizeof(char), img->image_byte_count, streamOut);
-        } else if (img->channels == RGB) {
-            for (int x = img->padded_width - 16; x < img->padded_width - 1;
-                 x++) {
-                printf("%d ", img->imageBuffer3[img->height - 1][x]);
+            fwrite(img->imageBuffer1, sizeof(char), img->image_byte_count,
+streamOut); } else if (img->channels == RGB) { for (int x = img->padded_width -
+16; x < img->padded_width - 1; x++) { printf("%d ",
+img->imageBuffer3[img->height - 1][x]);
             }
             printf("\n");
             for (int y = 0; y < img->height; y++) {
@@ -216,6 +215,7 @@ void print_usage(char *app_name) {
            "                       - A float between 0.0 and 1.0\n"
            "                       - An integer between 0 and 255\n"
            "                       Defaults to %.1f if none entered.\n"
+           "  -d                   Dithered, monochrome."
            "  -b <value>           Brightness, increase (positive) or\n"
            "                       decrease (negative).\n"
            "                       Value can be:\n"
@@ -305,6 +305,7 @@ int main(int argc, char *argv[]) {
     // Parse command-line options
     bool g_flag = false,      // gray
         m_flag = false,       // monochrome
+        d_flag = false,       // dithered monochrome
         b_flag = false,       // brightness
         hist_flag = false,    // histogram
         histn_flag = false,   // histogram normalized [0..1]
@@ -353,7 +354,7 @@ int main(int argc, char *argv[]) {
     // filenames that come after the flag. The input will have to be checked
     // manually and use optind-- to recheck the arg if it was not an input for
     // the flag.
-    while ((option = getopt_long(argc, argv, "m:b:gHner:f:i:l:shv",
+    while ((option = getopt_long(argc, argv, "m:db:gHner:f:i:l:shv",
                                  long_options, &long_index)) != -1) {
 
         switch (option) {
@@ -449,6 +450,10 @@ int main(int argc, char *argv[]) {
                 // non-option argument
                 optind--;
             }
+            break;
+
+        case 'd': // mode: DITHER, monochrome dither
+            d_flag = true;
             break;
 
         case 'b':
@@ -624,8 +629,8 @@ int main(int argc, char *argv[]) {
     // printf("Option: %d\n", option);
 
     // set the mode and make sure only one mode is true.
-    if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
-            r_flag + f_flag + l_flag + s_flag + filter_flag >
+    if (g_flag + b_flag + m_flag + d_flag + i_flag + hist_flag + histn_flag +
+            e_flag + r_flag + f_flag + l_flag + s_flag + filter_flag >
         1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
@@ -637,6 +642,10 @@ int main(int argc, char *argv[]) {
     } else if (m_flag) {
         bitmap.image_data->mode = MONO;
         img->mono_threshold = m_flag_value;
+    } else if (d_flag) {
+        bitmap.image_data->mode = DITHER;
+        bitmap.image_data->dither = true;
+
     } else if (i_flag) {
         if (invert_mode == 0) {
             bitmap.image_data->mode = INV;
@@ -821,7 +830,7 @@ int main(int argc, char *argv[]) {
     write_bitmap(bmp, filename2);
     free(filename2);
     filename2 = NULL;
-    printf("Planes: %d\n", bmp->info_header.bi_planes );
+    printf("Planes: %d\n", bmp->info_header.bi_planes);
     printf("width: %d\n", img->width);
     printf("height: %d\n", img->height);
 

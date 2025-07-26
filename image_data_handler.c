@@ -24,7 +24,7 @@ void init_image(Image_Data *img) {
     img->bit_depth = 0;
     img->channels = 0;
     img->mono_threshold = 0.0f;
-    img->dithering = false;
+    img->dither = false;
     img->bright_value = 0;
     img->bright_percent = 0.0f;
     img->CT_EXISTS = false;
@@ -61,7 +61,9 @@ void process_image(Image_Data *img) {
         } else if (img->mode == GRAY) {
             gray13(img);
         } else if (img->mode == MONO) {
-            img->dithering = true;
+            mono1(img);
+        } else if (img->mode == DITHER) {
+            assert(img->dither == true);
             mono1(img);
         } else if (img->mode == BRIGHT) {
             bright1(img);
@@ -148,6 +150,9 @@ char *get_suffix(Image_Data *img) {
         break;
     case MONO:
         return strdup("_mono");
+        break;
+    case DITHER:
+        return strdup("_dither");
         break;
     case INV:
         return strdup("_inv");
@@ -594,7 +599,7 @@ static uint8_t get_luminance(uint8_t r, uint8_t g, uint8_t b) {
 
 void mono1(Image_Data *img) {
     printf("Mono1 — %s\n",
-           img->dithering ? "Dithering enabled" : "Thresholding only");
+           img->dither ? "Dithering enabled" : "Thresholding only");
 
     assert(img->bit_depth == 2 || img->bit_depth == 4 || img->bit_depth == 8);
     assert(img->imageBuffer1 != NULL);
@@ -606,7 +611,7 @@ void mono1(Image_Data *img) {
     uint8_t *buffer = img->imageBuffer1;
     uint8_t threshold = (uint8_t)(255 * img->mono_threshold + 0.5f);
 
-    if (img->dithering) {
+    if (img->dither) {
         // DITHERED CONVERSION
         float *brightness = calloc(width * height, sizeof(float));
 
@@ -664,7 +669,7 @@ void mono1(Image_Data *img) {
     img->colorTable[4 * 1 + 2] = 255;
 
     printf("Monochrome conversion complete using %s mode.\n",
-           img->dithering ? "dithering" : "threshold");
+           img->dither ? "dither" : "threshold");
 }
 
 // converts to mono
