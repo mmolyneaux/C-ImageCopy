@@ -674,7 +674,9 @@ void mono1(Image_Data *img) {
 
 // converts to mono
 void mono3(Image_Data *img) {
-    printf("mono3\n");
+    printf("Mono3 - %s\n",
+           img->dither ? "Dithering enabled" : "Thresholding only");
+    
 
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15, 8:255,
     // rgb = 8,8,8:255,255,255 same as: WHITE = POW(2, img-bit_depth) - 1,
