@@ -677,6 +677,8 @@ void mono3(Image_Data *img) {
     printf("Mono3 - %s\n",
            img->dither ? "Dithering enabled" : "Thresholding only");
     
+    assert(img->bit_depth == 24);
+    assert(img->imageBuffer3 != NULL);
 
     // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15, 8:255,
     // rgb = 8,8,8:255,255,255 same as: WHITE = POW(2, img-bit_depth) - 1,
