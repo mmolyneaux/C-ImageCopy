@@ -100,6 +100,9 @@ void process_image(Image_Data *img) {
         } else if (img->mode == MONO) {
             printf("M3\n");
             mono3(img);
+        } else if (img->mode == DITHER) {
+            assert(img->dither == true);
+            mono3(img);
         } else if (img->mode == BRIGHT) {
             printf("B3\n");
             bright3(img);
@@ -605,8 +608,8 @@ void mono1(Image_Data *img) {
     assert(img->imageBuffer1 != NULL);
     assert(img->colorTable != NULL);
 
-    int width = img->width;
-    int height = img->height;
+    uint32_t width = img->width;
+    uint32_t height = img->height;
     uint8_t bit_depth = img->bit_depth;
     uint8_t *buffer = img->imageBuffer1;
     uint8_t threshold = (uint8_t)(255 * img->mono_threshold + 0.5f);
@@ -672,60 +675,70 @@ void mono1(Image_Data *img) {
            img->dither ? "dither" : "threshold");
 }
 
-// converts to mono
 void mono3(Image_Data *img) {
-    printf("Mono3 - %s\n",
-           img->dither ? "Dithering enabled" : "Thresholding only");
-    
+    printf("Mono3 - %s\n", img->dither ? "Dithering enabled" : "Thresholding only");
+
     assert(img->bit_depth == 24);
     assert(img->imageBuffer3 != NULL);
 
-    // left shift bit_depth - 1 = bit_depth:white, 1:1, 2:3, 4:15, 8:255,
-    // rgb = 8,8,8:255,255,255 same as: WHITE = POW(2, img-bit_depth) - 1,
-    // POW from math.h
+    uint32_t width = img->width;
+    uint32_t height = img->height;
     const uint8_t WHITE = 255;
-    printf("White is %d\n", WHITE);
+    //const uint8_t BLACK = 0;
 
-    uint8_t threshold = WHITE * img->mono_threshold;
-    // uint8_t shade = 0;
+    if (img->dither) {
+        // Allocate luminance buffer
+        float *brightness = calloc(width * height, sizeof(float));
+        for (uint32_t y = 0; y < height; y++) {
+            for (uint32_t x = 0; x < width; x++) {
+                uint8_t r = img->imageBuffer3[y][x * 3 + 0];
+                uint8_t g = img->imageBuffer3[y][x * 3 + 1];
+                uint8_t b = img->imageBuffer3[y][x * 3 + 2];
+                brightness[y * width + x] = get_luminance(r, g, b);
+            }
+        }
 
-    assert(img->bit_depth == 24);
+        // Apply Floyd–Steinberg error diffusion
+        for (uint32_t y = 0; y < height - 1; y++) {
+            for (uint32_t x = 1; x < width - 1; x++) {
+                size_t i = y * width + x;
+                float old = brightness[i];
+                uint8_t new_pixel = (old >= 128.0f) ? WHITE : BLACK;
+                float error = old - new_pixel;
 
-    if (threshold >= WHITE) {
-        for (size_t y = 0; y < img->height; y++) {
-            for (size_t x = 0; x < img->width * 3; x += 3) {
-                for (uint8_t rgb = 0; rgb < 3; rgb++) {
-                    img->imageBuffer3[y][x + rgb] = WHITE;
+                brightness[i] = new_pixel;
+                brightness[i + 1] += error * 7 / 16;
+                brightness[i + width - 1] += error * 3 / 16;
+                brightness[i + width] += error * 5 / 16;
+                brightness[i + width + 1] += error * 1 / 16;
+
+                // Set pixel in imageBuffer3
+                for (int c = 0; c < 3; c++) {
+                    img->imageBuffer3[y][x * 3 + c] = new_pixel;
                 }
             }
         }
-    } else if (threshold <= BLACK) {
-        for (size_t y = 0; y < img->height; y++) {
-            for (size_t x = 0; x < img->width * 3; x += 3) {
-                for (uint8_t rgb = 0; rgb < 3; rgb++) {
-                    img->imageBuffer3[y][x + rgb] = BLACK;
-                }
-            }
-        }
+
+        free(brightness);
     } else {
-        // Black and White converter
-        for (size_t y = 0; y < img->height; y++) {
-            for (size_t x = 0; x < img->width * 3; x += 3) {
+        // Threshold-only
+        uint8_t threshold = (uint8_t)(WHITE * img->mono_threshold + 0.5f);
+        for (uint32_t y = 0; y < height; y++) {
+            for (uint32_t x = 0; x < width; x++) {
+                uint8_t r = img->imageBuffer3[y][x * 3 + 0];
+                uint8_t g = img->imageBuffer3[y][x * 3 + 1];
+                uint8_t b = img->imageBuffer3[y][x * 3 + 2];
+                float gray = get_luminance(r, g, b);
+                uint8_t output = (gray >= threshold) ? WHITE : BLACK;
 
-                img->imageBuffer3[y][x + 0] = img->imageBuffer3[y][x + 1] =
-                    img->imageBuffer3[y][x + 2] =
-                        (img->imageBuffer3[y][x + 0] +
-                         img->imageBuffer3[y][x + 1] +
-                         img->imageBuffer3[y][x + 2]) /
-                                        3.0f +
-                                    0.5f >=
-                                threshold
-                            ? WHITE
-                            : BLACK;
+                for (int c = 0; c < 3; c++) {
+                    img->imageBuffer3[y][x * 3 + c] = output;
+                }
             }
         }
     }
 }
+
 void bright1(Image_Data *img) {
     printf("Bright1\n");
     const uint8_t WHITE = (1 << img->bit_depth) - 1;
