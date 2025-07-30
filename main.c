@@ -629,8 +629,8 @@ int main(int argc, char *argv[]) {
     // printf("Option: %d\n", option);
 
     // set the mode and make sure only one mode is true.
-    if (g_flag + b_flag + m_flag + d_flag + i_flag + hist_flag + histn_flag +
-            e_flag + r_flag + f_flag + l_flag + s_flag + filter_flag >
+    if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
+            r_flag + f_flag + l_flag + s_flag + filter_flag >
         1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
@@ -640,11 +640,14 @@ int main(int argc, char *argv[]) {
     if (g_flag) {
         bitmap.image_data->mode = GRAY;
     } else if (m_flag) {
-        bitmap.image_data->mode = MONO;
-        img->mono_threshold = m_flag_value;
-    } else if (d_flag) {
-        bitmap.image_data->mode = DITHER;
-        bitmap.image_data->dither = true;
+
+        if (d_flag) {
+            bitmap.image_data->mode = DITHER;
+            bitmap.image_data->dither = true;
+        } else {
+            bitmap.image_data->mode = MONO;
+            img->mono_threshold = m_flag_value;
+        }
 
     } else if (i_flag) {
         if (invert_mode == 0) {
