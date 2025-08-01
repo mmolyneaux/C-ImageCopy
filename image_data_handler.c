@@ -324,8 +324,6 @@ void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
     }
 }
 
-#include <stdint.h>
-#include <stdlib.h>
 
 // Return an array of row pointers into the pixel buffer
 uint8_t **get_pixel_rows(uint8_t *pixel_data, uint32_t width, uint32_t height,
@@ -684,7 +682,7 @@ void mono3(Image_Data *img) {
     uint32_t width = img->width;
     uint32_t height = img->height;
     const uint8_t WHITE = 255;
-    //const uint8_t BLACK = 0;
+    
 
     if (img->dither) {
         // Allocate luminance buffer
@@ -698,30 +696,35 @@ void mono3(Image_Data *img) {
             }
         }
 
-        // Apply Floyd–Steinberg error diffusion
-        for (uint32_t y = 0; y < height - 1; y++) {
-            for (uint32_t x = 1; x < width - 1; x++) {
+        // Apply Floyd–Steinberg dithering with boundary checks
+        for (uint32_t y = 0; y < height; y++) {
+            for (uint32_t x = 0; x < width; x++) {
                 size_t i = y * width + x;
                 float old = brightness[i];
                 uint8_t new_pixel = (old >= 128.0f) ? WHITE : BLACK;
                 float error = old - new_pixel;
-
                 brightness[i] = new_pixel;
-                brightness[i + 1] += error * 7 / 16;
-                brightness[i + width - 1] += error * 3 / 16;
-                brightness[i + width] += error * 5 / 16;
-                brightness[i + width + 1] += error * 1 / 16;
 
                 // Set pixel in imageBuffer3
                 for (int c = 0; c < 3; c++) {
                     img->imageBuffer3[y][x * 3 + c] = new_pixel;
                 }
+
+                // Diffuse error to neighbors if within bounds
+                if (x + 1 < width)
+                    brightness[i + 1] += error * 7 / 16;
+                if (x > 0 && y + 1 < height)
+                    brightness[i + width - 1] += error * 3 / 16;
+                if (y + 1 < height)
+                    brightness[i + width] += error * 5 / 16;
+                if (x + 1 < width && y + 1 < height)
+                    brightness[i + width + 1] += error * 1 / 16;
             }
         }
 
         free(brightness);
     } else {
-        // Threshold-only
+        // Threshold-only conversion
         uint8_t threshold = (uint8_t)(WHITE * img->mono_threshold + 0.5f);
         for (uint32_t y = 0; y < height; y++) {
             for (uint32_t x = 0; x < width; x++) {
