@@ -246,6 +246,9 @@ char *get_mode_string(enum Mode mode) {
     case FILTER:
         return "Filter";
         break;
+    case DITHER:
+        return "Mono Dither";
+        break;
     default:
         return "default: mode string not found";
     }
@@ -323,7 +326,6 @@ void buffer3_to_3D(uint8_t **buffer1D, uint8_t ****buffer3D, uint32_t rows,
         }
     }
 }
-
 
 // Return an array of row pointers into the pixel buffer
 uint8_t **get_pixel_rows(uint8_t *pixel_data, uint32_t width, uint32_t height,
@@ -674,7 +676,8 @@ void mono1(Image_Data *img) {
 }
 
 void mono3(Image_Data *img) {
-    printf("Mono3 - %s\n", img->dither ? "Dithering enabled" : "Thresholding only");
+    printf("Mono3 - %s\n",
+           img->dither ? "Dithering enabled" : "Thresholding only");
 
     assert(img->bit_depth == 24);
     assert(img->imageBuffer3 != NULL);
@@ -682,7 +685,6 @@ void mono3(Image_Data *img) {
     uint32_t width = img->width;
     uint32_t height = img->height;
     const uint8_t WHITE = 255;
-    
 
     if (img->dither) {
         // Allocate luminance buffer
@@ -723,6 +725,7 @@ void mono3(Image_Data *img) {
         }
 
         free(brightness);
+        brightness = NULL;
     } else {
         // Threshold-only conversion
         uint8_t threshold = (uint8_t)(WHITE * img->mono_threshold + 0.5f);

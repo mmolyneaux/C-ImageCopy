@@ -179,10 +179,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
-        uint16_t ct_color_count=
-        bmp->image_data->ct_color_count  =
+        uint16_t ct_color_count = bmp->image_data->ct_color_count =
             get_CT_color_count(bmp->info_header.bi_bit_depth);
-          
 
         if (bmp->info_header.bi_colors_used_count == 0) {
             bmp->colors_used_actual = ct_color_count;
@@ -192,7 +190,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
         printf("Colors used actual: %d\n", bmp->colors_used_actual);
         // Each color table entry is 4 bytes
-        bmp->color_table_byte_count = ct_color_count * sizeof(Indexed_Color); 
+        bmp->color_table_byte_count = ct_color_count * sizeof(Indexed_Color);
 
         // Allocate color table
         bmp->color_table = NULL;
@@ -242,17 +240,18 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         bmp->file_header.file_size_field = bmp->file_size_read;
     }
 
-    bmp->padded_width =
-        pad_width(bmp->info_header.bi_width_pixels, bmp->info_header.bi_bit_depth);
+    bmp->padded_width = pad_width(bmp->info_header.bi_width_pixels,
+                                  bmp->info_header.bi_bit_depth);
 
     // Total image size in bytes
-    bmp->image_bytes_calculated = bmp->padded_width * bmp->info_header.bi_height_pixels;
+    bmp->image_bytes_calculated =
+        bmp->padded_width * bmp->info_header.bi_height_pixels;
 
     // Validate image size field with calculated image size
     if (bmp->info_header.bi_image_byte_count != bmp->image_bytes_calculated) {
-        fprintf(stderr,
-                "Corrected Image Size field from %d bytes to %d bytes.\n",
-                bmp->info_header.bi_image_byte_count, bmp->image_bytes_calculated);
+        fprintf(
+            stderr, "Corrected Image Size field from %d bytes to %d bytes.\n",
+            bmp->info_header.bi_image_byte_count, bmp->image_bytes_calculated);
         bmp->info_header.bi_image_byte_count = bmp->image_bytes_calculated;
     }
 
@@ -281,7 +280,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     bmp->image_data->padded_width = bmp->padded_width;
     bmp->image_data->padded_width = bmp->padded_width;
     bmp->image_data->image_byte_count = bmp->info_header.bi_image_byte_count;
-    bmp->image_data->image_pixel_count = bmp->info_header.bi_height_pixels * bmp->info_header.bi_height_pixels;
+    bmp->image_data->image_pixel_count =
+        bmp->info_header.bi_height_pixels * bmp->info_header.bi_height_pixels;
     bmp->image_data->bit_depth = bmp->info_header.bi_bit_depth;
 
     if (bmp->image_data->channels == 1) {
@@ -296,7 +296,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         //    &bmp->image_data->imageBuffer3,
         //       bmp->info_header.height, bmp->padded_width);
         bmp->image_data->imageBuffer3 = pixel_data_to_buffer3(
-            bmp->pixel_data, bmp->info_header.bi_width_pixels, bmp->info_header.bi_height_pixels);
+            bmp->pixel_data, bmp->info_header.bi_width_pixels,
+            bmp->info_header.bi_height_pixels);
     }
 
     return EXIT_SUCCESS;
@@ -383,8 +384,7 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         // Image *img = bmp->image;
 
         bmp->info_header.bi_byte_count = sizeof(Info_Header);
-        printf("Info Header size: %d\n",
-               bmp->info_header.bi_byte_count);
+        printf("Info Header size: %d\n", bmp->info_header.bi_byte_count);
 
         bmp->file_header.offset_bytes = sizeof(File_Header) +
                                         sizeof(Info_Header) +
@@ -395,8 +395,8 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         printf("Offset bytes: %d\n", bmp->file_header.offset_bytes);
         printf("Image size bytes: %d\n", bmp->info_header.bi_image_byte_count);
 
-        bmp->file_header.file_size_field =
-            bmp->file_header.offset_bytes + bmp->info_header.bi_image_byte_count;
+        bmp->file_header.file_size_field = bmp->file_header.offset_bytes +
+                                           bmp->info_header.bi_image_byte_count;
 
         printf("File size field bytes: %d\n", bmp->file_header.file_size_field);
         // Processing
@@ -446,29 +446,53 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
 }
 
 void free_bitmap(Bitmap *bmp) {
-    // Check if bmp is valid
-    if (bmp) {
-        if (bmp->filename_in) {
-            free(bmp->filename_in);
-            bmp->filename_in = NULL;
-        }
-        if (bmp->filename_out) {
-            free(bmp->filename_out);
-            bmp->filename_out = NULL;
-        }
-        if (bmp->pixel_data) {
-            free(bmp->pixel_data);
-            // Reset nested pointer
-            bmp->pixel_data = NULL;
-        }
-        if (bmp->color_table) {
-            free(bmp->color_table);
-            // Reset nested pointer
-            bmp->pixel_data = NULL;
-        }
-        // Free the top-level struct
-        free(bmp);
-        // Reset the callers original pointer
-        bmp = NULL;
+    if (!bmp) {
+        printf("[free_bitmap] Bitmap is NULL — nothing to free.\n");
+        return;
     }
+
+    if (bmp->filename_in) {
+        free(bmp->filename_in);
+        bmp->filename_in = NULL;
+        printf("[free_bitmap] Freed filename_in.\n");
+    }
+
+    if (bmp->filename_out) {
+        free(bmp->filename_out);
+        bmp->filename_out = NULL;
+        printf("[free_bitmap] Freed filename_out.\n");
+    }
+
+    if (bmp->pixel_data) {
+        free(bmp->pixel_data);
+        bmp->pixel_data = NULL;
+        printf("[free_bitmap] Freed pixel_data.\n");
+    }
+
+    if (bmp->color_table) {
+        free(bmp->color_table);
+        bmp->color_table = NULL;
+        printf("[free_bitmap] Freed color_table.\n");
+    }
+
+    if (bmp->image_data) {
+        if (bmp->image_data->imageBuffer1) {
+            free(bmp->image_data->imageBuffer1);
+            bmp->image_data->imageBuffer1 = NULL;
+            printf("[free_bitmap] Freed imageBuffer1.\n");
+        }
+
+        if (bmp->image_data->imageBuffer3) {
+            free(bmp->image_data->imageBuffer3);
+            bmp->image_data->imageBuffer3 = NULL;
+            printf("[free_bitmap] Freed imageBuffer3.\n");
+        }
+
+        free(bmp->image_data);
+        bmp->image_data = NULL;
+        printf("[free_bitmap] Freed image_data structure.\n");
+    }
+
+    free(bmp);
+    printf("[free_bitmap] Freed Bitmap structure.\n");
 }

@@ -838,6 +838,7 @@ int main(int argc, char *argv[]) {
     printf("height: %d\n", img->height);
 
     free_bitmap(bmp);
+    bmp = NULL;
     /*
         // free filename memory if it was allocated
         if (filename1 != NULL) {
