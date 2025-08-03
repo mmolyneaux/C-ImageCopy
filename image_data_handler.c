@@ -47,7 +47,7 @@ void init_image(Image_Data *img) {
     img->filter_index = -1;
     img->mode_suffix = NULL;
 
-    img->bi_colors_used_count = NULL;
+    img->colors_used_actual = 0;
 }
 // Process image
 void process_image(Image_Data *img) {
@@ -1751,4 +1751,13 @@ void filter1(Image_Data *img) {
     }
     printf("\n");
     free(c1->output);
+}
+void convert_bit_depth(Image_Data *img, uint16_t bit_depth){
+    if (bit_depth == img->bit_depth){
+        return;
+    }
+    if (img->bit_depth == 24 ) {
+        
+
+    }
 }

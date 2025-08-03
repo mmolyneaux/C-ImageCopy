@@ -283,7 +283,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     bmp->image_data->image_pixel_count =
         bmp->info_header.bi_height_pixels * bmp->info_header.bi_height_pixels;
     bmp->image_data->bit_depth = bmp->info_header.bi_bit_depth;
-
+    bmp->image_data->colors_used_actual = bmp->colors_used_actual;
     if (bmp->image_data->channels == 1) {
         bmp->image_data->colorTable = bmp->color_table;
         bmp->image_data->imageBuffer1 = bmp->pixel_data;

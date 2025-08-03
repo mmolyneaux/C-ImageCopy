@@ -72,7 +72,7 @@ typedef struct {
     int8_t filter_index;
     char* mode_suffix;
     
-    uint32_t *bi_colors_used_count;
+    uint16_t colors_used_actual;
 
 } Image_Data;
 
