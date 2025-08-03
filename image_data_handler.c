@@ -46,6 +46,8 @@ void init_image(Image_Data *img) {
     img->filter_name = NULL;
     img->filter_index = -1;
     img->mode_suffix = NULL;
+
+    img->bi_colors_used_count = NULL;
 }
 // Process image
 void process_image(Image_Data *img) {

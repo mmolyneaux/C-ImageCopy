@@ -71,6 +71,8 @@ typedef struct {
     char* filter_name;
     int8_t filter_index;
     char* mode_suffix;
+    
+    uint32_t *bi_colors_used_count;
 
 } Image_Data;
 
