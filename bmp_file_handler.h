@@ -103,8 +103,9 @@ typedef struct {
 uint32_t pad_width(int32_t width, uint8_t bit_depth);
 char *create_filename_with_suffix(char *filename, char *suffix);
 void init_bitmap(Bitmap *bmp );
-int load_bitmap(Bitmap *bmp, char *filename);
 void print_header_fields(Bitmap *bmp);
+int load_bitmap(Bitmap *bmp, char *filename);
+void process_bmp(Bitmap *bmp);
 int write_bitmap(Bitmap *bmp, char *filename_out);
 void free_bitmap(Bitmap *bmp);
 

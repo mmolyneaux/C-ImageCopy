@@ -828,7 +828,7 @@ int main(int argc, char *argv[]) {
     printf("width: %d\n", img->width);
     printf("height: %d\n", img->height);
     printf("bit_depth: %d\n", img->bit_depth);
-    process_image(img);
+    process_bmp(bmp);
     // write_image(img, filename2);
     write_bitmap(bmp, filename2);
     free(filename2);

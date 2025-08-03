@@ -672,7 +672,7 @@ void mono1(Image_Data *img) {
     img->colorTable[4 * 1 + 0] = 255;
     img->colorTable[4 * 1 + 1] = 255;
     img->colorTable[4 * 1 + 2] = 255;
-
+    img->colors_used_actual = 2;
     printf("Monochrome conversion complete using %s mode.\n",
            img->dither ? "dither" : "threshold");
 }
@@ -745,6 +745,7 @@ void mono3(Image_Data *img) {
             }
         }
     }
+    img->colors_used_actual = 2;
 }
 
 void bright1(Image_Data *img) {
@@ -1752,12 +1753,24 @@ void filter1(Image_Data *img) {
     printf("\n");
     free(c1->output);
 }
-void convert_bit_depth(Image_Data *img, uint16_t bit_depth){
-    if (bit_depth == img->bit_depth){
+void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new){
+    if (bit_depth_new == img->bit_depth){
         return;
     }
-    if (img->bit_depth == 24 ) {
-        
+    uint16_t bit_depth_old = img->bit_depth;
+
+
+    if (bit_depth_old == 24 ) {
+        if (bit_depth_new >= 1 && bit_depth_new <= 8) {
+
+            return;
+        }
 
     }
+    if (bit_depth_old == 8 ) {
+        if (bit_depth_new == 1){
+
+        }
+    }
+    return;
 }

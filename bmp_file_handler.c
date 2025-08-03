@@ -275,6 +275,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     /*
      * Update image data.
      */
+    // set_image_data_variables(Bitmap *bmp);
     bmp->image_data->width = bmp->info_header.bi_width_pixels;
     bmp->image_data->height = bmp->info_header.bi_height_pixels;
     bmp->image_data->padded_width = bmp->padded_width;
@@ -312,8 +313,21 @@ void change_extension(char *filename, char *ext) {
         filename[len_str - 1] = ext[len_ext - 1];
     }
 }
+/*
+ *   Get updated image variables
+ */
+void get_image_data_variables(Bitmap *bmp) {
+
+    bmp->info_header.bi_colors_used_count = bmp->colors_used_actual =
+        bmp->image_data->colors_used_actual;
+}
+void process_bmp(Bitmap *bmp){
+    process_image(bmp->image_data);
+    get_image_data_variables(bmp);
+}
 
 int write_bitmap(Bitmap *bmp, char *filename_out) {
+
     if (!bmp) {
         fprintf(stderr, "Error: Unitialized bmp sent to load_bitmap.\n");
         return EXIT_FAILURE;
