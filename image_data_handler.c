@@ -67,6 +67,7 @@ void process_image(Image_Data *img) {
         } else if (img->mode == DITHER) {
             assert(img->dither == true);
             mono1(img);
+            convert_bit_depth(img, 1);
         } else if (img->mode == BRIGHT) {
             bright1(img);
         } else if (img->mode == HIST) {
@@ -543,14 +544,14 @@ void gray13(Image_Data *img) {
 
 // --- Helpers ---
 // Calculate padded row size in bytes
-static size_t bmp_row_size_bytes(int width_pixels, uint8_t bit_depth) {
-    int bits = width_pixels * bit_depth;
-    return ((bits + 31) / 32) * 4; // bytes
+static uint32_t row_size_bytes(int width_pixels, uint8_t bit_depth) {
+    size_t bits = width_pixels * bit_depth;
+    return (uint32_t)((bits + 31) / 32) * 4; // bytes
 }
 
 uint8_t read_pixel1(uint8_t *buffer1, int width, int height, int x, int y,
                     uint8_t bit_depth) {
-    size_t row_size = bmp_row_size_bytes(width, bit_depth);
+    size_t row_size = row_size_bytes(width, bit_depth);
     size_t byte_index = row_size * y;
 
     switch (bit_depth) {
@@ -572,7 +573,7 @@ uint8_t read_pixel1(uint8_t *buffer1, int width, int height, int x, int y,
 
 void write_pixel1(uint8_t *buffer1, int width, int height, int x, int y,
                   uint8_t bit_depth, uint8_t value) {
-    size_t row_size = bmp_row_size_bytes(width, bit_depth);
+    size_t row_size = row_size_bytes(width, bit_depth);
     size_t byte_index = row_size * y;
 
     switch (bit_depth) {
@@ -1753,11 +1754,14 @@ void filter1(Image_Data *img) {
     printf("\n");
     free(c1->output);
 }
+
+// if colors not low enough, need functions to reduce colors.
 void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new){
     if (bit_depth_new == img->bit_depth){
         return;
     }
     uint16_t bit_depth_old = img->bit_depth;
+
 
 
     if (bit_depth_old == 24 ) {
@@ -1767,10 +1771,24 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new){
         }
 
     }
-    if (bit_depth_old == 8 ) {
+
+    if (bit_depth_new <= 8 ) {
+        uint16_t CT_byte_count = 4*get_CT_color_count(bit_depth_new);
+        uint8_t *color_table_new = create_buffer1(CT_byte_count);
+        
+        uint32_t row_size_bytes_new = row_size_bytes(img->width, bit_depth_new); 
+        uint32_t img_byte_count_new = row_size_bytes_new * img->height;
+        uint8_t *buffer_new = create_buffer1(row_size_bytes_new);
+        
+        if (color_table_new) printf("New CT byte count %d\n", CT_byte_count);
+        if (buffer_new) printf("New buffer byte count %d\n", img_byte_count_new);
+        
+        free(color_table_new);
+        free(buffer_new);
         if (bit_depth_new == 1){
 
         }
     }
+    
     return;
 }

@@ -113,4 +113,5 @@ void blur1(Image_Data *img);
 void blur3(Image_Data *img);
 void sepia3(Image_Data *img);
 void filter1(Image_Data *img);
+void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new);
 #endif
