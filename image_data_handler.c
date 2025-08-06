@@ -1788,10 +1788,12 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
         printf("New buffer byte count %d\n", img_byte_count_new);
 
         free(color_table_new);
+        color_table_new = NULL;
         free(buffer_new);
+        buffer_new = NULL;
         if (bit_depth_new == 1) {
         }
     }
-
+    //printf("[convert_bit_depth] Message.\n");
     return;
 }
