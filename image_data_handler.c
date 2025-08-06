@@ -260,7 +260,7 @@ char *get_mode_string(enum Mode mode) {
 uint8_t *create_buffer1(uint32_t image_byte_count) {
     if (!image_byte_count) {
         fprintf(stderr,
-                "Error: Buffer creation failed, Image size not defined.\n");
+                "Error: Buffer creation failed, byte size not defined.\n");
         exit(EXIT_FAILURE);
     }
     uint8_t *buf1 = (uint8_t *)calloc(image_byte_count, sizeof(uint8_t));
@@ -1756,39 +1756,42 @@ void filter1(Image_Data *img) {
 }
 
 // if colors not low enough, need functions to reduce colors.
-void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new){
-    if (bit_depth_new == img->bit_depth){
+void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
+    if (bit_depth_new == img->bit_depth) {
         return;
     }
     uint16_t bit_depth_old = img->bit_depth;
 
-
-
-    if (bit_depth_old == 24 ) {
+    if (bit_depth_old == 24) {
         if (bit_depth_new >= 1 && bit_depth_new <= 8) {
 
             return;
         }
-
     }
 
-    if (bit_depth_new <= 8 ) {
-        uint16_t CT_byte_count = 4*get_CT_color_count(bit_depth_new);
+    if (bit_depth_new <= 8) {
+        uint16_t CT_byte_count = 4 * get_CT_color_count(bit_depth_new);
         uint8_t *color_table_new = create_buffer1(CT_byte_count);
-        
-        uint32_t row_size_bytes_new = row_size_bytes(img->width, bit_depth_new); 
+
+        uint32_t row_size_bytes_new = row_size_bytes(img->width, bit_depth_new);
         uint32_t img_byte_count_new = row_size_bytes_new * img->height;
         uint8_t *buffer_new = create_buffer1(row_size_bytes_new);
-        
-        if (color_table_new) printf("New CT byte count %d\n", CT_byte_count);
-        if (buffer_new) printf("New buffer byte count %d\n", img_byte_count_new);
-        
+
+        if (!color_table_new) {
+            printf("New CT byte count %d\n", CT_byte_count);
+            
+        }
+        printf("New CT byte count %d\n", CT_byte_count);
+        if (buffer_new) {
+            printf("New buffer byte count %d\n", img_byte_count_new);
+        }
+        printf("New buffer byte count %d\n", img_byte_count_new);
+
         free(color_table_new);
         free(buffer_new);
-        if (bit_depth_new == 1){
-
+        if (bit_depth_new == 1) {
         }
     }
-    
+
     return;
 }
