@@ -261,18 +261,39 @@ uint8_t *create_buffer1(uint32_t image_byte_count) {
     if (!image_byte_count) {
         fprintf(stderr,
                 "Error: Buffer creation failed, byte size not defined.\n");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
     uint8_t *buf1 = (uint8_t *)calloc(image_byte_count, sizeof(uint8_t));
     if (buf1 == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
-    printf("Size created: %d\n", image_byte_count);
+    printf("Size created: %u\n", image_byte_count);
 
     // img->imageBuffer1 = buf1;
     return buf1;
 }
+
+uint8_t *create_buffer1whb(uint32_t width, uint32_t height, uint16_t bit_depth) {
+    if (!(width && height && bit_depth)) {
+        fprintf(stderr, "Error: create_buffer1whb - Zero argument value:\n" 
+           "Width: %d Height: %d Bit_Depth: %d", width, height, bit_depth);
+        return NULL;
+    }
+            // Convert bits to bytes and round up to nearest byte
+        uint32_t bytes_per_row = (bit_depth * width + 7) / 8;
+        uint32_t bytes = bytes_per_row * height;
+
+    uint8_t *buf1 = (uint8_t *)calloc(bytes, sizeof(uint8_t));
+    if (buf1 == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
+    }
+    printf("Buf1 size created: %u\n", bytes);
+
+    // img->imageBuffer1 = buf1;
+    return buf1;
+}
+
 
 void buffer1_to_2D(uint8_t *buf1D, uint8_t ***buf2D, uint32_t rows,
                    uint32_t cols) {
