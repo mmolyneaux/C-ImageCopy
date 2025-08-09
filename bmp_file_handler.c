@@ -91,7 +91,7 @@ void init_bitmap(Bitmap *bmp) {
     bmp->file_size_read = 0;
     bmp->padded_width = 0;
     bmp->image_bytes_calculated = 0;
-    bmp->color_table_byte_count = 0;
+    bmp->ct_byte_count = 0;
     bmp->colors_used_actual = 0;
     bmp->image_data = NULL;
 }
@@ -179,23 +179,23 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
-        uint16_t ct_color_count = bmp->image_data->ct_color_count =
+        uint16_t ct_clr_count = bmp->image_data->ct_color_count =
             ct_color_count(bmp->info_header.bi_bit_depth);
 
         if (bmp->info_header.bi_colors_used_count == 0) {
-            bmp->colors_used_actual = ct_color_count;
+            bmp->colors_used_actual = ct_clr_count;
         } else {
             bmp->colors_used_actual = bmp->info_header.bi_colors_used_count;
         }
 
         printf("Colors used actual: %d\n", bmp->colors_used_actual);
         // Each color table entry is 4 bytes
-        bmp->color_table_byte_count = ct_color_count * sizeof(Indexed_Color);
+        bmp->ct_byte_count = ct_clr_count * sizeof(Indexed_Color);
 
         // Allocate color table
         bmp->color_table = NULL;
-        printf("COLOR TABLE BYTE COUNT: %d\n", bmp->color_table_byte_count);
-        bmp->color_table = malloc(bmp->color_table_byte_count);
+        printf("COLOR TABLE BYTE COUNT: %d\n", bmp->ct_byte_count);
+        bmp->color_table = malloc(bmp->ct_byte_count);
         if (!bmp->color_table) {
             fprintf(stderr,
                     "Error: Memory allocation failed for color table.\n");
@@ -205,8 +205,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         }
 
         // Read color table
-        if (fread(bmp->color_table, 1, bmp->color_table_byte_count, file) !=
-            bmp->color_table_byte_count) {
+        if (fread(bmp->color_table, 1, bmp->ct_byte_count, file) !=
+            bmp->ct_byte_count) {
             fclose(file);
             fprintf(stderr, "Error: Failed to read complete color table\n");
             free(bmp->color_table);
@@ -402,10 +402,10 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
 
         bmp->file_header.offset_bytes = sizeof(File_Header) +
                                         sizeof(Info_Header) +
-                                        bmp->color_table_byte_count;
+                                        bmp->ct_byte_count;
         printf("File header bytes: %llu\n", sizeof(File_Header));
         printf("Info header bytes: %llu\n", sizeof(Info_Header));
-        printf("Color table bytes: %d\n", bmp->color_table_byte_count);
+        printf("Color table bytes: %d\n", bmp->ct_byte_count);
         printf("Offset bytes: %d\n", bmp->file_header.offset_bytes);
         printf("Image size bytes: %d\n", bmp->info_header.bi_image_byte_count);
 
@@ -432,13 +432,13 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
 
         // Write color table, bit <= 8
         if (bmp->info_header.bi_bit_depth <= 8) {
-            printf("Color table bytes: %d\n", bmp->color_table_byte_count);
+            printf("Color table bytes: %d\n", bmp->ct_byte_count);
             if (bmp->color_table) {
-                // for (size_t i = 0; i < bmp->color_table_byte_count; i++) {
+                // for (size_t i = 0; i < bmp->ct_byte_count; i++) {
                 //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
                 //  *restrict File)
-                if (fwrite(bmp->color_table, 1, bmp->color_table_byte_count,
-                           file) != bmp->color_table_byte_count) {
+                if (fwrite(bmp->color_table, 1, bmp->ct_byte_count,
+                           file) != bmp->ct_byte_count) {
                     fprintf(stderr, "Error: Failed to write color table.\n");
                     fclose(file);
                     return 5;

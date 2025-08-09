@@ -77,7 +77,7 @@ typedef struct {
     uint8_t *color_table;
     uint8_t *pixel_data;
     // meta data
-    uint16_t color_table_byte_count;
+    uint16_t ct_byte_count;
     uint16_t colors_used_actual;
     char* filename_in;
     char *filename_out;

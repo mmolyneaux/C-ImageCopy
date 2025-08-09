@@ -98,7 +98,7 @@ void print_header_fields(Bitmap *bmp) {
                : printf("(all)\n");
         printf("Colors in color table/CT size: %d, (x%llu = %d bytes)\n",
             bmp->colors_used_actual, sizeof(Color),
-               bmp->color_table_byte_count); // Colors in color table
+               bmp->ct_byte_count); // Colors in color table
         printf("Important color count: %d ",
                bmp->info_header.important_color_count);
                (bmp->info_header.important_color_count) ? printf("\n")
