@@ -180,7 +180,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
         uint16_t ct_color_count = bmp->image_data->ct_color_count =
-            get_CT_color_count(bmp->info_header.bi_bit_depth);
+            ct_color_count(bmp->info_header.bi_bit_depth);
 
         if (bmp->info_header.bi_colors_used_count == 0) {
             bmp->colors_used_actual = ct_color_count;

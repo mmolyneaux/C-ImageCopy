@@ -76,7 +76,8 @@ typedef struct {
 
 } Image_Data;
 
-uint16_t get_CT_color_count(uint8_t bit_depth);
+uint16_t ct_color_count(uint8_t bit_depth);
+uint16_t ct_byte_count(uint8_t bit_depth);
 char *get_suffix(Image_Data *img);
 char *get_mode_string(enum Mode mode);
 void init_image(Image_Data *img);
