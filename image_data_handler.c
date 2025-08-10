@@ -1785,14 +1785,17 @@ void filter1(Image_Data *img) {
 // if colors not low enough, need functions to reduce colors.
 void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
     char *function_name = "convert_bit_depth";
-    uint8_t *buffer_old = img->imageBuffer1;
-    if (bit_depth_new == img->bit_depth) {
+    uint8_t bit_depth_old = img->bit_depth;
+    uint16_t colors_used_actual = img->colors_used_actual;
+
+    if (bit_depth_new == bit_depth_old) {
+        fprintf(stderr, "[%s] Did not convert to same bit depth: %d=%d\n",
+                function_name, bit_depth_old, bit_depth_new);
         return;
     }
 
-    uint16_t width = img->width;
-    uint16_t height = img->height;
-    uint16_t bit_depth_old = img->bit_depth;
+    uint32_t width = img->width;
+    uint32_t height = img->height;
 
     if (bit_depth_old == 24) {
         if (bit_depth_new >= 1 && bit_depth_new <= 8) {
@@ -1803,6 +1806,16 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
 
     if (bit_depth_new <= 8) {
         uint16_t ct_byte_count_new = ct_byte_count(bit_depth_new);
+
+        if (colors_used_actual > ct_color_count(bit_depth_new)) {
+            fprintf(stderr,
+                    "[%s] Error: Colors used (%d)are greater than the new bit "
+                    "depth (%d) will allow(%d), did not convert.\n"
+                    "Did not convert!\n", function_name, colors_used_actual,
+                    bit_depth_new, ct_color_count(bit_depth_new));
+            return;
+        }
+
         uint8_t *color_table_new = create_buffer1(ct_byte_count_new);
 
         // uint32_t row_size_bytes_new = row_size_bytes(img->width,
@@ -1811,38 +1824,47 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
         uint8_t *buffer_new = create_buffer1_whb(width, height, bit_depth_new);
 
         if (!color_table_new) {
-            fprintf(stderr, "[%s] Could not create new color table! %d\n", function_name,
-                    ct_byte_count_new);
-                return;
+            fprintf(stderr, "[%s] Could not create new color table! %d\n",
+                    function_name, ct_byte_count_new);
+            return;
         }
         printf("New CT buffer created.\n");
         if (!buffer_new) {
             free(color_table_new);
-            fprintf(stderr, "[%s] Could not create new image buffer! %d\n", function_name,
-                    ct_byte_count_new);
-                return;
+            fprintf(stderr, "[%s] Could not create new image buffer! %d\n",
+                    function_name, ct_byte_count_new);
+            return;
         }
         printf("New image buffer created.\n");
 
-        free(color_table_new);
-        color_table_new = NULL;
-        free(buffer_new);
-        buffer_new = NULL;
 
         uint8_t value = 0;
 
         if (bit_depth_new == 1) {
-            for(uint32_t y = 0; y < height; ++y ){
-                
-                for(uint32_t x = 0; x < width; ++x){
-                    value = read_pixel1(buffer_old, width, height, x, y, bit_depth_old);
-                    write_pixel1(buffer_new, width, height, x, y, bit_depth_new, value);
-                }
-            
+            assert(img->colors_used_actual == 2);
+
+            for (uint16_t i = 0; i < colors_used_actual; ++i) {
+                color_table_new[i] = img->colorTable[i]; 
             }
-            // new function testing
+
+            for (uint32_t y = 0; y < height; ++y) {
+
+                for (uint32_t x = 0; x < width; ++x) {
+                    value = read_pixel1(img->imageBuffer1, width, height, x, y,
+                                        bit_depth_old);
+                    write_pixel1(buffer_new, width, height, x, y, bit_depth_new,
+                                 value);
+                }
+            }
         }
+        
+        free(color_table_new);
+        color_table_new = NULL;
+        free(buffer_new);
+        buffer_new = NULL;
     }
+
+
     // printf("[convert_bit_depth] Message.\n");
     return;
 }
