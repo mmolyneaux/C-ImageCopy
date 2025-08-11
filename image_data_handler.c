@@ -1837,7 +1837,6 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
         }
         printf("New image buffer created.\n");
 
-
         uint8_t value = 0;
 
         if (bit_depth_new == 1) {
@@ -1858,10 +1857,14 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
             }
         }
         
-        free(color_table_new);
-        color_table_new = NULL;
-        free(buffer_new);
-        buffer_new = NULL;
+           
+        free(img->colorTable);
+        img->colorTable = NULL;
+        free(img->imageBuffer1);
+        img->imageBuffer1 = NULL;
+
+        img->imageBuffer1 = buffer_new;
+        img->colorTable = color_table_new;
     }
 
 
