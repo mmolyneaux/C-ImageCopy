@@ -577,7 +577,9 @@ static uint32_t row_size_bytes(int width_pixels, uint8_t bit_depth) {
 }
 
 /**
- * Reads a pixel value from a packed image buffer.
+ * @brief Reads a pixel value from a packed image buffer.
+ *
+ * Supports 1, 2, 4, and 8-bit monochrome formats.
  *
  * @param buffer1    Pointer to the image buffer.
  * @param width      Width of the image in pixels.
@@ -626,7 +628,9 @@ uint8_t read_pixel1(uint8_t *buffer1, int width, int height, int x, int y,
 }
 
 /**
- * Writes a pixel value to a packed image buffer.
+ * @brief Writes a pixel value to a packed image buffer.
+ *
+ * Supports 1, 2, 4, and 8-bit monochrome formats.
  *
  * @param buffer1    Pointer to the image buffer.
  * @param width      Width of the image in pixels.

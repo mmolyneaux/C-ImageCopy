@@ -316,14 +316,16 @@ void change_extension(char *filename, char *ext) {
 /*
  *   Get updated image variables
  */
-void get_image_data_variables(Bitmap *bmp) {
+void reset_bmp_fields(Bitmap *bmp) {
+
 
     bmp->info_header.bi_colors_used_count = bmp->colors_used_actual =
         bmp->image_data->colors_used_actual;
+    
 }
 void process_bmp(Bitmap *bmp){
     process_image(bmp->image_data);
-    get_image_data_variables(bmp);
+    reset_bmp_fields(bmp);
 }
 
 int write_bitmap(Bitmap *bmp, char *filename_out) {
