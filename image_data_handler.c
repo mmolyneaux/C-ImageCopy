@@ -576,50 +576,106 @@ static uint32_t row_size_bytes(int width_pixels, uint8_t bit_depth) {
     return (uint32_t)((bits + 31) / 32) * 4; // bytes
 }
 
+/**
+ * Reads a pixel value from a packed image buffer.
+ *
+ * @param buffer1    Pointer to the image buffer.
+ * @param width      Width of the image in pixels.
+ * @param height     Height of the image in pixels.
+ * @param x          X-coordinate of the pixel.
+ * @param y          Y-coordinate of the pixel.
+ * @param bit_depth  Bit depth per pixel (1, 2, 4, or 8).
+ * @return           Pixel value at (x, y).
+ */
 uint8_t read_pixel1(uint8_t *buffer1, int width, int height, int x, int y,
                     uint8_t bit_depth) {
+    // Calculate the number of bytes per row
     size_t row_size = row_size_bytes(width, bit_depth);
+
+    // Calculate the starting byte index for the row
     size_t byte_index = row_size * y;
 
     switch (bit_depth) {
     case 8:
+        // Direct access for 8-bit pixels
         return buffer1[byte_index + x];
+
     case 4: {
+        // Each byte holds two 4-bit pixels
         uint8_t b = buffer1[byte_index + x / 2];
         return (x % 2 == 0) ? (b >> 4) & 0x0F : b & 0x0F;
     }
+
     case 2: {
+        // Each byte holds four 2-bit pixels
         uint8_t b = buffer1[byte_index + x / 4];
         return (b >> (6 - 2 * (x % 4))) & 0x03;
     }
+
+    case 1: {
+        // Each byte holds eight 1-bit pixels
+        uint8_t b = buffer1[byte_index + x / 8];
+        return (b >> (7 - (x % 8))) & 0x01;
+    }
+
     default:
+        // Unsupported bit depth
         assert(0 && "Unsupported bit depth");
         return 0;
     }
 }
 
+/**
+ * Writes a pixel value to a packed image buffer.
+ *
+ * @param buffer1    Pointer to the image buffer.
+ * @param width      Width of the image in pixels.
+ * @param height     Height of the image in pixels.
+ * @param x          X-coordinate of the pixel.
+ * @param y          Y-coordinate of the pixel.
+ * @param bit_depth  Bit depth per pixel (1, 2, 4, or 8).
+ * @param value      Pixel value to write.
+ */
 void write_pixel1(uint8_t *buffer1, int width, int height, int x, int y,
                   uint8_t bit_depth, uint8_t value) {
+    // Calculate the number of bytes per row
     size_t row_size = row_size_bytes(width, bit_depth);
+
+    // Calculate the starting byte index for the row
     size_t byte_index = row_size * y;
 
     switch (bit_depth) {
     case 8:
+        // Direct write for 8-bit pixels
         buffer1[byte_index + x] = value;
         break;
+
     case 4: {
+        // Each byte holds two 4-bit pixels
         uint8_t *b = &buffer1[byte_index + x / 2];
         *b = (x % 2 == 0) ? (*b & 0x0F) | (value << 4)
                           : (*b & 0xF0) | (value & 0x0F);
         break;
     }
+
     case 2: {
+        // Each byte holds four 2-bit pixels
         uint8_t *b = &buffer1[byte_index + x / 4];
         uint8_t shift = 6 - 2 * (x % 4);
         *b = (*b & ~(0x03 << shift)) | ((value & 0x03) << shift);
         break;
     }
+
+    case 1: {
+        // Each byte holds eight 1-bit pixels
+        uint8_t *b = &buffer1[byte_index + x / 8];
+        uint8_t shift = 7 - (x % 8);
+        *b = (*b & ~(1 << shift)) | ((value & 0x01) << shift);
+        break;
+    }
+
     default:
+        // Unsupported bit depth
         assert(0 && "Unsupported bit depth");
     }
 }
