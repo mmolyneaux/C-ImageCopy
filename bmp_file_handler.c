@@ -83,7 +83,7 @@ void init_bitmap(Bitmap *bmp) {
     bmp->info_header.bi_colors_used_count = 0;
     bmp->info_header.bi_important_color_count = 0;
 
-    // Initialize other Bitmap fields
+    // Initialize other Bitmap meta fields
     bmp->pixel_data = NULL;
     bmp->color_table = NULL;
     bmp->filename_in = NULL;
@@ -318,12 +318,21 @@ void change_extension(char *filename, char *ext) {
  */
 void reset_bmp_fields(Bitmap *bmp) {
 
+    bmp->file_header.file_size_field = bmp->file_header.offset_bytes +
+                                           bmp->info_header.bi_image_byte_count;
+    bmp->file_header.offset_bytes = 0;
+
+    bmp->info_header.bi_width_pixels = bmp->image_data->width;
+    bmp->info_header.bi_height_pixels = bmp->image_data->height;
+    bmp->info_header.bi_bit_depth = bmp->image_data->bit_depth;
+    bmp->info_header.bi_image_byte_count = 0;
+    bmp->info_header.bi_colors_used_count = 0;
+    bmp->info_header.bi_important_color_count = 0;
 
     bmp->info_header.bi_colors_used_count = bmp->colors_used_actual =
         bmp->image_data->colors_used_actual;
-    
 }
-void process_bmp(Bitmap *bmp){
+void process_bmp(Bitmap *bmp) {
     process_image(bmp->image_data);
     reset_bmp_fields(bmp);
 }
@@ -402,17 +411,15 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         bmp->info_header.bi_byte_count = sizeof(Info_Header);
         printf("Info Header size: %d\n", bmp->info_header.bi_byte_count);
 
-        bmp->file_header.offset_bytes = sizeof(File_Header) +
-                                        sizeof(Info_Header) +
-                                        bmp->ct_byte_count;
+        bmp->file_header.offset_bytes =
+            sizeof(File_Header) + sizeof(Info_Header) + bmp->ct_byte_count;
         printf("File header bytes: %llu\n", sizeof(File_Header));
         printf("Info header bytes: %llu\n", sizeof(Info_Header));
         printf("Color table bytes: %d\n", bmp->ct_byte_count);
         printf("Offset bytes: %d\n", bmp->file_header.offset_bytes);
         printf("Image size bytes: %d\n", bmp->info_header.bi_image_byte_count);
 
-        bmp->file_header.file_size_field = bmp->file_header.offset_bytes +
-                                           bmp->info_header.bi_image_byte_count;
+        
 
         printf("File size field bytes: %d\n", bmp->file_header.file_size_field);
         // Processing
@@ -439,8 +446,8 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
                 // for (size_t i = 0; i < bmp->ct_byte_count; i++) {
                 //  fwrite(&bmp->color_table, size_t Size, size_t Count, FILE
                 //  *restrict File)
-                if (fwrite(bmp->color_table, 1, bmp->ct_byte_count,
-                           file) != bmp->ct_byte_count) {
+                if (fwrite(bmp->color_table, 1, bmp->ct_byte_count, file) !=
+                    bmp->ct_byte_count) {
                     fprintf(stderr, "Error: Failed to write color table.\n");
                     fclose(file);
                     return 5;
