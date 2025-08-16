@@ -318,19 +318,19 @@ void change_extension(char *filename, char *ext) {
  */
 void reset_bmp_fields(Bitmap *bmp) {
 
-    bmp->file_header.file_size_field = bmp->file_header.offset_bytes +
-                                           bmp->info_header.bi_image_byte_count;
-    bmp->file_header.offset_bytes = 0;
+    bmp->file_header.offset_bytes = sizeof(File_Header) + sizeof(Info_Header) +
+                                    ct_byte_count(bmp->image_data->bit_depth);
+
+    bmp->file_header.file_size_field =
+        bmp->file_header.offset_bytes + bmp->image_data->image_byte_count;
 
     bmp->info_header.bi_width_pixels = bmp->image_data->width;
     bmp->info_header.bi_height_pixels = bmp->image_data->height;
     bmp->info_header.bi_bit_depth = bmp->image_data->bit_depth;
-    bmp->info_header.bi_image_byte_count = 0;
-    bmp->info_header.bi_colors_used_count = 0;
-    bmp->info_header.bi_important_color_count = 0;
-
-    bmp->info_header.bi_colors_used_count = bmp->colors_used_actual =
-        bmp->image_data->colors_used_actual;
+    bmp->info_header.bi_image_byte_count = bmp->image_data->image_byte_count;
+    bmp->info_header.bi_colors_used_count =
+        bmp->info_header.bi_important_color_count =
+            bmp->image_data->colors_used_actual;
 }
 void process_bmp(Bitmap *bmp) {
     process_image(bmp->image_data);
@@ -418,8 +418,6 @@ int write_bitmap(Bitmap *bmp, char *filename_out) {
         printf("Color table bytes: %d\n", bmp->ct_byte_count);
         printf("Offset bytes: %d\n", bmp->file_header.offset_bytes);
         printf("Image size bytes: %d\n", bmp->info_header.bi_image_byte_count);
-
-        
 
         printf("File size field bytes: %d\n", bmp->file_header.file_size_field);
         // Processing

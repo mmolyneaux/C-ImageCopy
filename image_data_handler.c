@@ -278,12 +278,14 @@ uint8_t *create_buffer1(uint32_t image_byte_count) {
     return buf1;
 }
 
-uint8_t *create_buffer1_whb(uint32_t width, uint32_t height,
+
+uint32_t calculate_buffer1_byte_count(uint32_t width, uint32_t height,
                             uint16_t bit_depth) {
-    if (!(width && height && bit_depth)) {
+    char *function_name = "calculate_buffer1_byte_count";
+                                if (!(width && height && bit_depth)) {
         fprintf(stderr,
-                "Error: create_buffer1_whb - Zero argument value:\n"
-                "Width: %d Height: %d Bit_Depth: %d",
+                "Error: [%s] - Zero argument value:\n"
+                "Width: %d Height: %d Bit_Depth: %d", function_name,
                 width, height, bit_depth);
         return NULL;
     }
@@ -291,14 +293,14 @@ uint8_t *create_buffer1_whb(uint32_t width, uint32_t height,
     uint32_t bytes_per_row = (bit_depth * width + 7) / 8;
     uint32_t bytes = bytes_per_row * height;
 
-    uint8_t *buf1 = (uint8_t *)calloc(bytes, sizeof(uint8_t));
+    /* uint8_t *buf1 = (uint8_t *)calloc(bytes, sizeof(uint8_t));
     if (buf1 == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for image buffer.\n");
-    }
-    printf("Buf1 size created: %u\n", bytes);
+    } */
+    printf("Buf1 size calculated: %u\n", bytes);
 
     // img->imageBuffer1 = buf1;
-    return buf1;
+    return bytes;
 }
 
 void buffer1_to_2D(uint8_t *buf1D, uint8_t ***buf2D, uint32_t rows,
@@ -1881,7 +1883,9 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
         // uint32_t row_size_bytes_new = row_size_bytes(img->width,
         // bit_depth_new); uint32_t img_byte_count_new = row_size_bytes_new *
         // img->height;
-        uint8_t *buffer_new = create_buffer1_whb(width, height, bit_depth_new);
+        printf("Bit_depth_new: %d\n",bit_depth_new);
+        uint32_t buffer_new_size_bytes = calculate_buffer1_byte_count(width, height, bit_depth_new);
+        uint8_t *buffer_new = create_buffer1(buffer_new_size_bytes);
 
         if (!color_table_new) {
             fprintf(stderr, "[%s] Could not create new color table! %d\n",
@@ -1917,7 +1921,8 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
             }
         }
         
-           
+        img->bit_depth = bit_depth_new;
+        img->image_byte_count = buffer_new_size_bytes; 
         free(img->colorTable);
         img->colorTable = NULL;
         free(img->imageBuffer1);

@@ -19,6 +19,8 @@ data (like in BMP V4 or V5), this data is also included in the size.
 #include "image_data_handler.h"
 #include <stdint.h>
 
+#define BMP_FILE_HEADER_BYTES 14
+
 #pragma pack(push, 1) // Ensure no padding in structs
 
 // Bitmap file header size of every bmp
