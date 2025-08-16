@@ -313,13 +313,15 @@ void change_extension(char *filename, char *ext) {
         filename[len_str - 1] = ext[len_ext - 1];
     }
 }
+
 /*
  *   Get updated image variables
  */
 void reset_bmp_fields(Bitmap *bmp) {
-
-    bmp->file_header.offset_bytes = sizeof(File_Header) + sizeof(Info_Header) +
-                                    ct_byte_count(bmp->image_data->bit_depth);
+    uint8_t bit_depth = bmp->image_data->bit_depth;
+    bmp->ct_byte_count = ct_byte_count(bit_depth);
+    bmp->file_header.offset_bytes =
+        sizeof(File_Header) + sizeof(Info_Header) + bmp->ct_byte_count;
 
     bmp->file_header.file_size_field =
         bmp->file_header.offset_bytes + bmp->image_data->image_byte_count;
@@ -329,8 +331,15 @@ void reset_bmp_fields(Bitmap *bmp) {
     bmp->info_header.bi_bit_depth = bmp->image_data->bit_depth;
     bmp->info_header.bi_image_byte_count = bmp->image_data->image_byte_count;
     bmp->info_header.bi_colors_used_count =
-        bmp->info_header.bi_important_color_count =
-            bmp->image_data->colors_used_actual;
+        bmp->info_header.bi_important_color_count = 0;
+    // bmp->image_data->colors_used_actual;
+
+    if (bit_depth <= 8) {
+        bmp->color_table = bmp->image_data->colorTable;
+        bmp->pixel_data = bmp->image_data->imageBuffer1;
+        printf("reset_bmp_fields ct:\n");
+        printColorTable(bmp->color_table, 2);
+    }
 }
 void process_bmp(Bitmap *bmp) {
     process_image(bmp->image_data);

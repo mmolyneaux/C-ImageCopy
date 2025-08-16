@@ -17,6 +17,19 @@ uint16_t ct_byte_count(uint8_t bit_depth) {
     return 4 * ct_color_count(bit_depth);
 }
 
+void printColorTable(uint8_t *colorTable, size_t numColors) {
+    for (size_t i = 0; i < numColors; ++i) {
+        size_t offset = i * 4;
+        uint8_t blue = colorTable[offset];
+        uint8_t green = colorTable[offset + 1];
+        uint8_t red = colorTable[offset + 2];
+        uint8_t reserved = colorTable[offset + 3];
+
+        printf("Color %zu: R=%3u G=%3u B=%3u Reserved=%3u\n", i, red, green,
+               blue, reserved);
+    }
+}
+
 void init_image(Image_Data *img) {
     if (!img)
         return;
@@ -278,16 +291,15 @@ uint8_t *create_buffer1(uint32_t image_byte_count) {
     return buf1;
 }
 
-
 uint32_t calculate_buffer1_byte_count(uint32_t width, uint32_t height,
-                            uint16_t bit_depth) {
+                                      uint16_t bit_depth) {
     char *function_name = "calculate_buffer1_byte_count";
-                                if (!(width && height && bit_depth)) {
+    if (!(width && height && bit_depth)) {
         fprintf(stderr,
                 "Error: [%s] - Zero argument value:\n"
-                "Width: %d Height: %d Bit_Depth: %d", function_name,
-                width, height, bit_depth);
-        return NULL;
+                "Width: %d Height: %d Bit_Depth: %d",
+                function_name, width, height, bit_depth);
+        return 0;
     }
     // Convert bits to bytes and round up to nearest byte
     uint32_t bytes_per_row = (bit_depth * width + 7) / 8;
@@ -1873,8 +1885,9 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
             fprintf(stderr,
                     "[%s] Error: Colors used (%d)are greater than the new bit "
                     "depth (%d) will allow(%d), did not convert.\n"
-                    "Did not convert!\n", function_name, colors_used_actual,
-                    bit_depth_new, ct_color_count(bit_depth_new));
+                    "Did not convert!\n",
+                    function_name, colors_used_actual, bit_depth_new,
+                    ct_color_count(bit_depth_new));
             return;
         }
 
@@ -1883,8 +1896,9 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
         // uint32_t row_size_bytes_new = row_size_bytes(img->width,
         // bit_depth_new); uint32_t img_byte_count_new = row_size_bytes_new *
         // img->height;
-        printf("Bit_depth_new: %d\n",bit_depth_new);
-        uint32_t buffer_new_size_bytes = calculate_buffer1_byte_count(width, height, bit_depth_new);
+        printf("Bit_depth_new: %d\n", bit_depth_new);
+        uint32_t buffer_new_size_bytes =
+            calculate_buffer1_byte_count(width, height, bit_depth_new);
         uint8_t *buffer_new = create_buffer1(buffer_new_size_bytes);
 
         if (!color_table_new) {
@@ -1906,9 +1920,14 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
         if (bit_depth_new == 1) {
             assert(img->colors_used_actual == 2);
 
-            for (uint16_t i = 0; i < colors_used_actual; ++i) {
-                color_table_new[i] = img->colorTable[i]; 
+            for (uint16_t i = 0; i < colors_used_actual*4; ++i) {
+                color_table_new[i] = img->colorTable[i];
             }
+
+            printf("Old color table:\n");
+            printColorTable(img->colorTable, 2);
+            printf("New color table:\n");
+            printColorTable(color_table_new, 2);
 
             for (uint32_t y = 0; y < height; ++y) {
 
@@ -1920,9 +1939,9 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
                 }
             }
         }
-        
+
         img->bit_depth = bit_depth_new;
-        img->image_byte_count = buffer_new_size_bytes; 
+        img->image_byte_count = buffer_new_size_bytes;
         free(img->colorTable);
         img->colorTable = NULL;
         free(img->imageBuffer1);
@@ -1931,7 +1950,6 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
         img->imageBuffer1 = buffer_new;
         img->colorTable = color_table_new;
     }
-
 
     // printf("[convert_bit_depth] Message.\n");
     return;
