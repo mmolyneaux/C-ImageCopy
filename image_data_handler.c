@@ -1,5 +1,4 @@
 #include "image_data_handler.h"
-#include "bmp_file_handler.h"
 #include "convolution.h"
 #include <assert.h>
 #include <stddef.h>
@@ -8,14 +7,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-uint16_t ct_color_count(uint8_t bit_depth) {
+uint16_t ct_max_color_count(uint8_t bit_depth) {
     if (bit_depth > 8)
-        return 0;          // no color table for high bit depths
+        return 0;          // no color table for bit depths > 8
     return 1 << bit_depth; // 2^bit_depth
 }
 
 uint16_t ct_byte_count(uint8_t bit_depth) {
-    return 4 * ct_color_count(bit_depth);
+    return 4 * ct_max_color_count(bit_depth);
 }
 
 void printColorTable(uint8_t *colorTable, size_t numColors) {
@@ -46,7 +45,7 @@ void init_image(Image_Data *img) {
     img->bright_value = 0;
     img->bright_percent = 0.0f;
     img->CT_EXISTS = false;
-    img->ct_color_count = 0;
+    img->ct_max_color_count = 0;
     img->colorTable = NULL;
     img->imageBuffer1 = NULL;
     img->imageBuffer3 = NULL;
@@ -705,7 +704,7 @@ static uint8_t get_luminance(uint8_t r, uint8_t g, uint8_t b) {
 // --- Main Mono1 ---
 
 void mono1(Image_Data *img) {
-    printf("Mono1 — %s\n",
+    printf("Converting to monochrome — %s\n",
            img->dither ? "Dithering enabled" : "Thresholding only");
 
     assert(img->bit_depth == 2 || img->bit_depth == 4 || img->bit_depth == 8);
@@ -719,22 +718,28 @@ void mono1(Image_Data *img) {
     uint8_t threshold = (uint8_t)(255 * img->mono_threshold + 0.5f);
 
     if (img->dither) {
-        // DITHERED CONVERSION
+        // Allocate brightness buffer
         float *brightness = calloc(width * height, sizeof(float));
+        if (!brightness) {
+            fprintf(stderr, "Failed to allocate brightness buffer.\n");
+            return;
+        }
 
-        for (int y = 0; y < height; y++)
+        // Compute luminance for each pixel
+        for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                uint8_t index =
-                    read_pixel1(buffer, width, height, x, y, bit_depth);
+                uint8_t index = read_pixel1(buffer, width, height, x, y, bit_depth);
                 uint32_t offset = index * 4;
-                uint8_t r = img->colorTable[offset + 2];
-                uint8_t g = img->colorTable[offset + 1];
                 uint8_t b = img->colorTable[offset + 0];
+                uint8_t g = img->colorTable[offset + 1];
+                uint8_t r = img->colorTable[offset + 2];
                 brightness[y * width + x] = get_luminance(r, g, b);
             }
+        }
 
-        for (int y = 0; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
+        // Apply Floyd–Steinberg dithering
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
                 int i = y * width + x;
                 float old = brightness[i];
                 uint8_t mono = (old >= 128.0f) ? 1 : 0;
@@ -742,39 +747,53 @@ void mono1(Image_Data *img) {
                 float err = old - new_val;
 
                 brightness[i] = new_val;
-                brightness[i + 1] += err * 7 / 16;
-                brightness[i + width - 1] += err * 3 / 16;
-                brightness[i + width] += err * 5 / 16;
-                brightness[i + width + 1] += err * 1 / 16;
-
                 write_pixel1(buffer, width, height, x, y, bit_depth, mono);
+
+                // Propagate error to neighbors
+                if (x + 1 < width) brightness[i + 1] += err * 7 / 16;
+                if (y + 1 < height) {
+                    if (x > 0) brightness[i + width - 1] += err * 3 / 16;
+                    brightness[i + width] += err * 5 / 16;
+                    if (x + 1 < width) brightness[i + width + 1] += err * 1 / 16;
+                }
             }
         }
 
         free(brightness);
     } else {
-        // SIMPLE THRESHOLDING
-        for (int y = 0; y < height; y++)
+        // Simple thresholding
+        for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                uint8_t index =
-                    read_pixel1(buffer, width, height, x, y, bit_depth);
+                uint8_t index = read_pixel1(buffer, width, height, x, y, bit_depth);
                 uint32_t offset = index * 4;
-                uint8_t r = img->colorTable[offset + 2];
-                uint8_t g = img->colorTable[offset + 1];
                 uint8_t b = img->colorTable[offset + 0];
+                uint8_t g = img->colorTable[offset + 1];
+                uint8_t r = img->colorTable[offset + 2];
                 uint8_t lum = get_luminance(r, g, b);
                 uint8_t mono = (lum >= threshold) ? 1 : 0;
                 write_pixel1(buffer, width, height, x, y, bit_depth, mono);
             }
+        }
     }
 
-    // Update palette: only index 0 (black) and 1 (white) used
-    memset(img->colorTable, 0, img->ct_color_count * 4); // zero all entries
+    // Update color table: only black and white
+    memset(img->colorTable, 0, img->ct_max_color_count * 4); // Clear all entries
 
-    img->colorTable[4 * 1 + 0] = 255;
-    img->colorTable[4 * 1 + 1] = 255;
-    img->colorTable[4 * 1 + 2] = 255;
+    // Index 0: black
+    img->colorTable[0] = 0;
+    img->colorTable[1] = 0;
+    img->colorTable[2] = 0;
+    img->colorTable[3] = 0;
+
+    // Index 1: white
+    img->colorTable[4] = 255;
+    img->colorTable[5] = 255;
+    img->colorTable[6] = 255;
+    img->colorTable[7] = 0;
+
     img->colors_used_actual = 2;
+    //img->ct_max_color_count = 0;
+
     printf("Monochrome conversion complete using %s mode.\n",
            img->dither ? "dither" : "threshold");
 }
@@ -1884,14 +1903,14 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
 
     if (bit_depth_new <= 8) {
         uint16_t ct_byte_count_new = ct_byte_count(bit_depth_new);
-        uint32_t ct_color_count_new = ct_color_count(bit_depth_new);
-        if (colors_used_actual > ct_color_count_new) {
+        uint32_t ct_max_color_count_new = ct_max_color_count(bit_depth_new);
+        if (colors_used_actual > ct_max_color_count_new) {
             fprintf(stderr,
                     "[%s] Error: Colors used (%d)are greater than the new bit "
                     "depth (%d) will allow(%d), did not convert.\n"
                     "Did not convert!\n",
                     function_name, colors_used_actual, bit_depth_new,
-                    ct_color_count(bit_depth_new));
+                    ct_max_color_count(bit_depth_new));
             return;
         }
 
@@ -1941,7 +1960,10 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
                 for (uint32_t x = 0; x < width; ++x) {
                     value = read_pixel1(img->imageBuffer1, width, height, x, y,
                                         bit_depth_old);
-                                        assert((value == 0) || (value == 1));
+                                        //assert((value == 0) || (value == 1));
+                                        if((value != 0) && (value != 1)) {
+                                            printf("Bad value: %d ", value);
+                                        }
                     write_pixel1(buffer_new, width, height, x, y, bit_depth_new,
                                  value);
                 }
@@ -1952,6 +1974,9 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
         img->image_byte_count = buffer_new_size_bytes;
         img->padded_width = padded_width_new;
         
+        
+        
+
         free(img->colorTable);
         img->colorTable = NULL;
         free(img->imageBuffer1);

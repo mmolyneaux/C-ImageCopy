@@ -179,23 +179,23 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
         // handle the case where colors_used_field is 0 (it defaults to
         // 2^bit_depth if unset).
-        uint16_t ct_clr_count = bmp->image_data->ct_color_count =
-            ct_color_count(bmp->info_header.bi_bit_depth);
+        uint16_t ct_colors_max = bmp->image_data->ct_max_color_count =
+            ct_max_color_count(bmp->info_header.bi_bit_depth);
 
         if (bmp->info_header.bi_colors_used_count == 0) {
-            bmp->colors_used_actual = ct_clr_count;
+            bmp->colors_used_actual = ct_colors_max;
         } else {
             bmp->colors_used_actual = bmp->info_header.bi_colors_used_count;
         }
 
         printf("Colors used actual: %d\n", bmp->colors_used_actual);
         // Each color table entry is 4 bytes
-        bmp->ct_byte_count = ct_clr_count * sizeof(Indexed_Color);
+        bmp->ct_byte_count = ct_colors_max * 4;
 
         // Allocate color table
         bmp->color_table = NULL;
         printf("COLOR TABLE BYTE COUNT: %d\n", bmp->ct_byte_count);
-        bmp->color_table = malloc(bmp->ct_byte_count);
+        bmp->color_table = calloc(bmp->ct_byte_count, 1);
         if (!bmp->color_table) {
             fprintf(stderr,
                     "Error: Memory allocation failed for color table.\n");
@@ -330,15 +330,21 @@ void reset_bmp_fields(Bitmap *bmp) {
     bmp->info_header.bi_height_pixels = bmp->image_data->height;
     bmp->info_header.bi_bit_depth = bmp->image_data->bit_depth;
     bmp->info_header.bi_image_byte_count = bmp->image_data->image_byte_count;
-    bmp->info_header.bi_colors_used_count =
-        bmp->info_header.bi_important_color_count = 0;
-    // bmp->image_data->colors_used_actual;
+
 
     if (bit_depth <= 8) {
         bmp->color_table = bmp->image_data->colorTable;
         bmp->pixel_data = bmp->image_data->imageBuffer1;
         printf("reset_bmp_fields ct:\n");
         printColorTable(bmp->color_table, 2);
+
+        // 0 means all colors are used and all are important.
+        bmp->info_header.bi_colors_used_count =
+            bmp->info_header.bi_important_color_count =
+                (bmp->image_data->colors_used_actual <
+                 ct_max_color_count(bit_depth))
+                    ? bmp->image_data->colors_used_actual
+                    : 0;
     }
 }
 void process_bmp(Bitmap *bmp) {
