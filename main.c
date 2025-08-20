@@ -14,7 +14,7 @@
 #include <uchar.h>
 #include <unistd.h>
 
-#define VERSION "0.14.1 bmp file handler\n"
+#define VERSION "0.???\n"
 
 /**  Returns true if a filename ends with the given extension,
  *   false otherwise.
@@ -300,7 +300,6 @@ int main(int argc, char *argv[]) {
 
     char *filename1 = NULL;
     char *filename2 = NULL;
-    // bool filename2_allocated = false;
 
     // Parse command-line options
     bool g_flag = false,      // gray
@@ -326,6 +325,8 @@ int main(int argc, char *argv[]) {
     int l_flag_int = 0;
     int r_flag_int = 0;
 
+    int depth = -1;
+
     char *filter_name = NULL;
     int8_t filter_index = -1;
     enum Dir flip_dir = 0;
@@ -339,6 +340,7 @@ int main(int argc, char *argv[]) {
         {"hist", no_argument, NULL, 0},
         {"histn", no_argument, NULL, 0},
         {"filter", optional_argument, NULL, 0},
+        {"depth", required_argument , NULL, 0},
         {
             0,
             0,
@@ -363,8 +365,12 @@ int main(int argc, char *argv[]) {
 
             printf("This is case 0\n");
 
-            if (strcmp("test", long_options[long_index].name) == 0) {
+            if (strcmp("depth", long_options[long_index].name) == 0) {
                 printf("TEST\n");
+                exit(EXIT_SUCCESS);
+                
+            }else if (strcmp("test", long_options[long_index].name) == 0) {
+                printf("DEPTH\n");
                 exit(EXIT_SUCCESS);
             } else if (strcmp("version", long_options[long_index].name) == 0) {
                 printf("VERSION\n");
