@@ -38,7 +38,8 @@ void init_image(Image_Data *img) {
     img->padded_width = 0;
     img->image_byte_count = 0;
     img->image_pixel_count = 0;
-    img->bit_depth = 0;
+    img->bit_depth_in = 0;
+    img->bit_depth_out = 0;
     img->channels = 0;
     img->mono_threshold = 0.0f;
     img->dither = false;
@@ -84,7 +85,7 @@ void process_image(Image_Data *img) {
         } else if (img->mode == DITHER) {
             assert(img->dither == true);
             mono1(img);
-            convert_bit_depth(img, 1);
+            convert_bit_depth(img);
         } else if (img->mode == BRIGHT) {
             bright1(img);
         } else if (img->mode == HIST) {
@@ -463,7 +464,7 @@ void copy13(Image_Data *img) {}
 void gray13(Image_Data *img) {
     printf("Gray13\n");
 
-    uint8_t bit_depth = img->bit_depth;
+    uint8_t bit_depth = img->bit_depth_in;
     printf("Gray bit depth: %d\n", bit_depth);
 
     const float r = 0.299f;
@@ -707,13 +708,13 @@ void mono1(Image_Data *img) {
     printf("Converting to monochrome — %s\n",
            img->dither ? "Dithering enabled" : "Thresholding only");
 
-    assert(img->bit_depth == 2 || img->bit_depth == 4 || img->bit_depth == 8);
+    assert(img->bit_depth_in == 2 || img->bit_depth_in == 4 || img->bit_depth_in == 8);
     assert(img->imageBuffer1 != NULL);
     assert(img->colorTable != NULL);
 
+    uint8_t bit_depth = img->bit_depth_in;
     uint32_t width = img->width;
     uint32_t height = img->height;
-    uint8_t bit_depth = img->bit_depth;
     uint8_t *buffer = img->imageBuffer1;
     uint8_t threshold = (uint8_t)(255 * img->mono_threshold + 0.5f);
 
@@ -802,7 +803,7 @@ void mono3(Image_Data *img) {
     printf("Mono3 - %s\n",
            img->dither ? "Dithering enabled" : "Thresholding only");
 
-    assert(img->bit_depth == 24);
+    assert(img->bit_depth_in == 24);
     assert(img->imageBuffer3 != NULL);
 
     uint32_t width = img->width;
@@ -871,7 +872,8 @@ void mono3(Image_Data *img) {
 
 void bright1(Image_Data *img) {
     printf("Bright1\n");
-    const uint8_t WHITE = (1 << img->bit_depth) - 1;
+   
+    const uint8_t CT_MAX = img->ct_max_color_count;
 
     if (img->bright_value) {
         for (int i = 0, value = 0; i < img->image_byte_count; i++) {
@@ -882,8 +884,8 @@ void bright1(Image_Data *img) {
 
             if (value <= BLACK) {
                 img->imageBuffer1[i] = BLACK;
-            } else if (value >= WHITE) {
-                img->imageBuffer1[i] = WHITE;
+            } else if (value >= CT_MAX) {
+                img->imageBuffer1[i] = CT_MAX;
             } else {
                 img->imageBuffer1[i] = value;
             }
@@ -893,9 +895,9 @@ void bright1(Image_Data *img) {
         for (int i = 0, value = 0; i < img->image_byte_count; i++) {
             // Adds the positive or negative value with black and white
             // bounds.
-            value = img->imageBuffer1[i] + (int)(img->bright_percent * WHITE);
-            if (value >= WHITE) {
-                img->imageBuffer1[i] = WHITE;
+            value = img->imageBuffer1[i] + (int)(img->bright_percent * CT_MAX);
+            if (value >= CT_MAX) {
+                img->imageBuffer1[i] = CT_MAX;
             } else if (value <= BLACK) {
                 img->imageBuffer1[i] = BLACK;
             } else {
@@ -1876,9 +1878,11 @@ void filter1(Image_Data *img) {
 }
 
 // if colors not low enough, need functions to reduce colors.
-void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
+void convert_bit_depth(Image_Data *img) {
     char *function_name = "convert_bit_depth";
-    uint8_t bit_depth_old = img->bit_depth;
+    uint8_t bit_depth_old = img->bit_depth_in;
+    uint8_t bit_depth_new = img->bit_depth_out;
+    
     uint16_t colors_used_actual = img->colors_used_actual;
 
     if (bit_depth_new == bit_depth_old) {
@@ -1970,7 +1974,7 @@ void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new) {
             }
         }
 
-        img->bit_depth = bit_depth_new;
+        //img->bit_depth = bit_depth_new;
         img->image_byte_count = buffer_new_size_bytes;
         img->padded_width = padded_width_new;
         
