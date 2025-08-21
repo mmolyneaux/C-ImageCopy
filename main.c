@@ -262,7 +262,7 @@ bool get_valid_float(char *str, float *result) {
     return true;
 }
 
-bool get_valid_int(char *str, int *result) {
+bool is_valid_int(char *str, int *result) {
     char *endptr;
     errno = 0;                             // Clear previous errors
     long value = strtol(str, &endptr, 10); // base 10
@@ -325,10 +325,10 @@ int main(int argc, char *argv[]) {
     int l_flag_int = 0;
     int r_flag_int = 0;
 
-    int depth = -1;
+    
 
     char *filter_name = NULL;
-    int8_t filter_index = -1;
+    int filter_index = -1;
     enum Dir flip_dir = 0;
     enum Invert invert_mode = 0;
 
@@ -488,11 +488,11 @@ int main(int argc, char *argv[]) {
                 } else if (is_digit(optarg[check_digit])) {
                     printf("is_digit\n");
                     int b_int_input = 0;
-                    printf("get_valid_int: %s\n",
-                           get_valid_int(optarg, &b_int_input) ? "true"
+                    printf("is_valid_int: %s\n",
+                           is_valid_int(optarg, &b_int_input) ? "true"
                                                                : "false");
-                    if (get_valid_int(optarg, &b_int_input)) {
-                        printf("get_valid_int\n");
+                    if (is_valid_int(optarg, &b_int_input)) {
+                        printf("is_valid_int\n");
                         if ((b_int_input != 0) && (b_int_input >= -255) &&
                             (b_int_input <= 255)) {
                             b_flag_int = b_int_input;
@@ -561,11 +561,11 @@ int main(int argc, char *argv[]) {
                 if (is_digit(optarg[check_digit])) {
                     printf("is_digit\n");
                     int r_int_input = 0;
-                    printf("get_valid_int: %s\n",
-                           get_valid_int(optarg, &r_int_input) ? "true"
+                    printf("is_valid_int: %s\n",
+                           is_valid_int(optarg, &r_int_input) ? "true"
                                                                : "false");
-                    if (get_valid_int(optarg, &r_int_input)) {
-                        printf("get_valid_int\n");
+                    if (is_valid_int(optarg, &r_int_input)) {
+                        printf("is_valid_int\n");
                         if ( //(r_int_input != 0) &&
                             (r_int_input >= -270) &&
                             (r_int_input <= 270 && r_int_input % 90 == 0)) {
@@ -591,10 +591,10 @@ int main(int argc, char *argv[]) {
             if (optarg && is_digit(optarg[0])) {
                 printf("is_digit\n");
                 int l_int_input = 0;
-                printf("get_valid_int: %s\n",
-                       get_valid_int(optarg, &l_int_input) ? "true" : "false");
-                if (get_valid_int(optarg, &l_int_input)) {
-                    printf("get_valid_int\n");
+                printf("is_valid_int: %s\n",
+                       is_valid_int(optarg, &l_int_input) ? "true" : "false");
+                if (is_valid_int(optarg, &l_int_input)) {
+                    printf("is_valid_int\n");
                     if ((l_int_input >= 1) && (l_int_input <= 255)) {
                         l_flag_int = l_int_input;
                         printf("-l int value: %d\n", l_flag_int);

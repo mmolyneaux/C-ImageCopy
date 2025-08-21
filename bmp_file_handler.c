@@ -283,7 +283,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     bmp->image_data->image_byte_count = bmp->info_header.bi_image_byte_count;
     bmp->image_data->image_pixel_count =
         bmp->info_header.bi_height_pixels * bmp->info_header.bi_height_pixels;
-    bmp->image_data->bit_depth = bmp->info_header.bi_bit_depth;
+    bmp->image_data->bit_depth_in = bmp->info_header.bi_bit_depth;
     bmp->image_data->colors_used_actual = bmp->colors_used_actual;
     if (bmp->image_data->channels == 1) {
         bmp->image_data->colorTable = bmp->color_table;
@@ -318,7 +318,7 @@ void change_extension(char *filename, char *ext) {
  *   Get updated image variables
  */
 void reset_bmp_fields(Bitmap *bmp) {
-    uint8_t bit_depth = bmp->image_data->bit_depth;
+    uint8_t bit_depth = bmp->image_data->bit_depth_out;
     bmp->ct_byte_count = ct_byte_count(bit_depth);
     bmp->file_header.offset_bytes =
         sizeof(File_Header) + sizeof(Info_Header) + bmp->ct_byte_count;

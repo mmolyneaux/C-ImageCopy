@@ -45,7 +45,8 @@ typedef struct {
     uint32_t padded_width;
     uint32_t image_byte_count;
     uint32_t image_pixel_count;
-    uint8_t bit_depth;
+    uint8_t bit_depth_in;
+    uint8_t bit_depth_out;
     uint8_t channels;
     float_t mono_threshold; // 0.0 to 1.0 inclusive
     bool dither;
@@ -115,5 +116,5 @@ void blur1(Image_Data *img);
 void blur3(Image_Data *img);
 void sepia3(Image_Data *img);
 void filter1(Image_Data *img);
-void convert_bit_depth(Image_Data *img, uint16_t bit_depth_new);
+void convert_bit_depth(Image_Data *img);
 #endif
