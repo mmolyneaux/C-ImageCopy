@@ -325,8 +325,6 @@ int main(int argc, char *argv[]) {
     int l_flag_int = 0;
     int r_flag_int = 0;
 
-    
-
     char *filter_name = NULL;
     int filter_index = -1;
     enum Dir flip_dir = 0;
@@ -340,7 +338,7 @@ int main(int argc, char *argv[]) {
         {"hist", no_argument, NULL, 0},
         {"histn", no_argument, NULL, 0},
         {"filter", optional_argument, NULL, 0},
-        {"depth", required_argument , NULL, 0},
+        {"depth", required_argument, NULL, 0},
         {
             0,
             0,
@@ -366,10 +364,33 @@ int main(int argc, char *argv[]) {
             printf("This is case 0\n");
 
             if (strcmp("depth", long_options[long_index].name) == 0) {
-                printf("TEST\n");
-                exit(EXIT_SUCCESS);
-                
-            }else if (strcmp("test", long_options[long_index].name) == 0) {
+
+                printf("SETTING OUTPUT DEPTH\n");
+
+                if (optarg && is_digit(optarg[0])) {
+                    printf("is_digit\n");
+                    bool valid_int = false;
+                    int input_value = 0;
+                    printf("is_valid_int: %s\n",
+
+                           (valid_int = (is_valid_int(optarg, &input_value)))
+                                           ? "true"
+                                           : "false");
+                            
+                        printf("--depth: %d\n", input_value);
+                        
+                        if ((input_value == 1) || (input_value == 2) || (input_value == 4) || (input_value == 8) || (input_value == 24)) {
+                            img->bit_depth_out = input_value;
+                            printf("--depth=%d\n", input_value);
+                        }
+
+                } else {
+                    // Adjust optind to reconsider the current argument as a
+                    // non-option argument
+                    optind--;
+                }
+
+            } else if (strcmp("test", long_options[long_index].name) == 0) {
                 printf("DEPTH\n");
                 exit(EXIT_SUCCESS);
             } else if (strcmp("version", long_options[long_index].name) == 0) {
@@ -490,7 +511,7 @@ int main(int argc, char *argv[]) {
                     int b_int_input = 0;
                     printf("is_valid_int: %s\n",
                            is_valid_int(optarg, &b_int_input) ? "true"
-                                                               : "false");
+                                                              : "false");
                     if (is_valid_int(optarg, &b_int_input)) {
                         printf("is_valid_int\n");
                         if ((b_int_input != 0) && (b_int_input >= -255) &&
@@ -530,6 +551,8 @@ int main(int argc, char *argv[]) {
                 optind--;
             }
             break;
+
+            // flip
         case 'f':
             f_flag = true;
             if (optarg && optarg[0] && !optarg[1]) {
@@ -563,7 +586,7 @@ int main(int argc, char *argv[]) {
                     int r_int_input = 0;
                     printf("is_valid_int: %s\n",
                            is_valid_int(optarg, &r_int_input) ? "true"
-                                                               : "false");
+                                                              : "false");
                     if (is_valid_int(optarg, &r_int_input)) {
                         printf("is_valid_int\n");
                         if ( //(r_int_input != 0) &&
