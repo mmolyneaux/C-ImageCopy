@@ -285,6 +285,11 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         bmp->info_header.bi_height_pixels * bmp->info_header.bi_height_pixels;
     bmp->image_data->bit_depth_in = bmp->info_header.bi_bit_depth;
     bmp->image_data->colors_used_actual = bmp->colors_used_actual;
+
+    if (bmp->image_data->bit_depth_out == 0) {
+        bmp->image_data->bit_depth_out = bmp->image_data->bit_depth_in;
+    }
+
     if (bmp->image_data->channels == 1) {
         bmp->image_data->colorTable = bmp->color_table;
         bmp->image_data->imageBuffer1 = bmp->pixel_data;
@@ -331,7 +336,6 @@ void reset_bmp_fields(Bitmap *bmp) {
     bmp->info_header.bi_bit_depth = bit_depth;
     bmp->info_header.bi_image_byte_count = bmp->image_data->image_byte_count;
 
-
     if (bit_depth <= 8) {
         bmp->color_table = bmp->image_data->colorTable;
         bmp->pixel_data = bmp->image_data->imageBuffer1;
@@ -341,16 +345,17 @@ void reset_bmp_fields(Bitmap *bmp) {
         // 0 means all colors are used and all are important.
         bmp->info_header.bi_colors_used_count =
             bmp->info_header.bi_important_color_count =
-            // if less than all colors are used, use that number
-            // otherwise use 0 which means all    
+                // if less than all colors are used, use that number
+                // otherwise use 0 which means all
             (bmp->image_data->colors_used_actual <
-                 ct_max_color_count(bit_depth))
-                    ? bmp->image_data->colors_used_actual
-                    : 0;
+             ct_max_color_count(bit_depth))
+                ? bmp->image_data->colors_used_actual
+                : 0;
     }
 }
 void process_bmp(Bitmap *bmp) {
     process_image(bmp->image_data);
+    convert_bit_depth(bmp->image_data);
     reset_bmp_fields(bmp);
 }
 

@@ -85,7 +85,6 @@ void process_image(Image_Data *img) {
         } else if (img->mode == DITHER) {
             assert(img->dither == true);
             mono1(img);
-            convert_bit_depth(img);
         } else if (img->mode == BRIGHT) {
             bright1(img);
         } else if (img->mode == HIST) {
@@ -1877,7 +1876,7 @@ void filter1(Image_Data *img) {
     free(c1->output);
 }
 
-// if colors not low enough, need functions to reduce colors.
+// if colors not low enough, need to reduce colors before reduce bit depth.
 void convert_bit_depth(Image_Data *img) {
     char *function_name = "convert_bit_depth";
     uint8_t bit_depth_old = img->bit_depth_in;
