@@ -1889,25 +1889,26 @@ void convert_bit_depth(Image_Data *img) {
     char *function_name = "convert_bit_depth";
     uint8_t bit_depth_old = img->bit_depth_in;
     uint8_t bit_depth_new = img->bit_depth_out;
-
     // already 0 for 24 bit
     uint16_t colors_used_actual = img->colors_used_actual;
-
+    
     if (bit_depth_new == bit_depth_old) {
         fprintf(stderr, "[%s] Did not convert to same bit depth: %d=%d\n",
-                function_name, bit_depth_old, bit_depth_new);
-        return;
-    }
-
-    // uint32_t width = img->width;
-    uint32_t height = img->height;
-    uint32_t width = img->width;
-
-    uint32_t padded_width_new = row_size_bytes(img->width, bit_depth_new);
-
-    uint16_t ct_byte_count_new = 0;
-    uint32_t ct_max_color_count_new = 0;
-    uint8_t *color_table_new = NULL;
+            function_name, bit_depth_old, bit_depth_new);
+            return;
+        }
+        
+        // uint32_t width = img->width;
+        uint32_t height = img->height;
+        uint32_t width = img->width;
+        
+        uint32_t padded_width_new = row_size_bytes(img->width, bit_depth_new);
+        
+        uint16_t ct_byte_count_new = 0;
+        uint32_t ct_max_color_count_new = 0;
+        uint8_t *color_table_new = NULL;
+        uint32_t buffer1_new_size_bytes = 0;
+        uint8_t *buffer1_new = NULL;
 
     if ((bit_depth_new >= 1) && (bit_depth_new <= 8)) {
         ct_byte_count_new = ct_byte_count(bit_depth_new);
@@ -1920,12 +1921,12 @@ void convert_bit_depth(Image_Data *img) {
             return;
         }
 
-        uint32_t buffer_new_size_bytes =
+        buffer1_new_size_bytes =
             calculate_buffer1_byte_count(width, height, bit_depth_new);
-        uint8_t *buffer_new = create_buffer1(buffer_new_size_bytes);
+        buffer1_new = create_buffer1(buffer1_new_size_bytes);
 
         printf("New CT buffer created.\n");
-        if (!buffer_new) {
+        if (!buffer1_new) {
             free(color_table_new);
             fprintf(stderr, "[%s] Could not create new image buffer! %d\n",
                     function_name, ct_byte_count_new);
@@ -1934,7 +1935,13 @@ void convert_bit_depth(Image_Data *img) {
         printf("New image buffer created.\n");
 
     } else if (bit_depth_new == 24) {
+        
+    
     }
+
+
+    // By this point the new buffers are created
+
 
     if ((bit_depth_old <= 8)) {
         if (bit_depth_new <= 8) {
@@ -1946,7 +1953,7 @@ void convert_bit_depth(Image_Data *img) {
                     "depth (%d) will allow(%d), did not convert.\n"
                     "Did not convert!\n",
                     function_name, colors_used_actual, bit_depth_new,
-                    ct_max_color_count(bit_depth_new));
+                    ct_max_color_count_new);
                 return;
             }
 
@@ -1957,9 +1964,8 @@ void convert_bit_depth(Image_Data *img) {
 
             uint8_t value = 0;
 
-            if (bit_depth_new == 1) {
-                assert(img->colors_used_actual == 2);
-
+            
+                // Copying old ct array into the new
                 for (uint16_t i = 0; i < colors_used_actual * 4; ++i) {
                     color_table_new[i] = img->colorTable[i];
                 }
@@ -1978,14 +1984,14 @@ void convert_bit_depth(Image_Data *img) {
                         if ((value != 0) && (value != 1)) {
                             printf("Bad value: %d ", value);
                         }
-                        write_pixel1(buffer_new, width, height, x, y,
+                        write_pixel1(buffer1_new, width, height, x, y,
                                      bit_depth_new, value);
                     }
                 }
-            }
+            
 
             // img->bit_depth = bit_depth_new;
-            img->image_byte_count = buffer_new_size_bytes;
+            img->image_byte_count = buffer1_new_size_bytes;
             img->padded_width = padded_width_new;
 
             free(img->colorTable);
@@ -1993,7 +1999,7 @@ void convert_bit_depth(Image_Data *img) {
             free(img->imageBuffer1);
             img->imageBuffer1 = NULL;
 
-            img->imageBuffer1 = buffer_new;
+            img->imageBuffer1 = buffer1_new;
             img->colorTable = color_table_new;
         }
         return;
