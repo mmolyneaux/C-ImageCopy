@@ -2,6 +2,7 @@
 #define IMAGE_HANDLER_H
 
 
+#include <cstdint>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -72,8 +73,8 @@ typedef struct {
     char* filter_name;
     int8_t filter_index;
     char* mode_suffix;
-    
     uint16_t colors_used_actual;
+    uint16_t output_colors;
 
 } Image_Data;
 

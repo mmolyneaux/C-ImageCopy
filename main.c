@@ -339,6 +339,7 @@ int main(int argc, char *argv[]) {
         {"histn", no_argument, NULL, 0},
         {"filter", optional_argument, NULL, 0},
         {"depth", required_argument, NULL, 0},
+        {"colors", required_argument, NULL, 0},
         {
             0,
             0,
@@ -387,10 +388,41 @@ int main(int argc, char *argv[]) {
                 } else {
                     // Adjust optind to reconsider the current argument as a
                     // non-option argument
+                    fprintf(stderr, "Invalid input to --depth %s\n", optarg);
                     optind--;
+
                 }
 
-            } else if (strcmp("test", long_options[long_index].name) == 0) {
+            } if (strcmp("colors", long_options[long_index].name) == 0) {
+
+                printf("SETTING OUTPUT COLORS\n");
+
+                if (optarg && is_digit(optarg[0])) {
+                    printf("is_digit\n");
+                    bool valid_int = false;
+                    int input_value = 0;
+                    printf("is_valid_int: %s\n",
+
+                           (valid_int = (is_valid_int(optarg, &input_value)))
+                                           ? "true"
+                                           : "false");
+                            
+                        printf("--colors: %d\n", input_value);
+                        
+                        if ((input_value >= 2) && (input_value <= 256)) {
+                            img->output_colors = input_value;
+                            printf("--colors=%d\n", input_value);
+                        }
+
+                } else {
+                    // Adjust optind to reconsider the current argument as a
+                    // non-option argument
+                    fprintf(stderr, "Invalid input to --colors %s\n", optarg);
+                    optind--;
+
+                }
+
+            }else if (strcmp("test", long_options[long_index].name) == 0) {
                 printf("DEPTH\n");
                 exit(EXIT_SUCCESS);
             } else if (strcmp("version", long_options[long_index].name) == 0) {

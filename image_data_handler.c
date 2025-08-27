@@ -66,6 +66,7 @@ void init_image(Image_Data *img) {
     img->mode_suffix = NULL;
 
     img->colors_used_actual = 0;
+    img->output_colors = 0;
 }
 // Process image
 void process_image(Image_Data *img) {
@@ -1883,7 +1884,7 @@ void filter1(Image_Data *img) {
     free(c1->output);
 }
 
-void reduce_colors(Image_Data img){
+void reduce_colors3(Image_Data img){
 
 
 }
