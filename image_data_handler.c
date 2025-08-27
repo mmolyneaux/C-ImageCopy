@@ -1883,6 +1883,11 @@ void filter1(Image_Data *img) {
     free(c1->output);
 }
 
+void reduce_colors(Image_Data img){
+
+
+}
+
 // if colors not low enough, need to reduce colors before reduce bit depth.
 void convert_bit_depth(Image_Data *img) {
 
