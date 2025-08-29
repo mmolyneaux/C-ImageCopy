@@ -101,6 +101,17 @@ typedef struct {
     uint8_t reserved; // Reserved or Alpha component (1 byte, often unused or 0)
 } Indexed_Color;
 
+typedef struct {
+    uint8_t r, g, b;
+} RGB;
+
+typedef struct {
+    RGB color;
+    int count;
+} ColorEntry;
+
+
+
 // Function prototypes
 uint32_t pad_width(int32_t width, uint8_t bit_depth);
 char *create_filename_with_suffix(char *filename, char *suffix);

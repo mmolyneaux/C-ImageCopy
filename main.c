@@ -1,7 +1,6 @@
 #include "bmp_file_handler.h"
 #include "convolution.h"
 #include "image_data_handler.h"
-// #include <cstdint>
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>

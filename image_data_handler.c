@@ -1885,7 +1885,14 @@ void filter1(Image_Data *img) {
 }
 
 void reduce_colors3(Image_Data img){
-
+    if (img.output_colors == 0) {
+        return;
+    }
+    if less than equal 2 colors, 1 bit 
+    else if less than equal 16 colors, 4 bit 
+    else if less than equal 256 colors, 8 bit 
+    
+    if 256 or less 8 bit
 
 }
 
