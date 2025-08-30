@@ -177,8 +177,8 @@ bool write_image(Image *img, char *filename) {
         // Write header info
         fwrite(img->header, sizeof(char), HEADER_SIZE, streamOut);
 
-        if (img->channels == ONE_CHANNEL) {
-            printf("ONE_CHANNEL\n");
+        if (img->channels == INDEXED) {
+            printf("INDEXED\n");
 
             // Write color table if necessary.
             if (img->CT_EXISTS) {

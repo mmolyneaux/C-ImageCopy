@@ -2,7 +2,6 @@
 #define IMAGE_HANDLER_H
 
 
-#include <cstdint>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -14,9 +13,27 @@
 //#define CT_SIZE 1024
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
+#define MAX_COLORS24 16777216  // 2^24
 
 
-enum ImageType { ONE_CHANNEL = 1, RGB = 3, RGBA = 4 };
+typedef struct {
+    uint8_t red;   // Red component (1 byte)
+    uint8_t green; // Green component (1 byte)
+    uint8_t blue;  // Blue component (1 byte)
+    uint8_t reserved; // Reserved or Alpha component (1 byte, often unused or 0)
+} Indexed;
+
+typedef struct {
+    uint8_t r, g, b;
+} RGB;
+
+typedef struct {
+    RGB color;
+    int count;
+} RGBEntry;
+
+
+enum ImageType { INDEXED = 1, RGB24 = 3, RGBA32 = 4 };
 enum Mode {
     NO_MODE = 0,
     COPY,

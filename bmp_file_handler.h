@@ -94,22 +94,6 @@ typedef struct {
 } Bitmap;
 #pragma pack(pop)
 
-typedef struct {
-    uint8_t red;   // Red component (1 byte)
-    uint8_t green; // Green component (1 byte)
-    uint8_t blue;  // Blue component (1 byte)
-    uint8_t reserved; // Reserved or Alpha component (1 byte, often unused or 0)
-} Indexed_Color;
-
-typedef struct {
-    uint8_t r, g, b;
-} RGB;
-
-typedef struct {
-    RGB color;
-    int count;
-} ColorEntry;
-
 
 
 // Function prototypes

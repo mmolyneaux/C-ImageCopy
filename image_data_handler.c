@@ -75,7 +75,7 @@ void process_image(Image_Data *img) {
     if (img->channels == 1) {
 
         printf("\n");
-        printf("ONE_CHANNEL\n");
+        printf("INDEXED\n");
 
         if (img->mode == COPY) {
             copy13(img);
@@ -110,7 +110,7 @@ void process_image(Image_Data *img) {
             exit(EXIT_FAILURE);
         }
 
-    } else if (img->channels == RGB) {
+    } else if (img->channels == RGB24) {
         printf("RGB_CHANNEL\n");
         if (img->mode == COPY) {
             printf("C3\n");
