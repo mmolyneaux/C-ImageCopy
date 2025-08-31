@@ -1,6 +1,7 @@
 #include "image_data_handler.h"
 #include "convolution.h"
 #include <assert.h>
+#include <cstdint>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -1895,6 +1896,37 @@ void reduce_colors3(Image_Data img){
     if 256 or less 8 bit
 
 }
+
+// Build a histogram for a 24-bit BMP image buffer.
+//  data      - pointer to the start of pixel data (first scanline = bottom row by BMP spec)
+//  width     - image width in pixels
+//  height    - image height in pixels
+//  hist_out  - pre-allocated uint32_t[1<<24] array (all zeroed before calling)
+void build_bmp_histogram3(
+    const uint8_t *data,
+    int width,
+    int height,
+    uint32_t *hist_out)
+{
+    // Each pixel is 3 bytes; pad each row to a multiple of 4 bytes
+    int row_size = ((width * 3 + 3) / 4) * 4;
+
+    // Loop over every scanline and every pixel
+    for (int y = 0; y < height; y++) {
+        const uint8_t *row = data + y * row_size;
+        for (int x = 0; x < width; x++) {
+            uint8_t b = row[x*3 + 0];
+            uint8_t g = row[x*3 + 1];
+            uint8_t r = row[x*3 + 2];
+
+            // Pack into 24-bit key: RRRRRRRR GGGGGGGG BBBBBBBB
+            uint32_t key = (r << 16) | (g << 8) | b;
+            hist_out[key]++;
+        }
+    }
+}
+
+
 
 // if colors not low enough, need to reduce colors before reduce bit depth.
 void convert_bit_depth(Image_Data *img) {
