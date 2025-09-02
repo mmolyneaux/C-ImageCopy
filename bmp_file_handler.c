@@ -23,7 +23,7 @@ uint32_t pad_width(int32_t width, uint8_t bit_depth) {
         return (3 * width + 3) & ~3;
     }
     fprintf(stderr,
-            "Error: Trying to pad width for unsupported type;\n"
+            "Error: Trying to pad width for unsupported colorMode;\n"
             "width: %d, depth:%d \n",
             width, bit_depth);
     exit(EXIT_FAILURE);
@@ -89,7 +89,7 @@ void init_bitmap(Bitmap *bmp) {
     bmp->filename_in = NULL;
     bmp->filename_out = NULL;
     bmp->file_size_read = 0;
-    bmp->padded_width = 0;
+    bmp->row_size_bytes = 0;
     bmp->image_bytes_calculated = 0;
     bmp->ct_byte_count = 0;
     bmp->colors_used_actual = 0;
@@ -172,7 +172,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     // For bit_depth <= 8, colors are stored in and referenced from the
     // color table
     if (bmp->info_header.bi_bit_depth <= 8) {
-        bmp->image_data->channels = 1;
+        bmp->image_data->colorMode = INDEXED;
 
         // each color table entry is 4 bytes (one byte each for Blue, Green,
         // Red, and a reserved byte). This is independent of the bit depth.
@@ -224,10 +224,10 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         size_t bytes_per_row = (bits_per_row + 7) / 8;
 
         // Align to the newrest multiple of 4 bytes
-        bmp->padded_width = (bytes_per_row + 3) & ~3;
+        bmp->row_size_bytes = (bytes_per_row + 3) & ~3;
        */
     } else if (bmp->info_header.bi_bit_depth == 24) {
-        bmp->image_data->channels = 3;
+        bmp->image_data->colorMode = RGB24;
     } else {
         fprintf(stderr, "Error: Bitdepth not supported - %d",
                 bmp->info_header.bi_bit_depth);
@@ -240,12 +240,12 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         bmp->file_header.file_size_field = bmp->file_size_read;
     }
 
-    bmp->padded_width = pad_width(bmp->info_header.bi_width_pixels,
+    bmp->row_size_bytes = pad_width(bmp->info_header.bi_width_pixels,
                                   bmp->info_header.bi_bit_depth);
 
     // Total image size in bytes
     bmp->image_bytes_calculated =
-        bmp->padded_width * bmp->info_header.bi_height_pixels;
+        bmp->row_size_bytes * bmp->info_header.bi_height_pixels;
 
     // Validate image size field with calculated image size
     if (bmp->info_header.bi_image_byte_count != bmp->image_bytes_calculated) {
@@ -278,8 +278,8 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
     // set_image_data_variables(Bitmap *bmp);
     bmp->image_data->width = bmp->info_header.bi_width_pixels;
     bmp->image_data->height = bmp->info_header.bi_height_pixels;
-    bmp->image_data->padded_width = bmp->padded_width;
-    bmp->image_data->padded_width = bmp->padded_width;
+    bmp->image_data->row_size_bytes = bmp->row_size_bytes;
+    bmp->image_data->row_size_bytes = bmp->row_size_bytes;
     bmp->image_data->image_byte_count = bmp->info_header.bi_image_byte_count;
     bmp->image_data->image_pixel_count =
         bmp->info_header.bi_height_pixels * bmp->info_header.bi_height_pixels;
@@ -290,18 +290,20 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         bmp->image_data->bit_depth_out = bmp->image_data->bit_depth_in;
     }
 
-    if (bmp->image_data->channels == 1) {
+    if (bmp->image_data->colorMode == INDEXED) {
         bmp->image_data->colorTable = bmp->color_table;
-        bmp->image_data->imageBuffer1 = bmp->pixel_data;
-    } else if (bmp->image_data->channels == 3) {
-
-        // create_buffer3(&bmp->imageBuffer3, bmp->info_header.height,
-        // bmp->padded_width);
-
+        bmp->image_data->pixelData = bmp->pixel_data;
+    } else if (bmp->image_data->colorMode == RGB24) {
+        
+        // create_buffer3(&bmp->pixelDataRows, bmp->info_header.height,
+        // bmp->row_size_bytes);
+        
         //    pixel_data_to_buffer3(bmp->pixel_data,
-        //    &bmp->image_data->imageBuffer3,
-        //       bmp->info_header.height, bmp->padded_width);
-        bmp->image_data->imageBuffer3 = pixel_data_to_buffer3(
+        //    &bmp->image_data->pixelDataRows,
+        //       bmp->info_header.height, bmp->row_size_bytes);
+        
+        bmp->image_data->pixelData = bmp->pixel_data;
+        bmp->image_data->pixelDataRows = pixel_data_to_buffer3(
             bmp->pixel_data, bmp->info_header.bi_width_pixels,
             bmp->info_header.bi_height_pixels);
     }
@@ -338,7 +340,7 @@ void reset_bmp_fields(Bitmap *bmp) {
 
     if (bit_depth <= 8) {
         bmp->color_table = bmp->image_data->colorTable;
-        bmp->pixel_data = bmp->image_data->imageBuffer1;
+        bmp->pixel_data = bmp->image_data->pixelData;
         printf("reset_bmp_fields ct:\n");
         printColorTable(bmp->color_table, 2);
 
@@ -519,16 +521,16 @@ void free_bitmap(Bitmap *bmp) {
     }
 
     if (bmp->image_data) {
-        if (bmp->image_data->imageBuffer1) {
-            free(bmp->image_data->imageBuffer1);
-            bmp->image_data->imageBuffer1 = NULL;
-            printf("[free_bitmap] Freed imageBuffer1.\n");
+        if (bmp->image_data->pixelData) {
+            free(bmp->image_data->pixelData);
+            bmp->image_data->pixelData = NULL;
+            printf("[free_bitmap] Freed pixelData.\n");
         }
 
-        if (bmp->image_data->imageBuffer3) {
-            free(bmp->image_data->imageBuffer3);
-            bmp->image_data->imageBuffer3 = NULL;
-            printf("[free_bitmap] Freed imageBuffer3.\n");
+        if (bmp->image_data->pixelDataRows) {
+            free(bmp->image_data->pixelDataRows);
+            bmp->image_data->pixelDataRows = NULL;
+            printf("[free_bitmap] Freed pixelDataRows.\n");
         }
 
         free(bmp->image_data);

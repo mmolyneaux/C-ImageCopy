@@ -23,14 +23,14 @@ typedef struct {
     uint8_t reserved; // Reserved or Alpha component (1 byte, often unused or 0)
 } Indexed;
 
-typedef struct {
-    uint8_t r, g, b;
-} RGB;
+// typedef struct {
+//     uint8_t r, g, b;
+// } RGB;
 
-typedef struct {
-    RGB color;
-    int count;
-} RGBEntry;
+// typedef struct {
+//     RGB color;
+//     int count;
+// } RGBEntry;
 
 
 enum ImageType { INDEXED = 1, RGB24 = 3, RGBA32 = 4 };
@@ -60,12 +60,12 @@ typedef struct {
     //unsigned char header[HEADER_SIZE];
     uint32_t width;
     uint32_t height;
-    uint32_t padded_width;
-    uint32_t image_byte_count;
+    uint32_t row_size_bytes;
     uint32_t image_pixel_count;
+    uint32_t image_byte_count;
     uint8_t bit_depth_in;
     uint8_t bit_depth_out;
-    uint8_t channels;
+    uint8_t colorMode;
     float_t mono_threshold; // 0.0 to 1.0 inclusive
     bool dither;
     int16_t bright_value;   // -255 to 255 inclusive
@@ -82,8 +82,8 @@ typedef struct {
     bool CT_EXISTS;
     uint16_t ct_max_color_count;
     unsigned char *colorTable;
-    unsigned char *imageBuffer1; //[imgSize], 1 channel for 8-bit images or less
-    unsigned char **imageBuffer3; //[imgSize][3], 3 channel for rgb
+    unsigned char *pixelData; //[imgSize], 1 channel for 8-bit images or less
+    unsigned char **pixelDataRows; //[imgSize][3], 3 channel for rgb
     enum Dir direction;           // Flip direction, <H>orizontal or <V>ertical
     enum Mode mode;
     enum Invert invert;
@@ -91,7 +91,7 @@ typedef struct {
     int8_t filter_index;
     char* mode_suffix;
     uint16_t colors_used_actual;
-    uint16_t output_colors;
+    uint16_t output_color_count;
 
 } Image_Data;
 

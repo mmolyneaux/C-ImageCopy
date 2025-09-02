@@ -84,11 +84,11 @@ typedef struct {
     char* filename_in;
     char *filename_out;
     uint32_t file_size_read;
-    uint32_t padded_width;
+    uint32_t row_size_bytes;
     uint32_t image_bytes_calculated;
-    //uint8_t channels;
-    // uint8_t *imageBuffer1;
-    // uint8_t **imageBuffer3;
+    //uint8_t type;
+    // uint8_t *pixelData;
+    // uint8_t **pixelDataRows;
     Image_Data *image_data;
 
 } Bitmap;

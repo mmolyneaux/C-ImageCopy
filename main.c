@@ -86,7 +86,7 @@ bool read_image(Image *image, char *filename1) {
     if (image->bit_depth <= 8) {
 
         // if bit depth < 8 i still want 1 channel.
-        image->channels = 1;
+        image->colorMode = 1;
         image->CT_EXISTS = true;
 
         // Allocate memory for colorTable
@@ -100,38 +100,38 @@ bool read_image(Image *image, char *filename1) {
         fread(image->colorTable, sizeof(char), CT_SIZE, streamIn);
     } else {
         // 24 bit is 3 channel rbg, 32 bit is 32 bit is 4 channel rgba
-        image->channels = image->bit_depth / 8;
+        image->colorMode = image->bit_depth / 8;
     }
 
-    if (image->channels == 1) {
+    if (image->colorMode == 1) {
         // Allocate memory for image buffer
-        image->imageBuffer1 = create_buffer1(image->image_size);
+        image->pixelData = create_buffer1(image->image_size);
 
-        fread(image->imageBuffer1, sizeof(char), image->image_size, streamIn);
+        fread(image->pixelData, sizeof(char), image->image_size, streamIn);
 
         file_read_completed = true;
-    } else if (image->channels == 3) {
+    } else if (image->colorMode == 3) {
 
         // BMP files stor pixel data in rows that must be
         // padded to multiples of 4 bytes. This
         // adds 3 to the total number of bytes, then bitwise
         // bitwise AND's NOT 3 (1111100) to round down to the
         // nearest multiple of 4.
-        image->padded_width = (image->width * 3 + 3) & (~3);
+        image->row_size_bytes = (image->width * 3 + 3) & (~3);
 
-        create_buffer3(&image->imageBuffer3, image->height,
-                       image->padded_width);
+        create_buffer3(&image->pixelDataRows, image->height,
+                       image->row_size_bytes);
 
         printf("Image buffer3 created.\n");
 
         for (int y = 0; y < image->height; y++) {
-            fread(image->imageBuffer3[y], sizeof(uint8_t), image->padded_width,
+            fread(image->pixelDataRows[y], sizeof(uint8_t), image->row_size_bytes,
                   streamIn);
         }
 
         file_read_completed = true;
         printf("Channels read.\n");
-    } else if (image->channels == 4) {
+    } else if (image->colorMode == 4) {
         fprintf(stderr, "Error: not set up for 4 channel rgba\n");
         exit(EXIT_FAILURE);
     }
@@ -177,21 +177,21 @@ bool write_image(Image *img, char *filename) {
         // Write header info
         fwrite(img->header, sizeof(char), HEADER_SIZE, streamOut);
 
-        if (img->channels == INDEXED) {
+        if (img->colorMode == INDEXED) {
             printf("INDEXED\n");
 
             // Write color table if necessary.
             if (img->CT_EXISTS) {
                 fwrite(img->colorTable, sizeof(char), CT_SIZE, streamOut);
             }
-            fwrite(img->imageBuffer1, sizeof(char), img->image_byte_count,
-streamOut); } else if (img->channels == RGB) { for (int x = img->padded_width -
-16; x < img->padded_width - 1; x++) { printf("%d ",
-img->imageBuffer3[img->height - 1][x]);
+            fwrite(img->pixelData, sizeof(char), img->image_byte_count,
+streamOut); } else if (img->colorMode == RGB) { for (int x = img->row_size_bytes -
+16; x < img->row_size_bytes - 1; x++) { printf("%d ",
+img->pixelDataRows[img->height - 1][x]);
             }
             printf("\n");
             for (int y = 0; y < img->height; y++) {
-                fwrite(img->imageBuffer3[y], sizeof(uint8_t), img->padded_width,
+                fwrite(img->pixelDataRows[y], sizeof(uint8_t), img->row_size_bytes,
                        streamOut);
             }
         }
@@ -409,7 +409,7 @@ int main(int argc, char *argv[]) {
                         printf("--colors: %d\n", input_value);
                         
                         if ((input_value >= 2) && (input_value <= 256)) {
-                            img->output_colors = input_value;
+                            img->output_color_count = input_value;
                             printf("--colors=%d\n", input_value);
                         }
 

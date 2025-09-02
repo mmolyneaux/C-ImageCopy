@@ -75,7 +75,7 @@ void print_header_fields(Bitmap *bmp) {
     printf("Info header size(field): %d bytes\n",
            bmp->info_header.info_header_size_field);
     printf("Width (pixels): %d\n", bmp->info_header.width);
-    printf("Padded width (bytes):  %d\n", bmp->padded_width);
+    printf("Padded width (bytes):  %d\n", bmp->row_size_bytes);
     // printf("Padded width (bytes): %d\n", bmp->info_header.width);
     printf("Height (pixels): %d\n", bmp->info_header.height);
     printf("Planes: %d\n", bmp->info_header.planes);
