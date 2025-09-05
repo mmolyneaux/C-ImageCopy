@@ -1,5 +1,5 @@
-#ifndef _H
-#define IMAGE_HANDLER_H
+#ifndef REDUCE_COLORS24_H
+#define REDUCE_COLORS24_H
 
 // RGB color
 #include <stdint.h>
@@ -19,7 +19,7 @@ int  find_nearest(RGB c, RGB *palette, int psize);
 void apply_dither(RGB *img, int w, int h, RGB *pal, int psize, uint8_t *out);
 
 // Clamp helper
-static inline uint8_t clamp(int v) {
+static inline uint8_t clamp256(int v) {
     return (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v);
 }
 

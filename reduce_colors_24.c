@@ -2,280 +2,106 @@
 
 #include "reduce_colors_24.h"
 #include "image_data_handler.h"
-#include <math.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
+// RGB color
+typedef struct { uint8_t r, g, b; } Color;
 
-// #pragma pack(push,1)
-// typedef struct {            // BMP file header (14 bytes)
-//     uint16_t bfType;
-//     uint32_t bfSize;
-//     uint16_t bfReserved1, bfReserved2;
-//     uint32_t bfOffBits;
-// } BMPFileHeader;
-// typedef struct {            // BMP info header (40 bytes)
-//     uint32_t biSize;
-//     int32_t  biWidth, biHeight;
-//     uint16_t biPlanes, biBitCount;
-//     uint32_t biCompression, biSizeImage;
-//     int32_t  biXPelsPerMeter, biYPelsPerMeter;
-//     uint32_t biClrUsed, biClrImportant;
-// } BMPInfoHeader;
-// #pragma pack(pop)
+// A “box” in color space referring to pixels[start…end)
+typedef struct {
+    int    start, end;
+    Color  min, max;
+} Box;
 
-// Main
-void reduce_colors_24(Image_Data *img) {
-    // if (argc != 5) {
-    //     fprintf(stderr,
-    //       "Usage: %s in.bmp out.bmp bits dither(0/1)\n", argv[0]);
-    //     return 1;
-    // }
-    // const char *infile  = argv[1];
-    // const char *outfile = argv[2];
-    // int bits      = atoi(argv[3]);    // 1..8
-    if (img->bit_depth_in != 24) {
-        fprintf(stderr, "Not a 24-bit BMP\n");
-        return;
-
-        uint16_t pallet_size_max = 1 << img->bit_depth_out;
-        int palette_size = (img->output_color_count < pallet_size_max)
-                               ? img->output_color_count
-                               : pallet_size_max;
-        // img->colors_used_actual = ;
-
-        int dither = img->dither; // 0 or 1
-
-        // --- 1) Load 24-bit BMP ---
-        // FILE *fin = fopen(infile, "rb");
-        // if (!fin) { perror("fopen"); return 1; }
-
-        // BMPFileHeader fh;
-        // BMPInfoHeader ih;
-        // fread(&fh, sizeof fh, 1, fin);
-        // fread(&ih, sizeof ih, 1, fin);
-    }
-
-    int width = img->width;
-    int height = img->height;
-    size_t row_size = (((size_t)width * 3) + 3) & ~3u;
-
-    // Read pixel data into raw buffer
-    uint8_t *raw = img->pixelData;
-
-    // Convert raw BGR → RGB array in row-major [0..np-1]
-    int npixels = width * height;
-    RGB *pixels = malloc(sizeof(RGB) * npixels);
-    for (int y = 0; y < height; y++) {
-        uint8_t *rptr = raw + y * row_size;
-        for (int x = 0; x < width; x++) {
-            int i = y * width + x;
-            pixels[i].b = rptr[x * 3 + 0];
-            pixels[i].g = rptr[x * 3 + 1];
-            pixels[i].r = rptr[x * 3 + 2];
-        }
-    }
-    // free(raw);
-    // raw = NULL;
-
-    // --- 2) Median Cut to build palette ---
-    Box boxes[256];
-    int nboxes = 1;
-    boxes[0].start = 0;
-    boxes[0].end = npixels;
-    // initialize min/max
-    RGB mn = {255, 255, 255}, mx = {0, 0, 0};
-    for (int i = 0; i < npixels; i++) {
-        RGB c = pixels[i];
-        if (c.r < mn.r)
-            mn.r = c.r;
-        if (c.g < mn.g)
-            mn.g = c.g;
-        if (c.b < mn.b)
-            mn.b = c.b;
-        if (c.r > mx.r)
-            mx.r = c.r;
-        if (c.g > mx.g)
-            mx.g = c.g;
-        if (c.b > mx.b)
-            mx.b = c.b;
-    }
-    boxes[0].min = mn;
-    boxes[0].max = mx;
-
-    median_cut(pixels, npixels, boxes, &nboxes, palette_size);
-
-    // Compute final palette
-    RGB palette[256];
-    compute_palette(pixels, boxes, nboxes, palette);
-
-    // --- 3) Map pixels to indices (with optional dithering) ---
-    uint8_t *indices = malloc(npixels);
-    if (dither) {
-        // we need a working copy in floating space
-        RGB *work = malloc(sizeof(RGB) * npixels);
-        memcpy(work, pixels, sizeof(RGB) * npixels);
-        apply_dither(work, width, height, palette, nboxes, indices);
-        free(work);
-    } else {
-        for (int i = 0; i < npixels; i++) {
-            indices[i] = (uint8_t)find_nearest(pixels[i], palette, nboxes);
-        }
-    }
-    free(pixels);
-
-    // --- 4) Write 8-bit BMP with palette ---
-    // #pragma pack(push,1)
-    // typedef struct {            // BMP file header (14 bytes)
-    //     uint16_t bfType;
-    //     uint32_t bfSize;
-    //     uint16_t bfReserved1, bfReserved2;
-    //     uint32_t bfOffBits;
-    // } BMPFileHeader;
-    // typedef struct {            // BMP info header (40 bytes)
-    //     uint32_t biSize;
-    //     int32_t  biWidth, biHeight;
-    //     uint16_t biPlanes, biBitCount;
-    //     uint32_t biCompression, biSizeImage;
-    //     int32_t  biXPelsPerMeter, biYPelsPerMeter;
-    //     uint32_t biClrUsed, biClrImportant;
-    // } BMPInfoHeader;
-    // #pragma pack(pop)
-    // BMPFileHeader ofh = {0x4D42, 0,0,0};
-    // BMPInfoHeader oih = {40, width, height, 1, 8, 0, 0, 0,0, nboxes, nboxes};
-    size_t oprow = ((size_t)width + 3) & ~3u;
-    ofh.bfOffBits = sizeof(ofh) + sizeof(oih) + nboxes * 4;
-    ofh.bfSize = ofh.bfOffBits + oprow * height;
-
-    FILE *fo = fopen(outfile, "wb");
-    fwrite(&ofh, sizeof ofh, 1, fo);
-    fwrite(&oih, sizeof oih, 1, fo);
-
-    // palette entries: B G R 0
-    for (int i = 0; i < nboxes; i++) {
-        fputc(palette[i].b, fo);
-        fputc(palette[i].g, fo);
-        fputc(palette[i].r, fo);
-        fputc(0, fo);
-    }
-    // pad rest of palette to 256 entries if any
-    for (int i = nboxes; i < 256; i++) {
-        fputc(0, fo);
-        fputc(0, fo);
-        fputc(0, fo);
-        fputc(0, fo);
-    }
-
-    // pixel rows (bottom-up)
-    for (int y = height - 1; y >= 0; y--) {
-        fwrite(indices + y * width, 1, width, fo);
-        // pad to 4-byte boundary
-        for (size_t p = width; p < oprow; p++)
-            fputc(0, fo);
-    }
-    fclose(fo);
-    free(indices);
-
-    printf("Wrote %d-color %d×%d BMP `%s`\n", nboxes, width, height, outfile);
-    return 0;
+// Clamp helper
+static inline uint8_t clamp(int v) {
+    return (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v);
 }
 
 // Find the box with largest channel range
-int find_widest_box(Box *boxes, int n) {
+static int find_widest_box(Box *boxes, int n) {
     int best = 0, brange = -1;
     for (int i = 0; i < n; i++) {
         int dr = boxes[i].max.r - boxes[i].min.r;
         int dg = boxes[i].max.g - boxes[i].min.g;
         int db = boxes[i].max.b - boxes[i].min.b;
-        int mx = dr > dg ? (dr > db ? dr : db) : (dg > db ? dg : db);
-        if (mx > brange) {
-            brange = mx;
-            best = i;
-        }
+        int mx = dr>dg?(dr>db?dr:db):(dg>db?dg:db);
+        if (mx > brange) { brange = mx; best = i; }
     }
     return best;
 }
 
-// Perform Median-Cut splitting until box count == target
-void median_cut(RGB *pixels, int np, Box *boxes, int *nb, int target) {
-    while (*nb < target) {
-        int idx = find_widest_box(boxes, *nb);
+// Median-Cut: split boxes until we have exactly target boxes
+static void median_cut(Color *pixels, int np, Box *boxes, int *nboxes, int target) {
+    while (*nboxes < target) {
+        int idx = find_widest_box(boxes, *nboxes);
         Box b = boxes[idx];
         int len = b.end - b.start;
-        if (len < 2)
-            break;
+        if (len < 2) break;
 
-        // choose channel
+        // Choose channel with greatest range
         int dr = b.max.r - b.min.r;
         int dg = b.max.g - b.min.g;
         int db = b.max.b - b.min.b;
+        int (*cmp)(const void*,const void*) = NULL;
         if (dr >= dg && dr >= db) {
-            qsort(
-                pixels + b.start, len, sizeof(RGB),
-                (int (*)(const void *, const void *))[](
-                    const RGB *a, const RGB *b) { return a->r - b->r; });
+            cmp = (int(*)(const void*,const void*))[](const Color *a,const Color *b){
+                return a->r - b->r;
+            };
         } else if (dg >= dr && dg >= db) {
-            qsort(
-                pixels + b.start, len, sizeof(RGB),
-                (int (*)(const void *, const void *))[](
-                    const RGB *a, const RGB *b) { return a->g - b->g; });
+            cmp = (int(*)(const void*,const void*))[](const Color *a,const Color *b){
+                return a->g - b->g;
+            };
         } else {
-            qsort(
-                pixels + b.start, len, sizeof(RGB),
-                (int (*)(const void *, const void *))[](
-                    const RGB *a, const RGB *b) { return a->b - b->b; });
+            cmp = (int(*)(const void*,const void*))[](const Color *a,const Color *b){
+                return a->b - b->b;
+            };
         }
 
-        int mid = b.start + len / 2;
-        // create new box
-        boxes[*nb].start = mid;
-        boxes[*nb].end = b.end;
-        boxes[*nb].min = boxes[*nb].max = pixels[mid];
-        // shrink old box
+        qsort(pixels + b.start, len, sizeof(Color), cmp);
+
+        int mid = b.start + len/2;
+        // Create second box
+        boxes[*nboxes] = (Box){
+            .start = mid,
+            .end   = b.end,
+            .min   = pixels[mid],
+            .max   = pixels[mid]
+        };
+        // Shrink original box
         boxes[idx].end = mid;
         boxes[idx].min = boxes[idx].max = pixels[b.start];
 
-        // recompute min/max for both
+        // Recompute mins/maxs
         for (int j = boxes[idx].start; j < boxes[idx].end; j++) {
-            RGB c = pixels[j];
-            if (c.r < boxes[idx].min.r)
-                boxes[idx].min.r = c.r;
-            if (c.g < boxes[idx].min.g)
-                boxes[idx].min.g = c.g;
-            if (c.b < boxes[idx].min.b)
-                boxes[idx].min.b = c.b;
-            if (c.r > boxes[idx].max.r)
-                boxes[idx].max.r = c.r;
-            if (c.g > boxes[idx].max.g)
-                boxes[idx].max.g = c.g;
-            if (c.b > boxes[idx].max.b)
-                boxes[idx].max.b = c.b;
+            Color c = pixels[j];
+            if (c.r < boxes[idx].min.r) boxes[idx].min.r = c.r;
+            if (c.g < boxes[idx].min.g) boxes[idx].min.g = c.g;
+            if (c.b < boxes[idx].min.b) boxes[idx].min.b = c.b;
+            if (c.r > boxes[idx].max.r) boxes[idx].max.r = c.r;
+            if (c.g > boxes[idx].max.g) boxes[idx].max.g = c.g;
+            if (c.b > boxes[idx].max.b) boxes[idx].max.b = c.b;
         }
-        for (int j = boxes[*nb].start; j < boxes[*nb].end; j++) {
-            RGB c = pixels[j];
-            if (c.r < boxes[*nb].min.r)
-                boxes[*nb].min.r = c.r;
-            if (c.g < boxes[*nb].min.g)
-                boxes[*nb].min.g = c.g;
-            if (c.b < boxes[*nb].min.b)
-                boxes[*nb].min.b = c.b;
-            if (c.r > boxes[*nb].max.r)
-                boxes[*nb].max.r = c.r;
-            if (c.g > boxes[*nb].max.g)
-                boxes[*nb].max.g = c.g;
-            if (c.b > boxes[*nb].max.b)
-                boxes[*nb].max.b = c.b;
+        for (int j = boxes[*nboxes].start; j < boxes[*nboxes].end; j++) {
+            Color c = pixels[j];
+            if (c.r < boxes[*nboxes].min.r) boxes[*nboxes].min.r = c.r;
+            if (c.g < boxes[*nboxes].min.g) boxes[*nboxes].min.g = c.g;
+            if (c.b < boxes[*nboxes].min.b) boxes[*nboxes].min.b = c.b;
+            if (c.r > boxes[*nboxes].max.r) boxes[*nboxes].max.r = c.r;
+            if (c.g > boxes[*nboxes].max.g) boxes[*nboxes].max.g = c.g;
+            if (c.b > boxes[*nboxes].max.b) boxes[*nboxes].max.b = c.b;
         }
-        (*nb)++;
+        (*nboxes)++;
     }
 }
 
-// Average colors in each box to build palette
-void compute_palette(RGB *pixels, Box *boxes, int nb, RGB *palette) {
-    for (int i = 0; i < nb; i++) {
-        uint32_t sr = 0, sg = 0, sb = 0;
+// Compute palette entries by averaging each box
+static void compute_palette(Color *pixels, Box *boxes, int nboxes, Color *palette) {
+    for (int i = 0; i < nboxes; i++) {
+        uint32_t sr=0, sg=0, sb=0;
         int cnt = boxes[i].end - boxes[i].start;
         for (int j = boxes[i].start; j < boxes[i].end; j++) {
             sr += pixels[j].r;
@@ -288,53 +114,124 @@ void compute_palette(RGB *pixels, Box *boxes, int nb, RGB *palette) {
     }
 }
 
-// Brute-force nearest palette index
-int find_nearest(RGB c, RGB *palette, int psize) {
-    int best = 0;
-    int bestd = INT_MAX;
-    for (int i = 0; i < psize; i++) {
-        int dr = (int)c.r - palette[i].r;
-        int dg = (int)c.g - palette[i].g;
-        int db = (int)c.b - palette[i].b;
-        int d = dr * dr + dg * dg + db * db;
-        if (d < bestd) {
-            bestd = d;
-            best = i;
-        }
+// Find nearest palette index (brute-force)
+static int find_nearest(Color c, Color *palette, int psize) {
+    int best=0, bestd=INT32_MAX;
+    for (int i=0; i<psize; i++) {
+        int dr=(int)c.r - palette[i].r;
+        int dg=(int)c.g - palette[i].g;
+        int db=(int)c.b - palette[i].b;
+        int d=dr*dr + dg*dg + db*db;
+        if (d < bestd) { bestd=d; best=i; }
     }
     return best;
 }
 
-// Floyd–Steinberg dithering + mapping
-void apply_dither(RGB *img, int w, int h, RGB *pal, int psize, uint8_t *out) {
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            int idx = y * w + x;
-            RGB old = img[idx];
+// Floyd–Steinberg dithering + index mapping
+static void apply_dither(Color *img, int w, int h,
+                         Color *pal, int psize, uint8_t *out)
+{
+    for (int y=0; y<h; y++) {
+        for (int x=0; x<w; x++) {
+            int idx = y*w + x;
+            Color old = img[idx];
             int pi = find_nearest(old, pal, psize);
-            RGB newc = pal[pi];
+            Color newc = pal[pi];
             out[idx] = (uint8_t)pi;
 
             int er = (int)old.r - newc.r;
             int eg = (int)old.g - newc.g;
             int eb = (int)old.b - newc.b;
 
-// distribute error
-#define PROPAGATE(dx, dy, wt)                                                  \
-    do {                                                                       \
-        int ni = (y + dy) * w + (x + dx);                                      \
-        if (x + dx >= 0 && x + dx < w && y + dy >= 0 && y + dy < h) {          \
-            img[ni].r = clamp(img[ni].r + er * wt / 16);                       \
-            img[ni].g = clamp(img[ni].g + eg * wt / 16);                       \
-            img[ni].b = clamp(img[ni].b + eb * wt / 16);                       \
-        }                                                                      \
-    } while (0)
+            #define PROP(dx,dy,wt) \
+                do { \
+                    int nx=x+dx, ny=y+dy; \
+                    if (nx>=0 && nx<w && ny>=0 && ny<h) { \
+                        int ni = ny*w + nx; \
+                        img[ni].r = clamp(img[ni].r + er*wt/16); \
+                        img[ni].g = clamp(img[ni].g + eg*wt/16); \
+                        img[ni].b = clamp(img[ni].b + eb*wt/16); \
+                    } \
+                } while(0)
 
-            PROPAGATE(+1, 0, 7);
-            PROPAGATE(-1, +1, 3);
-            PROPAGATE(0, +1, 5);
-            PROPAGATE(+1, +1, 1);
-#undef PROPAGATE
+            PROP(+1,  0, 7);
+            PROP(-1, +1, 3);
+            PROP( 0, +1, 5);
+            PROP(+1, +1, 1);
+            #undef PROP
         }
     }
+}
+
+// Converts 24-bit RGB buffer to an indexed image + palette
+// rgb       - input 3-byte pixels, row-major, top-left origin
+// width/height
+// bits      - target bit depth (1…8)
+// dither    - 0 = no, 1 = Floyd–Steinberg
+// out_idx   - *malloc’d indexed buffer [width*height]
+// out_pal   - *malloc’d palette array [palette_size]
+// out_psize - number of palette entries ( = 1<<bits )
+void convert_to_indexed(
+    const uint8_t *rgb,
+    uint32_t width, uint32_t height,
+    uint8_t bits, int dither,
+    uint8_t  **out_idx,
+    Color    **out_pal,
+    uint32_t *out_psize)
+{
+    int palette_size = 1 << bits;
+    int npixels = width * height;
+
+    // 1) Copy to Color array
+    Color *pixels = malloc(sizeof(Color) * npixels);
+    for (int i = 0, j=0; i < npixels; i++, j+=3) {
+        pixels[i].r = rgb[j+0];
+        pixels[i].g = rgb[j+1];
+        pixels[i].b = rgb[j+2];
+    }
+
+    // 2) Prepare initial box
+    Box *boxes = malloc(sizeof(Box) * palette_size);
+    boxes[0].start = 0;  boxes[0].end = npixels;
+    boxes[0].min = (Color){255,255,255};
+    boxes[0].max = (Color){0,0,0};
+    for (int i = 0; i < npixels; i++) {
+        Color c = pixels[i];
+        if (c.r < boxes[0].min.r) boxes[0].min.r = c.r;
+        if (c.g < boxes[0].min.g) boxes[0].min.g = c.g;
+        if (c.b < boxes[0].min.b) boxes[0].min.b = c.b;
+        if (c.r > boxes[0].max.r) boxes[0].max.r = c.r;
+        if (c.g > boxes[0].max.g) boxes[0].max.g = c.g;
+        if (c.b > boxes[0].max.b) boxes[0].max.b = c.b;
+    }
+
+    int nboxes = 1;
+    median_cut(pixels, npixels, boxes, &nboxes, palette_size);
+
+    // 3) Compute the palette
+    Color *palette = malloc(sizeof(Color) * nboxes);
+    compute_palette(pixels, boxes, nboxes, palette);
+
+    // 4) Allocate output index buffer
+    uint8_t *indices = malloc(npixels);
+
+    // 5) Map pixels → indices (with optional dithering)
+    if (dither) {
+        Color *work = malloc(sizeof(Color) * npixels);
+        memcpy(work, pixels, sizeof(Color) * npixels);
+        apply_dither(work, width, height, palette, nboxes, indices);
+        free(work);
+    } else {
+        for (int i = 0; i < npixels; i++) {
+            indices[i] = (uint8_t)find_nearest(pixels[i], palette, nboxes);
+        }
+    }
+
+    // 6) Cleanup & output
+    free(pixels);
+    free(boxes);
+
+    *out_idx   = indices;
+    *out_pal   = palette;
+    *out_psize = nboxes;
 }

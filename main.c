@@ -379,7 +379,7 @@ int main(int argc, char *argv[]) {
                             
                         printf("--depth: %d\n", input_value);
                         
-                        if ((input_value == 1) || (input_value == 2) || (input_value == 4) || (input_value == 8) || (input_value == 24)) {
+                        if ((input_value == 1) || /*(input_value == 2) || */(input_value == 4) || (input_value == 8) || (input_value == 24)) {
                             img->bit_depth_out = input_value;
                             printf("--depth=%d\n", input_value);
                         }
