@@ -1,5 +1,6 @@
 #include "image_data_handler.h"
 #include "convolution.h"
+#include "reduce_colors_24.h"
 //#include "reduce_colors_24.h"
 #include <assert.h>
 #include <stddef.h>
@@ -1931,49 +1932,36 @@ void reduce_colors24(Image_Data img) {
     uint32_t width  = img.width;
     uint32_t height = img.height;
     // 
+
     size_t   row_size = (((size_t)width * 3) + 3) & ~3u;
+    assert(img.row_size_bytes == row_size);
+
 
     // 2. Load pixel data
     uint8_t *pixel_data = img.pixelData;
     if (!pixel_data) { fprintf(stderr, "[%s] No pixel data loaded.\n",function_name); return; }
     
-    // 3. Build histogram
-    size_t bins = 1u << 24;
-    uint32_t *hist = calloc(bins, sizeof *hist);
-    if (!hist) { perror("calloc"); free(pixel_data); return; }
-    build_histogram(pixel_data, width, height, hist);
 
-    // 4. Gather non-zero bins
-    ColorCount *list = malloc(sizeof *list * height * width);
-    if (!list) { perror("malloc"); free(hist); free(pixel_data); return; }
+    // Pure-C indexed conversion
+// rgb_buf   : input 24-bit RGB buffer (size = 3*width*height)
+// width,hgt : dimensions
+// bits      : target bits (1…8)
+// dither    : 0=no dithering, 1=Floyd–Steinberg
+// out_idx   : *malloc’d output indices [w*h]
+// out_pal   : *malloc’d palette [1<<bits]
+// out_psize : actual palette size
+convert_to_indexed_padded(
+    pixel_data,
+    img.width ,
+    img.height,
+    row_size,
+    img.bit_depth_out,
+    img.output_color_count,
+    img.dither,
+    uint8_t      **out_idx,
+    Color        **out_pal,
+    int           *out_psize);
 
-    size_t list_len = 0;
-    for (size_t i = 0; i < bins; i++) {
-        if (hist[i]) {
-            list[list_len].color = (uint32_t)i;
-            list[list_len].count = hist[i];
-            list_len++;
-        }
-    }
-
-    // 5. Sort and select top n
-    qsort(list, list_len, sizeof *list, cmp_colorcount);
-    size_t palette_size = list_len < img.output_color_count ? list_len : img.output_color_count;
-
-    printf("Top %zu colors (RRGGBB : count):\n", palette_size);
-    for (size_t i = 0; i < palette_size; i++) {
-        uint32_t c = list[i].color;
-        printf("%02X%02X%02X : %u\n",
-               (c >> 16) & 0xFF,
-               (c >>  8) & 0xFF,
-               (c >>  0) & 0xFF,
-               list[i].count);
-    }
-
-    // 6. Cleanup
-    free(list);
-    free(hist);
-    free(pixel_data);
     return ;
 }
 
