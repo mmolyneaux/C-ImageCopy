@@ -1919,6 +1919,44 @@ int cmp_colorcount(const void *a, const void *b) {
     return (B->count > A->count) - (B->count < A->count);
 }
 
+void convert_indexed_with_padding(
+    const uint8_t *rgb_buf,
+    int            width,
+    int            height,
+    int            row_stride,
+    int            bits,
+    int            max_colors,
+    int            dither_flag,
+    uint8_t      **out_idx_padded,
+    int           *out_row_stride,
+    Color        **out_pal,
+    int           *out_psize)
+{
+    // 1) Produce tight indices & palette
+    uint8_t *idx_tight;
+    Color   *palette;
+    int      psize;
+    convert_to_indexed_padded(
+      rgb_buf, width, height, row_stride,
+      bits, max_colors, dither_flag,
+      &idx_tight, &palette, &psize);
+
+    // 2) Compute padded stride and buffer
+    *out_row_stride = ((width + 3) / 4) * 4;
+    *out_idx_padded = malloc((*out_row_stride) * height);
+    for (int y = 0; y < height; y++) {
+        uint8_t *dst = *out_idx_padded + y * (*out_row_stride);
+        uint8_t *src = idx_tight                 + y * width;
+        memcpy(dst, src, width);
+        memset(dst + width, 0, (*out_row_stride) - width);
+    }
+
+    // 3) Cleanup tight buffer, output palette & size
+    free(idx_tight);
+    *out_pal   = palette;
+    *out_psize = psize;
+}
+
 void reduce_colors24(Image_Data img) {
     char *function_name = "reduce_colors24";
     if(img.output_color_count == 0){
@@ -1935,32 +1973,6 @@ void reduce_colors24(Image_Data img) {
 
     size_t   row_size = (((size_t)width * 3) + 3) & ~3u;
     assert(img.row_size_bytes == row_size);
-
-
-    // 2. Load pixel data
-    uint8_t *pixel_data = img.pixelData;
-    if (!pixel_data) { fprintf(stderr, "[%s] No pixel data loaded.\n",function_name); return; }
-    
-
-    // Pure-C indexed conversion
-// rgb_buf   : input 24-bit RGB buffer (size = 3*width*height)
-// width,hgt : dimensions
-// bits      : target bits (1…8)
-// dither    : 0=no dithering, 1=Floyd–Steinberg
-// out_idx   : *malloc’d output indices [w*h]
-// out_pal   : *malloc’d palette [1<<bits]
-// out_psize : actual palette size
-convert_to_indexed_padded(
-    pixel_data,
-    img.width ,
-    img.height,
-    row_size,
-    img.bit_depth_out,
-    img.output_color_count,
-    img.dither,
-    uint8_t      **out_idx,
-    Color        **out_pal,
-    int           *out_psize);
 
     return ;
 }

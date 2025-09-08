@@ -15,15 +15,15 @@ typedef struct { uint8_t r, g, b; } Color;
 // out_psize : actual palette size
 void convert_to_indexed_padded(
     const uint8_t *rgb_buf,
-    int            width,
-    int            height,
-    int            row_stride,
-    int            bits,
-    int            max_colors,
-    int            dither_flag,
+    uint32_t       width,
+    uint32_t       height,
+    uint32_t       row_stride,
+    uint8_t        bits,
+    uint16_t       max_colors,
+    uint8_t        dither_flag,
     uint8_t      **out_idx,
     Color        **out_pal,
-    int           *out_psize);
+    uint16_t      *out_psize);
 
 // Function prototypes
 // int  find_widest_box(Box *boxes, int n);
