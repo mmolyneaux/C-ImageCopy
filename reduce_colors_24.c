@@ -1,7 +1,6 @@
 
 
 #include "reduce_colors_24.h"
-#include "image_data_handler.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -194,15 +193,15 @@ static void apply_dither(
 // out_psize   : actual number of palette entries used
 void convert_to_indexed_padded(
     const uint8_t *rgb_buf,
-    int            width,
-    int            height,
-    int            row_stride,
-    int            bits,
-    int            max_colors,
-    int            dither_flag,
+    uint32_t       width,
+    uint32_t       height,
+    uint32_t       row_stride,
+    uint8_t        bits,
+    uint16_t       max_colors,
+    uint8_t        dither_flag,
     uint8_t      **out_idx,
     Color        **out_pal,
-    int           *out_psize)
+    uint16_t      *out_psize)
 {
     int capacity    = 1 << bits;
     int target_boxes= (max_colors > 0 && max_colors < capacity)

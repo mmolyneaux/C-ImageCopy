@@ -1935,7 +1935,7 @@ void convert_indexed_with_padding(
     // 1) Produce tight indices & palette
     uint8_t *idx_tight;
     Color   *palette;
-    int      psize;
+    uint16_t      psize;
     convert_to_indexed_padded(
       rgb_buf, width, height, row_stride,
       bits, max_colors, dither_flag,

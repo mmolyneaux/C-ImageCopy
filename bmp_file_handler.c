@@ -358,19 +358,30 @@ void reset_bmp_fields(Bitmap *bmp) {
 void process_bmp(Bitmap *bmp) {
     process_image(bmp->image_data);
 
-    convert_indexed_with_padding(
-    const uint8_t *rgb_buf,
-    int            width,
-    int            height,
-    int            row_stride,
-    int            bits,
-    int            max_colors,
-    int            dither_flag,
-    uint8_t      **out_idx_padded,
-    int           *out_row_stride,
-    Color        **out_pal,
-    int           *out_psize)
 
+typedef struct { uint8_t r, g, b; } Color;
+// Pure-C indexed conversion
+// rgb_buf   : input 24-bit RGB buffer (size = 3*width*height)
+// width,hgt : dimensions
+// bits      : target bits (1…8)
+// dither    : 0=no dithering, 1=Floyd–Steinberg
+// out_idx   : *malloc’d output indices [w*h]
+// out_pal   : *malloc’d palette [1<<bits]
+// out_psize : actual palette size
+
+if (bmp->image_data.bit_depth_in ==24 ){
+void convert_to_indexed_padded(
+    bmp->image_data.pixel_data, // const uint8_t *rgb_buf,
+    bmp->image_data.width,  // uint32_t width,
+    bmp->image_data.height, // uint32_t height,
+    bmp->image_data.row_size_bytes, // uint32_t row_stride,
+    bmp->image_data.bit_depth_out, // uint8_t bits,
+    bmp->image_data.output_color_count, // uint16_t max_colors,
+    bmp->image_data.dither, // uint8_t dither_flag,
+    uint8_t      **out_idx,
+    Color        **out_pal,
+    uint16_t      *out_psize);
+}
 
     convert_bit_depth(bmp->image_data);
     reset_bmp_fields(bmp);
