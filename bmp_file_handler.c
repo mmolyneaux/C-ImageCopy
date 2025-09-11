@@ -373,7 +373,8 @@ void process_bmp(Bitmap *bmp) {
     if (bmp->image_data->bit_depth_in == 24) {
         uint8_t *out_idx = NULL;
             Color *out_pal = NULL;
-            uint16_t *out_psize = NULL;
+
+            uint16_t *out_psize = &bmp->image_data->colors_used_actual;
         
         void convert_to_indexed_padded(
             bmp->image_data.pixel_data,         // const uint8_t *rgb_buf,
