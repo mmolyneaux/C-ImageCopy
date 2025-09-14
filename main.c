@@ -105,9 +105,9 @@ bool read_image(Image *image, char *filename1) {
 
     if (image->colorMode == 1) {
         // Allocate memory for image buffer
-        image->pixelData = create_buffer1(image->image_size);
+        image->pixel_data = create_buffer1(image->image_size);
 
-        fread(image->pixelData, sizeof(char), image->image_size, streamIn);
+        fread(image->pixel_data, sizeof(char), image->image_size, streamIn);
 
         file_read_completed = true;
     } else if (image->colorMode == 3) {
@@ -184,7 +184,7 @@ bool write_image(Image *img, char *filename) {
             if (img->CT_EXISTS) {
                 fwrite(img->colorTable, sizeof(char), CT_SIZE, streamOut);
             }
-            fwrite(img->pixelData, sizeof(char), img->image_byte_count,
+            fwrite(img->pixel_data, sizeof(char), img->image_byte_count,
 streamOut); } else if (img->colorMode == RGB) { for (int x = img->row_size_bytes -
 16; x < img->row_size_bytes - 1; x++) { printf("%d ",
 img->pixelDataRows[img->height - 1][x]);

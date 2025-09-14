@@ -50,7 +50,7 @@ void init_image(Image_Data *img) {
     img->CT_EXISTS = false;
     img->ct_max_color_count = 0;
     img->colorTable = NULL;
-    img->pixelData = NULL;
+    img->pixel_data = NULL;
     img->pixelDataRows = NULL;
     img->histogram1 = NULL;
     img->histogram3 = NULL;
@@ -290,7 +290,7 @@ uint8_t *create_buffer1(uint32_t image_byte_count) {
     }
     printf("Size created: %u\n", image_byte_count);
 
-    // img->pixelData = buf1;
+    // img->pixel_data = buf1;
     return buf1;
 }
 
@@ -439,9 +439,9 @@ void free_img(Image_Data *img) {
             img->histogram1 = NULL;
         }
 
-        if (img->pixelData) {
-            free(img->pixelData);
-            img->pixelData = NULL; // Avoid dangling pointer.
+        if (img->pixel_data) {
+            free(img->pixel_data);
+            img->pixel_data = NULL; // Avoid dangling pointer.
         }
         if (img->pixelDataRows) {
             for (int i = 0; i < 3; i++) {
@@ -491,10 +491,10 @@ void gray13(Image_Data *img) {
         printf("Gray %d-bit indexed\n", bit_depth);
 
         assert(img->colorTable != NULL);
-        assert(img->pixelData != NULL);
+        assert(img->pixel_data != NULL);
 
         unsigned char *colorTable = img->colorTable;
-        unsigned char *buffer1 = img->pixelData;
+        unsigned char *buffer1 = img->pixel_data;
 
         uint16_t color_table_count = 1 << bit_depth;
         uint8_t step = (bit_depth == 2) ? 85 : (bit_depth == 4) ? 17 : 1;
@@ -712,13 +712,13 @@ void mono1(Image_Data *img) {
 
     assert(img->bit_depth_in == 2 || img->bit_depth_in == 4 ||
            img->bit_depth_in == 8);
-    assert(img->pixelData != NULL);
+    assert(img->pixel_data != NULL);
     assert(img->colorTable != NULL);
 
     uint8_t bit_depth = img->bit_depth_in;
     uint32_t width = img->width;
     uint32_t height = img->height;
-    uint8_t *buffer = img->pixelData;
+    uint8_t *buffer = img->pixel_data;
     uint8_t threshold = (uint8_t)(255 * img->mono_threshold + 0.5f);
 
     if (img->dither) {
@@ -889,14 +889,14 @@ void bright1(Image_Data *img) {
             // Adds the positive or negative value with black and white
             // bounds.
 
-            value = img->pixelData[i] + img->bright_value;
+            value = img->pixel_data[i] + img->bright_value;
 
             if (value <= BLACK) {
-                img->pixelData[i] = BLACK;
+                img->pixel_data[i] = BLACK;
             } else if (value >= CT_MAX) {
-                img->pixelData[i] = CT_MAX;
+                img->pixel_data[i] = CT_MAX;
             } else {
-                img->pixelData[i] = value;
+                img->pixel_data[i] = value;
             }
         }
     } else { // img->bright_percent
@@ -904,13 +904,13 @@ void bright1(Image_Data *img) {
         for (int i = 0, value = 0; i < img->image_byte_count; i++) {
             // Adds the positive or negative value with black and white
             // bounds.
-            value = img->pixelData[i] + (int)(img->bright_percent * CT_MAX);
+            value = img->pixel_data[i] + (int)(img->bright_percent * CT_MAX);
             if (value >= CT_MAX) {
-                img->pixelData[i] = CT_MAX;
+                img->pixel_data[i] = CT_MAX;
             } else if (value <= BLACK) {
-                img->pixelData[i] = BLACK;
+                img->pixel_data[i] = BLACK;
             } else {
-                img->pixelData[i] = value;
+                img->pixel_data[i] = value;
             }
         }
     }
@@ -987,9 +987,9 @@ void hist1(Image_Data *img) {
 
     // Create histogram / count pixels
     for (size_t i = 0; i < img->image_byte_count; i++) {
-        img->histogram1[img->pixelData[i]]++;
-        if (img->histogram1[img->pixelData[i]] > img->hist_max_value1) {
-            img->hist_max_value1 = img->histogram1[img->pixelData[i]];
+        img->histogram1[img->pixel_data[i]]++;
+        if (img->histogram1[img->pixel_data[i]] > img->hist_max_value1) {
+            img->hist_max_value1 = img->histogram1[img->pixel_data[i]];
         }
     }
 }
@@ -1051,7 +1051,7 @@ void equal1(Image_Data *img) {
     }
     //  Map the equalized values back to image data
     for (size_t i = 0; i < img->image_byte_count; i++) {
-        img->pixelData[i] = equalized[img->pixelData[i]];
+        img->pixel_data[i] = equalized[img->pixel_data[i]];
     }
 
     free(cdf); //(img->histogram)
@@ -1155,7 +1155,7 @@ void inv1(Image_Data *img) {
     // simple grayscale invert, 255 - color, ignores invert mode setting.
     if (img->colorMode == INDEXED) {
         for (int i = 0; i < img->image_byte_count; i++) {
-            img->pixelData[i] = 255 - img->pixelData[i];
+            img->pixel_data[i] = 255 - img->pixel_data[i];
         }
     }
 }
@@ -1218,20 +1218,20 @@ void flip13(Image_Data *img) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
                     output_buffer1[r * cols + (cols - 1 - c)] =
-                        img->pixelData[r * cols + c];
+                        img->pixel_data[r * cols + c];
                 }
             }
         } else if (dir == V) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
                     output_buffer1[(rows - 1 - r) * cols + c] =
-                        img->pixelData[r * cols + c];
+                        img->pixel_data[r * cols + c];
                 }
             }
         }
 
-        free(img->pixelData);
-        img->pixelData = output_buffer1;
+        free(img->pixel_data);
+        img->pixel_data = output_buffer1;
 
     } else if (img->colorMode == RGB24) {
         create_buffer3(&output_buffer3, height, img->row_size_bytes);
@@ -1315,34 +1315,34 @@ void rot13(Image_Data *img) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
                     output_buffer1[r * cols + c] =
-                        img->pixelData[r * cols + c];
+                        img->pixel_data[r * cols + c];
                 }
             }
         } else if (degrees == -90 || degrees == 270) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
                     output_buffer1[c * rows + (rows - 1 - r)] =
-                        img->pixelData[r * cols + c];
+                        img->pixel_data[r * cols + c];
                 }
             }
         } else if (degrees == 180 || degrees == -180) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
                     output_buffer1[(rows - 1 - r) * cols + (cols - 1 - c)] =
-                        img->pixelData[r * cols + c];
+                        img->pixel_data[r * cols + c];
                 }
             }
         } else if (degrees == -270 || degrees == 90) {
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
                     output_buffer1[(cols - 1 - c) * rows + r] =
-                        img->pixelData[r * cols + c];
+                        img->pixel_data[r * cols + c];
                 }
             }
         }
 
-        free(img->pixelData);
-        img->pixelData = output_buffer1;
+        free(img->pixel_data);
+        img->pixel_data = output_buffer1;
 
     } else if (img->colorMode == RGB24) {
 
@@ -1410,9 +1410,9 @@ void blur1(Image_Data *img) {
     // height / rows / y
     // width / cols / x
 
-    // uint8_t *buf1 = img->pixelData;
+    // uint8_t *buf1 = img->pixel_data;
     uint8_t **buf1_2D = NULL;
-    buffer1_to_2D(img->pixelData, &buf1_2D, rows, cols);
+    buffer1_to_2D(img->pixel_data, &buf1_2D, rows, cols);
 
     uint8_t *buf2 = create_buffer1(image_size);
     uint8_t **buf2_2D = NULL;
@@ -1557,7 +1557,7 @@ void blur1(Image_Data *img) {
         buf2_2D[r][c] = (uint8_t)(sum < 0 ? 0 : (sum > 255 ? 255 : sum));
 
         // Dst, Src
-        memcpy(img->pixelData, buf2, image_size);
+        memcpy(img->pixel_data, buf2, image_size);
     }
 
     free(buf2);
@@ -1851,7 +1851,7 @@ void filter1(Image_Data *img) {
     int filter_index = img->filter_index;
 
     Convolution *c1 = malloc(sizeof(Convolution));
-    c1->input = img->pixelData; // Pointer to the input image buffer
+    c1->input = img->pixel_data; // Pointer to the input image buffer
     c1->height = img->height;      // Image height
     c1->width = img->width;        // Image width
     c1->kernel = &kernel_list[filter_index];
@@ -2067,7 +2067,7 @@ void convert_bit_depth(Image_Data *img) {
             for (uint32_t y = 0; y < height; ++y) {
 
                 for (uint32_t x = 0; x < width; ++x) {
-                    value = read_pixel1(img->pixelData, width, height, x, y,
+                    value = read_pixel1(img->pixel_data, width, height, x, y,
                                         bit_depth_old);
                     // assert((value == 0) || (value == 1));
                     if ((value != 0) && (value != 1)) {
@@ -2084,10 +2084,10 @@ void convert_bit_depth(Image_Data *img) {
 
             free(img->colorTable);
             img->colorTable = NULL;
-            free(img->pixelData);
-            img->pixelData = NULL;
+            free(img->pixel_data);
+            img->pixel_data = NULL;
 
-            img->pixelData = buffer1_new;
+            img->pixel_data = buffer1_new;
             img->colorTable = color_table_new;
         }
         return;

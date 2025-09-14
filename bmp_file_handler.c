@@ -1,6 +1,7 @@
 
 #include "bmp_file_handler.h"
 #include "image_data_handler.h"
+#include "reduce_colors_24.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -292,7 +293,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
 
     if (bmp->image_data->colorMode == INDEXED) {
         bmp->image_data->colorTable = bmp->color_table;
-        bmp->image_data->pixelData = bmp->pixel_data;
+        bmp->image_data->pixel_data = bmp->pixel_data;
     } else if (bmp->image_data->colorMode == RGB24) {
 
         // create_buffer3(&bmp->pixelDataRows, bmp->info_header.height,
@@ -302,7 +303,7 @@ int load_bitmap(Bitmap *bmp, char *filename_in) {
         //    &bmp->image_data->pixelDataRows,
         //       bmp->info_header.height, bmp->row_size_bytes);
 
-        bmp->image_data->pixelData = bmp->pixel_data;
+        bmp->image_data->pixel_data = bmp->pixel_data;
         bmp->image_data->pixelDataRows = pixel_data_to_buffer3(
             bmp->pixel_data, bmp->info_header.bi_width_pixels,
             bmp->info_header.bi_height_pixels);
@@ -340,7 +341,7 @@ void reset_bmp_fields(Bitmap *bmp) {
 
     if (bit_depth <= 8) {
         bmp->color_table = bmp->image_data->colorTable;
-        bmp->pixel_data = bmp->image_data->pixelData;
+        bmp->pixel_data = bmp->image_data->pixel_data;
         printf("reset_bmp_fields ct:\n");
         printColorTable(bmp->color_table, 2);
 
@@ -358,9 +359,9 @@ void reset_bmp_fields(Bitmap *bmp) {
 void process_bmp(Bitmap *bmp) {
     process_image(bmp->image_data);
 
-    typedef struct {
-        uint8_t r, g, b;
-    } Color;
+    //typedef struct {
+    //    uint8_t r, g, b;
+    //} Color;
     // Pure-C indexed conversion
     // rgb_buf   : input 24-bit RGB buffer (size = 3*width*height)
     // width,hgt : dimensions
@@ -372,21 +373,19 @@ void process_bmp(Bitmap *bmp) {
 
     if (bmp->image_data->bit_depth_in == 24) {
         uint8_t *out_idx = NULL;
-            Color *out_pal = NULL;
+        Color *out_pal = NULL;
 
-            uint16_t *out_psize = &bmp->image_data->colors_used_actual;
-        
-        void convert_to_indexed_padded(
-            bmp->image_data.pixel_data,         // const uint8_t *rgb_buf,
-            bmp->image_data.width,              // uint32_t width,
-            bmp->image_data.height,             // uint32_t height,
-            bmp->image_data.row_size_bytes,     // uint32_t row_stride,
-            bmp->image_data.bit_depth_out,      // uint8_t bits,
-            bmp->image_data.output_color_count, // uint16_t max_colors,
-            bmp->image_data.dither,             // uint8_t dither_flag,
-            &*out_idx, 
-            &*out_pal, 
-            out_psize);
+        uint16_t *out_psize = &bmp->image_data->colors_used_actual;
+
+        convert_to_indexed_padded(
+            bmp->image_data->pixel_data,         // const uint8_t *rgb_buf,
+            bmp->image_data->width,              // uint32_t width,
+            bmp->image_data->height,             // uint32_t height,
+            bmp->image_data->row_size_bytes,     // uint32_t row_stride,
+            bmp->image_data->bit_depth_out,       // uint8_t bits,
+            bmp->image_data->output_color_count, // uint16_t max_colors,
+            bmp->image_data->dither,             // uint8_t dither_flag,
+            &out_idx, &out_pal, out_psize);
     }
 
     convert_bit_depth(bmp->image_data);
@@ -553,10 +552,10 @@ void free_bitmap(Bitmap *bmp) {
     }
 
     if (bmp->image_data) {
-        if (bmp->image_data->pixelData) {
-            free(bmp->image_data->pixelData);
-            bmp->image_data->pixelData = NULL;
-            printf("[free_bitmap] Freed pixelData.\n");
+        if (bmp->image_data->pixel_data) {
+            free(bmp->image_data->pixel_data);
+            bmp->image_data->pixel_data = NULL;
+            printf("[free_bitmap] Freed pixel_data.\n");
         }
 
         if (bmp->image_data->pixelDataRows) {

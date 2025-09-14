@@ -87,7 +87,7 @@ typedef struct {
     uint32_t row_size_bytes;
     uint32_t image_bytes_calculated;
     //uint8_t type;
-    // uint8_t *pixelData;
+    // uint8_t *pixel_data;
     // uint8_t **pixelDataRows;
     Image_Data *image_data;
 

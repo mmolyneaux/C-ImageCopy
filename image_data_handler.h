@@ -82,7 +82,7 @@ typedef struct {
     bool CT_EXISTS;
     uint16_t ct_max_color_count;
     unsigned char *colorTable;
-    unsigned char *pixelData; //[imgSize], 1 channel for 8-bit images or less
+    unsigned char *pixel_data; //[imgSize], 1 channel for 8-bit images or less
     unsigned char **pixelDataRows; //[imgSize][3], 3 channel for rgb
     enum Dir direction;           // Flip direction, <H>orizontal or <V>ertical
     enum Mode mode;
