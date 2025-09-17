@@ -392,6 +392,13 @@ void process_bmp(Bitmap *bmp) {
         // convert_color_to_pallet
         bmp->image_data->colorTable =
             create_buffer1(ct_byte_count(bmp->image_data->bit_depth_out));
+        
+        for (int i = 0; i < *out_psize; i++) {
+            bmp->image_data->colorTable[i * 4 + 2] = out_pal[i].r;
+            bmp->image_data->colorTable[i * 4 + 1] = out_pal[i].g;
+            bmp->image_data->colorTable[i * 4 + 0] = out_pal[i].b;
+            bmp->image_data->colorTable[i * 4 + 3] = 0; // reserved
+        }
     }
 
     convert_bit_depth(bmp->image_data);
