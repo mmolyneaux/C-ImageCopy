@@ -325,7 +325,7 @@ void change_extension(char *filename, char *ext) {
 /*
  *   Get updated image variables
  */
-void reset_bmp_fields(Bitmap *bmp) {
+void reload_bmp_fields(Bitmap *bmp) {
     uint8_t bit_depth = bmp->image_data->bit_depth_out;
     bmp->ct_byte_count = ct_byte_count(bit_depth);
     bmp->file_header.offset_bytes =
@@ -342,7 +342,7 @@ void reset_bmp_fields(Bitmap *bmp) {
     if (bit_depth <= 8) {
         bmp->color_table = bmp->image_data->colorTable;
         bmp->pixel_data = bmp->image_data->pixel_data;
-        printf("reset_bmp_fields ct:\n");
+        printf("reload_bmp_fields ct:\n");
         printColorTable(bmp->color_table, 2);
 
         // 0 means all colors are used and all are important.
@@ -359,17 +359,17 @@ void reset_bmp_fields(Bitmap *bmp) {
 void process_bmp(Bitmap *bmp) {
     process_image(bmp->image_data);
 
-    //typedef struct {
-    //    uint8_t r, g, b;
-    //} Color;
-    // Pure-C indexed conversion
-    // rgb_buf   : input 24-bit RGB buffer (size = 3*width*height)
-    // width,hgt : dimensions
-    // bits      : target bits (1…8)
-    // dither    : 0=no dithering, 1=Floyd–Steinberg
-    // out_idx   : *malloc’d output indices [w*h]
-    // out_pal   : *malloc’d palette [1<<bits]
-    // out_psize : actual palette size
+    // typedef struct {
+    //     uint8_t r, g, b;
+    // } Color;
+    //  Pure-C indexed conversion
+    //  rgb_buf   : input 24-bit RGB buffer (size = 3*width*height)
+    //  width,hgt : dimensions
+    //  bits      : target bits (1…8)
+    //  dither    : 0=no dithering, 1=Floyd–Steinberg
+    //  out_idx   : *malloc’d output indices [w*h]
+    //  out_pal   : *malloc’d palette [1<<bits]
+    //  out_psize : actual palette size
 
     if (bmp->image_data->bit_depth_in == 24) {
         uint8_t *out_idx = NULL;
@@ -382,14 +382,20 @@ void process_bmp(Bitmap *bmp) {
             bmp->image_data->width,              // uint32_t width,
             bmp->image_data->height,             // uint32_t height,
             bmp->image_data->row_size_bytes,     // uint32_t row_stride,
-            bmp->image_data->bit_depth_out,       // uint8_t bits,
+            bmp->image_data->bit_depth_out,      // uint8_t bits,
             bmp->image_data->output_color_count, // uint16_t max_colors,
             bmp->image_data->dither,             // uint8_t dither_flag,
-            &out_idx, &out_pal, out_psize);
+            &out_idx,   // out_idx   : *malloc’d output indices [w*h]
+            &out_pal,   // out_pal   : *malloc’d palette [1<<bits]
+            out_psize); // out_psize : actual palette size
+
+        // convert_color_to_pallet
+        bmp->image_data->colorTable =
+            create_buffer1(ct_byte_count(bmp->image_data->bit_depth_out));
     }
 
     convert_bit_depth(bmp->image_data);
-    reset_bmp_fields(bmp);
+    reload_bmp_fields(bmp);
 }
 
 int write_bitmap(Bitmap *bmp, char *filename_out) {
