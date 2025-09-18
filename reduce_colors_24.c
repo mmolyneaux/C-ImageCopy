@@ -191,7 +191,7 @@ static void apply_dither(
 // out_idx     : *malloc’d [width*height] palette indices
 // out_pal     : *malloc’d palette entries
 // out_psize   : actual number of palette entries used
-void convert_to_indexed_padded(
+void convert_24_to_indexed_tight(
     const uint8_t *rgb_buf,
     uint32_t       width,
     uint32_t       height,
@@ -263,4 +263,36 @@ void convert_to_indexed_padded(
     *out_idx   = indices;
     *out_pal   = palette;
     *out_psize = nboxes;
+}
+
+// Pads a tightly packed indexed image buffer to 4-byte aligned rows for BMP output
+// Parameters:
+//   src        - pointer to the tightly packed index buffer (width * height bytes)
+//   width      - image width in pixels
+//   height     - image height in pixels
+//   out_stride - [out] pointer to receive the padded row size in bytes
+// Returns:
+//   A newly allocated buffer of size (row_stride * height), with each row padded to 4 bytes
+uint8_t *pad_indexed_buffer(const uint8_t *src, int width, int height, int *out_stride) {
+    // Compute the padded row size: each row must be a multiple of 4 bytes
+    int stride = ((width + 3) / 4) * 4;
+
+    // Allocate memory for the padded buffer
+    uint8_t *dst = malloc(stride * height);
+    if (!dst) return NULL;  // Allocation failed
+
+    // Copy each row from the source buffer into the padded buffer
+    for (int y = 0; y < height; y++) {
+        // Copy the actual pixel indices (width bytes)
+        memcpy(dst + y * stride, src + y * width, width);
+
+        // Fill the remaining bytes in the row with zeros (padding)
+        memset(dst + y * stride + width, 0, stride - width);
+    }
+
+    // Return the padded row size to the caller
+    *out_stride = stride;
+
+    // Return the padded buffer
+    return dst;
 }

@@ -13,7 +13,7 @@ typedef struct { uint8_t r, g, b; } Color;
 // out_idx   : *malloc’d output indices [w*h]
 // out_pal   : *malloc’d palette [1<<bits]
 // out_psize : actual palette size
-void convert_to_indexed_padded(
+void convert_24_to_indexed_tight(
     const uint8_t *rgb_buf,
     uint32_t       width,
     uint32_t       height,
@@ -32,11 +32,14 @@ void convert_to_indexed_padded(
 // int  find_nearest(RGB c, RGB *palette, int psize);
 // void apply_dither(RGB *img, int w, int h, RGB *pal, int psize, uint8_t *out);
 
-// // Clamp helper
-// static inline uint8_t clamp256(int v) {
-//     return (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v);
-// }
-
-
+// Pads a tightly packed indexed image buffer to 4-byte aligned rows for BMP output
+// Parameters:
+//   src        - pointer to the tightly packed index buffer (width * height bytes)
+//   width      - image width in pixels
+//   height     - image height in pixels
+//   out_stride - [out] pointer to receive the padded row size in bytes
+// Returns:
+//   A newly allocated buffer of size (row_stride * height), with each row padded to 4 bytes
+uint8_t *pad_indexed_buffer(const uint8_t *src, int width, int height, int *out_stride);
 
 #endif
