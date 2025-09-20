@@ -406,7 +406,9 @@ if ((bmp->image_data->bit_depth_in == 24) &&
         free(out_pal);
         out_pal = NULL;
     }
-    uint8_t *pad_indexed_buffer(const uint8_t *src, int width, int height, int *out_stride)
+    uint8_t * output = pad_indexed_buffer(src, int width, int height, int *out_stride);
+    free(bmp->image_data->pixel_data);
+    bmp->image_data->pixel_data = output; 
 
 }
 
