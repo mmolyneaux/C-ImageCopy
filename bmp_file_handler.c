@@ -357,64 +357,65 @@ void reload_bmp_fields(Bitmap *bmp) {
     }
 }
 
-void reduce_24_to_indexed(Bitmap *bmp){
-if ((bmp->image_data->bit_depth_in == 24) &&
-        ((bmp->image_data->bit_depth_out == 8) ||
-         (bmp->image_data->bit_depth_out == 4) ||
-         (bmp->image_data->bit_depth_out == 1))) {
-
-             void reduce_24_to_indexed(Bitmap *bmp);
-             reduce_24_to_indexed(bmp);
-             uint8_t *out_idx = NULL;
-        Color *out_pal = NULL;
-
-        uint16_t *out_psize = &bmp->image_data->colors_used_actual;
-
-        // typedef struct {
-        //     uint8_t r, g, b;
-        // } Color;
-        //  Pure-C indexed conversion
-        //  rgb_buf   : input 24-bit RGB buffer (size = 3*width*height)
-        //  width,hgt : dimensions
-        //  bits      : target bits (1…8)
-        //  dither    : 0=no dithering, 1=Floyd–Steinberg
-        //  out_idx   : *malloc’d output indices [w*h]
-        //  out_pal   : *malloc’d palette [1<<bits]
-        //  out_psize : actual palette size
-        convert_24_to_indexed_tight(
-            bmp->image_data->pixel_data,         // const uint8_t *rgb_buf,
-            bmp->image_data->width,              // uint32_t width,
-            bmp->image_data->height,             // uint32_t height,
-            bmp->image_data->row_size_bytes,     // uint32_t row_stride,
-            bmp->image_data->bit_depth_out,      // uint8_t bits,
-            bmp->image_data->output_color_count, // uint16_t max_colors,
-            bmp->image_data->dither,             // uint8_t dither_flag,
-            &out_idx,   // out_idx   : *malloc’d output indices [w*h]
-            &out_pal,   // out_pal   : *malloc’d palette [1<<bits]
-            out_psize); // out_psize : actual palette size
-
-        // convert_color_to_pallet
-        bmp->image_data->colorTable =
-            create_buffer1(ct_byte_count(bmp->image_data->bit_depth_out));
-
-        for (int i = 0; i < *out_psize; i++) {
-            bmp->image_data->colorTable[i * 4 + 0] = out_pal[i].r;
-            bmp->image_data->colorTable[i * 4 + 1] = out_pal[i].g;
-            bmp->image_data->colorTable[i * 4 + 2] = out_pal[i].b;
-            bmp->image_data->colorTable[i * 4 + 3] = 0; // reserved
-        }
-        free(out_pal);
-        out_pal = NULL;
+void reduce_24_to_indexed(Bitmap *bmp) {
+    if (!((bmp->image_data->bit_depth_in == 24) &&
+          ((bmp->image_data->bit_depth_out == 8) ||
+           (bmp->image_data->bit_depth_out == 4) ||
+           (bmp->image_data->bit_depth_out == 1)))) {
+        return;
     }
-    uint8_t * output = pad_indexed_buffer(src, int width, int height, int *out_stride);
-    free(bmp->image_data->pixel_data);
-    bmp->image_data->pixel_data = output; 
 
+    uint8_t *out_idx = NULL;
+    Color *out_pal = NULL;
+
+    uint16_t *out_psize = &bmp->image_data->colors_used_actual;
+
+    // typedef struct {
+    //     uint8_t r, g, b;
+    // } Color;
+    //  Pure-C indexed conversion
+    //  rgb_buf   : input 24-bit RGB buffer (size = 3*width*height)
+    //  width,hgt : dimensions
+    //  bits      : target bits (1…8)
+    //  dither    : 0=no dithering, 1=Floyd–Steinberg
+    //  out_idx   : *malloc’d output indices [w*h]
+    //  out_pal   : *malloc’d palette [1<<bits]
+    //  out_psize : actual palette size
+    convert_24_to_indexed_tight(
+        bmp->image_data->pixel_data,         // const uint8_t *rgb_buf,
+        bmp->image_data->width,              // uint32_t width,
+        bmp->image_data->height,             // uint32_t height,
+        bmp->image_data->row_size_bytes,     // uint32_t row_stride,
+        bmp->image_data->bit_depth_out,      // uint8_t bits,
+        bmp->image_data->output_color_count, // uint16_t max_colors,
+        bmp->image_data->dither,             // uint8_t dither_flag,
+        &out_idx,   // out_idx   : *malloc’d output indices [w*h]
+        &out_pal,   // out_pal   : *malloc’d palette [1<<bits]
+        out_psize); // out_psize : actual palette size
+
+    // convert_color_to_pallet
+    bmp->image_data->colorTable =
+        create_buffer1(ct_byte_count(bmp->image_data->bit_depth_out));
+
+    for (int i = 0; i < *out_psize; i++) {
+        bmp->image_data->colorTable[i * 4 + 0] = out_pal[i].r;
+        bmp->image_data->colorTable[i * 4 + 1] = out_pal[i].g;
+        bmp->image_data->colorTable[i * 4 + 2] = out_pal[i].b;
+        bmp->image_data->colorTable[i * 4 + 3] = 0; // reserved
+    }
+    free(out_pal);
+    out_pal = NULL;
+
+    uint8_t *output = pad_indexed_buffer(out_idx, bmp->image_data->width,
+                                         bmp->image_data->height,
+                                         &bmp->image_data->row_size_bytes);
+    free(bmp->image_data->pixel_data);
+    bmp->image_data->pixel_data = output;
 }
 
 void process_bmp(Bitmap *bmp) {
     process_image(bmp->image_data);
-    reduce_24_to_indexed(bmp); 
+    reduce_24_to_indexed(bmp);
 
     convert_bit_depth(bmp->image_data);
     reload_bmp_fields(bmp);

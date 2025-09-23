@@ -40,6 +40,6 @@ void convert_24_to_indexed_tight(
 //   out_stride - [out] pointer to receive the padded row size in bytes
 // Returns:
 //   A newly allocated buffer of size (row_stride * height), with each row padded to 4 bytes
-uint8_t *pad_indexed_buffer(const uint8_t *src, int width, int height, int *out_stride);
+uint8_t *pad_indexed_buffer(const uint8_t *src, uint32_t width, uint32_t height, uint32_t *out_stride);
 
 #endif
