@@ -8,7 +8,7 @@ CFLAGS = -Wall
 TARGET = imagecopy
 
 # Source and object files
-SRCS = main.c bmp_file_handler.c image_data_handler.c convolution.c clamp.c
+SRCS = main.c bmp_file_handler.c image_data_handler.c convolution.c clamp.c reduce_colors_24.c
 OBJS = $(SRCS:.c=.o)
 
 # Default debug build

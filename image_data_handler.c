@@ -1957,25 +1957,25 @@ void convert_indexed_with_padding(
     *out_psize = psize;
 }
 
-void reduce_colors24(Image_Data img) {
-    char *function_name = "reduce_colors24";
-    if(img.output_color_count == 0){
-        return;
-    }
-    if (img.bit_depth_in != 24) {
-        fprintf(stderr, "[%s] Not a 24-bit BMP\n", function_name);
-        return;
-    }
+// void reduce_colors24(Image_Data img) {
+//     char *function_name = "reduce_colors24";
+//     if(img.output_color_count == 0){
+//         return;
+//     }
+//     if (img.bit_depth_in != 24) {
+//         fprintf(stderr, "[%s] Not a 24-bit BMP\n", function_name);
+//         return;
+//     }
 
-    uint32_t width  = img.width;
-    uint32_t height = img.height;
-    // 
+//     uint32_t width  = img.width;
+//     uint32_t height = img.height;
+//     // 
 
-    size_t   row_size = (((size_t)width * 3) + 3) & ~3u;
-    assert(img.row_size_bytes == row_size);
+//     size_t   row_size = (((size_t)width * 3) + 3) & ~3u;
+//     assert(img.row_size_bytes == row_size);
 
-    return ;
-}
+//     return ;
+// }
 
 // if colors not low enough, need to reduce colors before reduce bit depth.
 void convert_bit_depth(Image_Data *img) {
