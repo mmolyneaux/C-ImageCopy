@@ -1978,9 +1978,9 @@ void convert_indexed_with_padding(
 // }
 
 // if colors not low enough, need to reduce colors before reduce bit depth.
-void convert_bit_depth(Image_Data *img) {
+void convert_bit_depth_if_color_count_matches(Image_Data *img) {
 
-    char *function_name = "convert_bit_depth";
+    char *function_name = "image_data_handler:convert_bit_depth_if_color_count_matches";
     uint8_t bit_depth_old = img->bit_depth_in;
     uint8_t bit_depth_new = img->bit_depth_out;
     // already 0 for 24 bit
@@ -2092,6 +2092,5 @@ void convert_bit_depth(Image_Data *img) {
         }
         return;
     }
-    // printf("[convert_bit_depth] Message.\n");
     return;
 }

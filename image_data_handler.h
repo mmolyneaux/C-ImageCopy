@@ -134,5 +134,5 @@ void blur1(Image_Data *img);
 void blur3(Image_Data *img);
 void sepia3(Image_Data *img);
 void filter1(Image_Data *img);
-void convert_bit_depth(Image_Data *img);
+void convert_bit_depth_if_color_count_matches(Image_Data *img);
 #endif

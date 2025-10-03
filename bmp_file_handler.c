@@ -417,7 +417,7 @@ void process_bmp(Bitmap *bmp) {
     process_image(bmp->image_data);
     reduce_24_to_indexed(bmp);
 
-    convert_bit_depth(bmp->image_data);
+    convert_bit_depth_if_color_count_matches(bmp->image_data);
     reload_bmp_fields(bmp);
 }
 
