@@ -361,7 +361,7 @@ int main(int argc, char *argv[]) {
 
         case 0: // long options
 
-            printf("This is case 0\n");
+            printf("Case 0: Long options\n");
 
             if (strcmp("depth", long_options[long_index].name) == 0) {
 
