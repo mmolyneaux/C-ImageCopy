@@ -396,6 +396,11 @@ void reduce_24_to_indexed(Bitmap *bmp) {
     // convert_color_to_pallet
     bmp->image_data->colorTable =
         create_buffer1(ct_byte_count(bmp->image_data->bit_depth_out));
+    if (!bmp->image_data->colorTable) {
+        free(out_pal);
+        free(out_idx);
+        return; // or handle error
+    }
 
     for (int i = 0; i < *out_psize; i++) {
         bmp->image_data->colorTable[i * 4 + 0] = out_pal[i].r;
@@ -409,6 +414,9 @@ void reduce_24_to_indexed(Bitmap *bmp) {
     uint8_t *output = pad_indexed_buffer(out_idx, bmp->image_data->width,
                                          bmp->image_data->height,
                                          &bmp->image_data->row_size_bytes);
+
+    free(out_idx);
+    out_idx = NULL;
     free(bmp->image_data->pixel_data);
     bmp->image_data->pixel_data = output;
 }
