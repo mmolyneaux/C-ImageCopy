@@ -368,7 +368,9 @@ void reduce_24_to_indexed(Bitmap *bmp) {
     uint8_t *out_idx = NULL;
     Color *out_pal = NULL;
 
-    uint16_t *out_psize = &bmp->image_data->colors_used_actual;
+    // this should be the amount of output colors
+    // uint16_t *out_psize = &bmp->image_data->colors_used_actual;
+    uint16_t out_psize = 0;
 
     // typedef struct {
     //     uint8_t r, g, b;
@@ -381,6 +383,7 @@ void reduce_24_to_indexed(Bitmap *bmp) {
     //  out_idx   : *malloc’d output indices [w*h]
     //  out_pal   : *malloc’d palette [1<<bits]
     //  out_psize : actual palette size
+    printf("First 4 pixel data: ");
     convert_24_to_indexed_tight(
         bmp->image_data->pixel_data,         // const uint8_t *rgb_buf,
         bmp->image_data->width,              // uint32_t width,
@@ -389,9 +392,12 @@ void reduce_24_to_indexed(Bitmap *bmp) {
         bmp->image_data->bit_depth_out,      // uint8_t bits,
         bmp->image_data->output_color_count, // uint16_t max_colors,
         bmp->image_data->dither,             // uint8_t dither_flag,
-        &out_idx,   // out_idx   : *malloc’d output indices [w*h]
-        &out_pal,   // out_pal   : *malloc’d palette [1<<bits]
-        out_psize); // out_psize : actual palette size
+        &out_idx,    // out_idx   : *malloc’d output indices [w*h]
+        &out_pal,    // out_pal   : *malloc’d palette [1<<bits]
+        &out_psize); // out_psize : actual palette size
+
+    bmp->image_data->colors_used_actual = out_psize;
+    printf("Out pallet size: %d\n", out_psize);
 
     // convert_color_to_pallet
     bmp->image_data->colorTable =
@@ -402,11 +408,16 @@ void reduce_24_to_indexed(Bitmap *bmp) {
         return; // or handle error
     }
 
-    for (int i = 0; i < *out_psize; i++) {
+    for (int i = 0; i < out_psize; i++) {
         bmp->image_data->colorTable[i * 4 + 0] = out_pal[i].r;
         bmp->image_data->colorTable[i * 4 + 1] = out_pal[i].g;
         bmp->image_data->colorTable[i * 4 + 2] = out_pal[i].b;
         bmp->image_data->colorTable[i * 4 + 3] = 0; // reserved
+        printf("r: %d g: %d b: %d a:%d  \n",
+               bmp->image_data->colorTable[i * 4 + 0],
+               bmp->image_data->colorTable[i * 4 + 1],
+               bmp->image_data->colorTable[i * 4 + 2],
+               bmp->image_data->colorTable[i * 4 + 3]);
     }
     free(out_pal);
     out_pal = NULL;
@@ -415,10 +426,21 @@ void reduce_24_to_indexed(Bitmap *bmp) {
                                          bmp->image_data->height,
                                          &bmp->image_data->row_size_bytes);
 
+// for(size_t i = 0; i < 100; i++){
+//             printf("%d ", out_idx[i]);
+//         }
+
+
+
     free(out_idx);
     out_idx = NULL;
     free(bmp->image_data->pixel_data);
     bmp->image_data->pixel_data = output;
+
+        
+
+
+
 }
 
 void process_bmp(Bitmap *bmp) {
