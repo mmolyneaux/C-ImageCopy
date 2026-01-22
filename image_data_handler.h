@@ -36,6 +36,7 @@ typedef struct {
 enum ImageType { INDEXED = 1, RGB24 = 3, RGBA32 = 4 };
 enum Mode {
     NO_MODE = 0,
+    INFO,
     COPY,
     GRAY,
     MONO,

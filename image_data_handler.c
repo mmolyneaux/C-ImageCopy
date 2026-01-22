@@ -1980,14 +1980,14 @@ void convert_indexed_with_padding(
 // if colors not low enough, need to reduce colors before reduce bit depth.
 void convert_bit_depth_if_color_count_matches(Image_Data *img) {
 
-    char *function_name = "image_data_handler:convert_bit_depth_if_color_count_matches";
+    char *function_name = "[image_data_handler:convert_bit_depth_if_color_count_matches]";
     uint8_t bit_depth_old = img->bit_depth_in;
     uint8_t bit_depth_new = img->bit_depth_out;
     // already 0 for 24 bit
     uint16_t colors_used_actual = img->colors_used_actual;
 
     if (bit_depth_new == bit_depth_old) {
-        fprintf(stderr, "[%s] Did not convert to same bit depth: %d=%d\n",
+        fprintf(stderr, "%s Did not convert to same bit depth: %d=%d\n",
                 function_name, bit_depth_old, bit_depth_new);
         return;
     }
@@ -2017,6 +2017,12 @@ void convert_bit_depth_if_color_count_matches(Image_Data *img) {
 
         buffer1_new_size_bytes =
             calculate_buffer1_byte_count(width, height, bit_depth_new);
+
+            
+
+
+        printf("%s buffer1_new_size_bytes : %u \n", function_name, buffer1_new_size_bytes);
+
         buffer1_new = create_buffer1(buffer1_new_size_bytes);
 
         printf("New CT buffer created.\n");

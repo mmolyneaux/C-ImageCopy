@@ -62,7 +62,7 @@ char *get_default_ext(enum Mode mode) {
 
 void print_version() { printf("Program version: %s\n", VERSION); }
 
-void print_usage(char *app_name) {
+void print_usage(const char *app_name) {
     printf("Usage: %s [OPTIONS] <input_filename> [output_filename]\n"
            "\n"
            "Processing Modes:\n"
@@ -141,11 +141,22 @@ bool is_digit(char value) { return ((value >= '0' && value <= '9')); }
 // check if a char is 0-9, or '.'
 bool is_digit_or_dot(char value) { return (is_digit(value) || value == '.'); }
 
+const char *get_basename(const char *path) {
+    const char *slash = strrchr(path, '/');
+    const char *backslash = strrchr(path, '\\');
+
+    const char *last = slash > backslash ? slash : backslash;
+    return last ? last + 1 : path;
+}
+
+
 int main(int argc, char *argv[]) {
 
+    const char *app_name = get_basename(argv[0]);
+    
     // if the program is called with no options, print usage and exit.
     if (argc == 1) {
-        print_usage(argv[0]);
+        print_usage(app_name);
         exit(EXIT_SUCCESS);
     }
 
@@ -161,7 +172,8 @@ int main(int argc, char *argv[]) {
     char *filename2 = NULL;
 
     // Parse command-line options
-    bool g_flag = false,      // gray
+    bool c_flag = false,      // copy
+        g_flag = false,       // gray
         m_flag = false,       // monochrome
         d_flag = false,       // dithered monochrome
         b_flag = false,       // brightness
@@ -197,8 +209,8 @@ int main(int argc, char *argv[]) {
         {"hist", no_argument, NULL, 0},
         {"histn", no_argument, NULL, 0},
         {"filter", optional_argument, NULL, 0},
-        {"depth", required_argument, NULL, 0},
-        {"colors", required_argument, NULL, 0},
+        {"set-depth", required_argument, NULL, 0},
+        {"set-colors", required_argument, NULL, 0},
         {
             0,
             0,
@@ -223,7 +235,7 @@ int main(int argc, char *argv[]) {
 
             printf("Case 0: Long options\n");
 
-            if (strcmp("depth", long_options[long_index].name) == 0) {
+            if (strcmp("set-depth", long_options[long_index].name) == 0) {
 
                 printf("SETTING OUTPUT DEPTH\n");
 
@@ -237,11 +249,11 @@ int main(int argc, char *argv[]) {
                                            ? "true"
                                            : "false");
                             
-                        printf("--depth: %d\n", input_value);
+                        printf("--set-depth: %d\n", input_value);
                         
                         if ((input_value == 1) || /*(input_value == 2) || */(input_value == 4) || (input_value == 8) || (input_value == 24)) {
                             img->bit_depth_out = input_value;
-                            printf("--depth=%d\n", input_value);
+                            printf("--set-depth=%d\n", input_value);
                         } else {
                             printf("Can only set depth to 1, 4, or 8 \n");
                         }
@@ -249,12 +261,12 @@ int main(int argc, char *argv[]) {
                 } else {
                     // Adjust optind to reconsider the current argument as a
                     // non-option argument
-                    fprintf(stderr, "Invalid input to --depth %s\n", optarg);
+                    fprintf(stderr, "Invalid input to --set-depth %s\n", optarg);
                     optind--;
 
                 }
 
-            } if (strcmp("colors", long_options[long_index].name) == 0) {
+            } if (strcmp("set-colors", long_options[long_index].name) == 0) {
 
                 printf("SETTING OUTPUT COLORS\n");
 
@@ -268,17 +280,17 @@ int main(int argc, char *argv[]) {
                                            ? "true"
                                            : "false");
                             
-                        printf("--colors: %d\n", input_value);
+                        printf("--set-colors: %d\n", input_value);
                         
                         if ((input_value >= 2) && (input_value <= 256)) {
                             img->output_color_count = input_value;
-                            printf("--colors=%d\n", input_value);
+                            printf("--set-colors=%d\n", input_value);
                         }
 
                 } else {
                     // Adjust optind to reconsider the current argument as a
                     // non-option argument
-                    fprintf(stderr, "Invalid input to --colors %s\n", optarg);
+                    fprintf(stderr, "Invalid input to --set-colors %s\n", optarg);
                     optind--;
 
                 }
@@ -346,6 +358,9 @@ int main(int argc, char *argv[]) {
 
             break;
 
+        case 'c': // mode: COPY, to grayscale image
+            c_flag = true;
+            break;
         case 'g': // mode: GRAY, to grayscale image
             g_flag = true;
             break;
@@ -533,7 +548,7 @@ int main(int argc, char *argv[]) {
             s_flag = true;
             break;
         case 'h': // help
-            print_usage(argv[0]);
+            print_usage(app_name);
             exit(EXIT_SUCCESS);
         case 'v': // verbose
             v_flag = true;
@@ -551,18 +566,18 @@ int main(int argc, char *argv[]) {
     // printf("Option: %d\n", option);
 
     // set the mode and make sure only one mode is true.
-    if (g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
-            r_flag + f_flag + l_flag + s_flag + filter_flag >
-        1) {
+    if (c_flag + g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
+            r_flag + f_flag + l_flag + s_flag + filter_flag > 1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
     }
 
-    if (g_flag) {
+    if (c_flag) {
+        bitmap.image_data->mode = COPY;
+    } else if (g_flag) {
         bitmap.image_data->mode = GRAY;
     } else if (m_flag) {
-
         if (d_flag) {
             bitmap.image_data->mode = DITHER;
             bitmap.image_data->dither = true;
@@ -570,7 +585,6 @@ int main(int argc, char *argv[]) {
             bitmap.image_data->mode = MONO;
             img->mono_threshold = m_flag_value;
         }
-
     } else if (i_flag) {
         if (invert_mode == 0) {
             bitmap.image_data->mode = INV;
@@ -617,7 +631,7 @@ int main(int argc, char *argv[]) {
         }
         optind++;
     } else {
-        print_usage(argv[0]);
+        print_usage(app_name);
         exit(EXIT_FAILURE);
     }
 
