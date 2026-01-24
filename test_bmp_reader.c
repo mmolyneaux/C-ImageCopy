@@ -108,9 +108,10 @@ void print_header_fields(Bitmap *bmp) {
 
 int main(int argc, char *argv[]) {
 
+    char * app_name = get_basename(argv[0]);
     // if the program is called with no options, print usage and exit.
     if (argc == 1) {
-        printf("Usage: %s <filename>\n", argv[0]);
+        printf("Usage: %s <filename>\n", app_name);
         exit(EXIT_SUCCESS);
     }
 

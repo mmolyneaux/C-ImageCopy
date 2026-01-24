@@ -60,6 +60,15 @@ char *create_filename_with_suffix(char *filename, char *suffix) {
     return new_filename;
 }
 
+const char *get_basename(const char *path) {
+    const char *slash = strrchr(path, '/');
+    const char *backslash = strrchr(path, '\\');
+
+    const char *last = slash > backslash ? slash : backslash;
+    return last ? last + 1 : path;
+}
+
+
 void init_bitmap(Bitmap *bmp) {
     if (!bmp)
         return; // Prevent null pointer issues

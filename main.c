@@ -141,15 +141,6 @@ bool is_digit(char value) { return ((value >= '0' && value <= '9')); }
 // check if a char is 0-9, or '.'
 bool is_digit_or_dot(char value) { return (is_digit(value) || value == '.'); }
 
-const char *get_basename(const char *path) {
-    const char *slash = strrchr(path, '/');
-    const char *backslash = strrchr(path, '\\');
-
-    const char *last = slash > backslash ? slash : backslash;
-    return last ? last + 1 : path;
-}
-
-
 int main(int argc, char *argv[]) {
 
     const char *app_name = get_basename(argv[0]);
@@ -339,7 +330,7 @@ int main(int argc, char *argv[]) {
                     printf("Usage:\n");
                     printf(">%s --filter=filter_name <input_filename> "
                            "[opt_output_filename]\n",
-                           argv[0]);
+                           app_name);
                     printf("Available filter names:\n");
 
                     for (int i = 0; i < filter_list_size; i++) {
