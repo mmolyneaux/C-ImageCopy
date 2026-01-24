@@ -141,10 +141,26 @@ bool is_digit(char value) { return ((value >= '0' && value <= '9')); }
 // check if a char is 0-9, or '.'
 bool is_digit_or_dot(char value) { return (is_digit(value) || value == '.'); }
 
+bool starts_like_float(const char *s) {
+    if (!s || !*s) return false;
+
+    if (is_digit(s[0])) {
+        return true;
+    }
+
+    // Allow ".5" but NOT ".\images"
+    if (s[0] == '.' && is_digit((s[1]))) {
+        return true;
+    }
+
+    return false;
+}
+
+
 int main(int argc, char *argv[]) {
 
     const char *app_name = get_basename(argv[0]);
-    
+
     // if the program is called with no options, print usage and exit.
     if (argc == 1) {
         print_usage(app_name);
@@ -237,27 +253,29 @@ int main(int argc, char *argv[]) {
                     printf("is_valid_int: %s\n",
 
                            (valid_int = (is_valid_int(optarg, &input_value)))
-                                           ? "true"
-                                           : "false");
-                            
-                        printf("--set-depth: %d\n", input_value);
-                        
-                        if ((input_value == 1) || /*(input_value == 2) || */(input_value == 4) || (input_value == 8) || (input_value == 24)) {
-                            img->bit_depth_out = input_value;
-                            printf("--set-depth=%d\n", input_value);
-                        } else {
-                            printf("Can only set depth to 1, 4, or 8 \n");
-                        }
+                               ? "true"
+                               : "false");
+
+                    printf("--set-depth: %d\n", input_value);
+
+                    if ((input_value == 1) ||
+                        /*(input_value == 2) || */ (input_value == 4) ||
+                        (input_value == 8) || (input_value == 24)) {
+                        img->bit_depth_out = input_value;
+                        printf("--set-depth=%d\n", input_value);
+                    } else {
+                        printf("Can only set depth to 1, 4, or 8 \n");
+                    }
 
                 } else {
                     // Adjust optind to reconsider the current argument as a
                     // non-option argument
-                    fprintf(stderr, "Invalid input to --set-depth %s\n", optarg);
+                    fprintf(stderr, "Invalid input to --set-depth %s\n",
+                            optarg);
                     optind--;
-
                 }
-
-            } if (strcmp("set-colors", long_options[long_index].name) == 0) {
+            }
+            if (strcmp("set-colors", long_options[long_index].name) == 0) {
 
                 printf("SETTING OUTPUT COLORS\n");
 
@@ -268,25 +286,25 @@ int main(int argc, char *argv[]) {
                     printf("is_valid_int: %s\n",
 
                            (valid_int = (is_valid_int(optarg, &input_value)))
-                                           ? "true"
-                                           : "false");
-                            
-                        printf("--set-colors: %d\n", input_value);
-                        
-                        if ((input_value >= 2) && (input_value <= 256)) {
-                            img->output_color_count = input_value;
-                            printf("--set-colors=%d\n", input_value);
-                        }
+                               ? "true"
+                               : "false");
+
+                    printf("--set-colors: %d\n", input_value);
+
+                    if ((input_value >= 2) && (input_value <= 256)) {
+                        img->output_color_count = input_value;
+                        printf("--set-colors=%d\n", input_value);
+                    }
 
                 } else {
                     // Adjust optind to reconsider the current argument as a
                     // non-option argument
-                    fprintf(stderr, "Invalid input to --set-colors %s\n", optarg);
+                    fprintf(stderr, "Invalid input to --set-colors %s\n",
+                            optarg);
                     optind--;
-
                 }
 
-            }else if (strcmp("test", long_options[long_index].name) == 0) {
+            } else if (strcmp("test", long_options[long_index].name) == 0) {
                 printf("DEPTH\n");
                 exit(EXIT_SUCCESS);
             } else if (strcmp("version", long_options[long_index].name) == 0) {
@@ -356,25 +374,31 @@ int main(int argc, char *argv[]) {
             g_flag = true;
             break;
         case 'm':
+        printf("***************CASE M***********************\n");
             m_flag = true;
-            // Check both optarg is not null,
-            // and optarg[0] starts with char 0-9 or "."
-            if ((optarg) && is_digit_or_dot(optarg[0])) {
-                float m_input = 0.0;
-                if (get_valid_float(optarg, &m_input)) {
-                    if ((m_input >= 0.0) && (m_input <= 1.0)) {
-                        m_flag_value = m_input;
-                    } else {
-                        fprintf(stderr,
-                                "-m value error \"%s\", defaulting to "
-                                "%.1f\n",
-                                optarg, m_flag_value);
-                    }
+
+            if (optarg && starts_like_float(optarg)) {
+                float m_input = 0.0f;
+
+                if (get_valid_float(optarg, &m_input) && m_input >= 0.0f &&
+                    m_input <= 1.0f) {
+
+                    m_flag_value = m_input;
+
+                } else {
+                    fprintf(stderr,
+                            "-m value error \"%s\", defaulting to %.1f\n",
+                            optarg, m_flag_value);
                 }
+
             } else {
-                // Adjust optind to reconsider the current argument as a
-                // non-option argument
-                optind--;
+                // No valid argument → use default and push back the token
+                if (optarg != NULL) {
+                    // optarg exists but is NOT numeric → it's a positional
+                    // argument
+                    optind--;
+                }
+                // m_flag_value stays at its default (already initialized)
             }
             break;
 
@@ -557,8 +581,9 @@ int main(int argc, char *argv[]) {
     // printf("Option: %d\n", option);
 
     // set the mode and make sure only one mode is true.
-    if (c_flag + g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag + e_flag +
-            r_flag + f_flag + l_flag + s_flag + filter_flag > 1) {
+    if (c_flag + g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag +
+            e_flag + r_flag + f_flag + l_flag + s_flag + filter_flag >
+        1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
