@@ -374,7 +374,6 @@ int main(int argc, char *argv[]) {
             g_flag = true;
             break;
         case 'm':
-        printf("***************CASE M***********************\n");
             m_flag = true;
 
             if (optarg && starts_like_float(optarg)) {

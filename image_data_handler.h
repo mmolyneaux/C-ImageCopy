@@ -13,6 +13,7 @@
 //#define CT_SIZE 1024
 #define M_FLAG_DEFAULT 0.5
 #define BLACK 0
+#define WHITE 255
 #define MAX_COLORS24 16777216  // 2^24
 
 

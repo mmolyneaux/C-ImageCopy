@@ -1,7 +1,7 @@
 #include "image_data_handler.h"
 #include "convolution.h"
 #include "reduce_colors_24.h"
-//#include "reduce_colors_24.h"
+// #include "reduce_colors_24.h"
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -817,7 +817,7 @@ void mono3(Image_Data *img) {
 
     uint32_t width = img->width;
     uint32_t height = img->height;
-    const uint8_t WHITE = 255;
+    // const uint8_t WHITE = 255;
 
     if (img->dither) {
         // Allocate luminance buffer
@@ -880,24 +880,44 @@ void mono3(Image_Data *img) {
 }
 
 void bright1(Image_Data *img) {
-    printf("Bright1\n");
+    assert(!!img->bright_value ^ !!img->bright_percent);
 
-    const uint8_t CT_MAX = img->ct_max_color_count;
+    printf("Bright1\n");
+    printf("Bright value = %d\n", img->bright_value);
+    printf("Bright percent = %f\n", img->bright_percent);
+
+    //const uint8_t CT_MAX = img->ct_max_color_count;
+    const uint16_t CT_MAX = img->colors_used_actual;
+    printf("Max Colour Count = %d\n", img->colors_used_actual);
+    printf("CT_MAX: %d\n", CT_MAX);
 
     if (img->bright_value) {
-        for (int i = 0, value = 0; i < img->image_byte_count; i++) {
+        printf("Bright value loop\n");
+        printf("CT_MAX: %d\n", CT_MAX);
+        for (int i = 0, value = 0; i < CT_MAX * 4; i++) {
+            printf("Bright value loop inside\n");
+            printf("i: %d ", i);
             // Adds the positive or negative value with black and white
             // bounds.
 
-            value = img->pixel_data[i] + img->bright_value;
+            // value = img->pixel_data[i] + img->bright_value;
+            if (i < 64)
+                printf("( %d:", img->colorTable[i]);
+            
+            
+            value = img->colorTable[i] + img->bright_value;
 
-            if (value <= BLACK) {
-                img->pixel_data[i] = BLACK;
-            } else if (value >= CT_MAX) {
-                img->pixel_data[i] = CT_MAX;
+            if (value <= 0) {
+                // Black
+                img->colorTable[i] = 0;
+            } else if (value >= 255) {
+                // White
+                img->colorTable[i] = 255;
             } else {
-                img->pixel_data[i] = value;
+                img->colorTable[i] = value;
             }
+            if (i < 64)
+                printf("%d) ", img->colorTable[i]);
         }
     } else { // img->bright_percent
              // if (img->bright_percent) {
@@ -919,7 +939,7 @@ void bright3(Image_Data *img) {
     printf("Bright3\n");
 
     // const uint8_t WHITE = (1 << (img->bit_depth / img->type)) - 1;
-    const uint8_t WHITE = 255;
+    // const uint8_t WHITE = 255;
     int temp = 0;
 
     printf("White: %d\n", WHITE);
@@ -1241,8 +1261,8 @@ void flip13(Image_Data *img) {
                 for (int x = 0; x < width * 3; x += 3) {
                     for (int rgb = 0; rgb < 3; rgb++) {
                         output_buffer3[y][x + rgb] =
-                            img->pixelDataRows[y][img->row_size_bytes - (x + 3) +
-                                                 rgb];
+                            img->pixelDataRows[y][img->row_size_bytes -
+                                                  (x + 3) + rgb];
                     }
                 }
             }
@@ -1814,7 +1834,7 @@ void blur3(Image_Data *img) {
 
 void sepia3(Image_Data *img) {
     printf("Sepia\n");
-    const uint8_t WHITE = 255;
+    // const uint8_t WHITE = 255;
 
     // sepia kernal
     float sepia[3][3] = {
@@ -1852,8 +1872,8 @@ void filter1(Image_Data *img) {
 
     Convolution *c1 = malloc(sizeof(Convolution));
     c1->input = img->pixel_data; // Pointer to the input image buffer
-    c1->height = img->height;      // Image height
-    c1->width = img->width;        // Image width
+    c1->height = img->height;    // Image height
+    c1->width = img->width;      // Image width
     c1->kernel = &kernel_list[filter_index];
     c1->output = create_buffer1(
         img->image_byte_count); // Pointer to the output image buffer
@@ -1893,19 +1913,15 @@ typedef struct {
 } ColorCount;
 
 // Build a 24-bit histogram from a flat, padded pixel buffer
-void build_histogram(
-    const uint8_t *buf,
-    uint32_t       width,
-    uint32_t       height,
-    uint32_t      *hist)
-{
+void build_histogram(const uint8_t *buf, uint32_t width, uint32_t height,
+                     uint32_t *hist) {
     size_t row_size = (((size_t)width * 3) + 3) & ~3u;
     for (uint32_t y = 0; y < height; y++) {
         const uint8_t *row = buf + y * row_size;
         for (uint32_t x = 0; x < width; x++) {
-            uint32_t b = row[x*3 + 0];
-            uint32_t g = row[x*3 + 1];
-            uint32_t r = row[x*3 + 2];
+            uint32_t b = row[x * 3 + 0];
+            uint32_t g = row[x * 3 + 1];
+            uint32_t r = row[x * 3 + 2];
             uint32_t key = (r << 16) | (g << 8) | b;
             hist[key]++;
         }
@@ -1919,41 +1935,32 @@ int cmp_colorcount(const void *a, const void *b) {
     return (B->count > A->count) - (B->count < A->count);
 }
 
-void convert_indexed_with_padding(
-    const uint8_t *rgb_buf,
-    int            width,
-    int            height,
-    int            row_stride,
-    int            bits,
-    int            max_colors,
-    int            dither_flag,
-    uint8_t      **out_idx_padded,
-    int           *out_row_stride,
-    Color        **out_pal,
-    int           *out_psize)
-{
+void convert_indexed_with_padding(const uint8_t *rgb_buf, int width, int height,
+                                  int row_stride, int bits, int max_colors,
+                                  int dither_flag, uint8_t **out_idx_padded,
+                                  int *out_row_stride, Color **out_pal,
+                                  int *out_psize) {
     // 1) Produce tight indices & palette
     uint8_t *idx_tight;
-    Color   *palette;
-    uint16_t      psize;
-    convert_24_to_indexed_tight(
-      rgb_buf, width, height, row_stride,
-      bits, max_colors, dither_flag,
-      &idx_tight, &palette, &psize);
+    Color *palette;
+    uint16_t psize;
+    convert_24_to_indexed_tight(rgb_buf, width, height, row_stride, bits,
+                                max_colors, dither_flag, &idx_tight, &palette,
+                                &psize);
 
     // 2) Compute padded stride and buffer
     *out_row_stride = ((width + 3) / 4) * 4;
     *out_idx_padded = malloc((*out_row_stride) * height);
     for (int y = 0; y < height; y++) {
         uint8_t *dst = *out_idx_padded + y * (*out_row_stride);
-        uint8_t *src = idx_tight                 + y * width;
+        uint8_t *src = idx_tight + y * width;
         memcpy(dst, src, width);
         memset(dst + width, 0, (*out_row_stride) - width);
     }
 
     // 3) Cleanup tight buffer, output palette & size
     free(idx_tight);
-    *out_pal   = palette;
+    *out_pal = palette;
     *out_psize = psize;
 }
 
@@ -1969,7 +1976,7 @@ void convert_indexed_with_padding(
 
 //     uint32_t width  = img.width;
 //     uint32_t height = img.height;
-//     // 
+//     //
 
 //     size_t   row_size = (((size_t)width * 3) + 3) & ~3u;
 //     assert(img.row_size_bytes == row_size);
@@ -1980,7 +1987,8 @@ void convert_indexed_with_padding(
 // if colors not low enough, need to reduce colors before reduce bit depth.
 void convert_bit_depth_if_color_count_matches(Image_Data *img) {
 
-    char *function_name = "[image_data_handler:convert_bit_depth_if_color_count_matches]";
+    char *function_name =
+        "[image_data_handler:convert_bit_depth_if_color_count_matches]";
     uint8_t bit_depth_old = img->bit_depth_in;
     uint8_t bit_depth_new = img->bit_depth_out;
     // already 0 for 24 bit
@@ -2018,10 +2026,8 @@ void convert_bit_depth_if_color_count_matches(Image_Data *img) {
         buffer1_new_size_bytes =
             calculate_buffer1_byte_count(width, height, bit_depth_new);
 
-            
-
-
-        printf("%s buffer1_new_size_bytes : %u \n", function_name, buffer1_new_size_bytes);
+        printf("%s buffer1_new_size_bytes : %u \n", function_name,
+               buffer1_new_size_bytes);
 
         buffer1_new = create_buffer1(buffer1_new_size_bytes);
 
