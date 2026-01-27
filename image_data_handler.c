@@ -89,7 +89,7 @@ void process_image(Image_Data *img) {
             assert(img->dither == true);
             mono1(img);
         } else if (img->mode == BRIGHT) {
-            bright1(img);
+            bright13(img);
         } else if (img->mode == HIST) {
             hist1(img);
         } else if (img->mode == HIST_N) {
@@ -886,7 +886,7 @@ void bright1(Image_Data *img) {
     printf("Bright value = %d\n", img->bright_value);
     printf("Bright percent = %f\n", img->bright_percent);
 
-    //const uint8_t CT_MAX = img->ct_max_color_count;
+    // const uint8_t CT_MAX = img->ct_max_color_count;
     const uint16_t CT_MAX = img->colors_used_actual;
     printf("Max Colour Count = %d\n", img->colors_used_actual);
     printf("CT_MAX: %d\n", CT_MAX);
@@ -903,8 +903,7 @@ void bright1(Image_Data *img) {
             // value = img->pixel_data[i] + img->bright_value;
             if (i < 64)
                 printf("( %d:", img->colorTable[i]);
-            
-            
+
             value = img->colorTable[i] + img->bright_value;
 
             if (value <= 0) {
@@ -935,6 +934,61 @@ void bright1(Image_Data *img) {
         }
     }
 }
+
+void bright13(Image_Data *img) {
+    assert(!!img->bright_value ^ !!img->bright_percent);
+
+    printf("Bright13\n");
+    printf("Bright value = %d\n", img->bright_value);
+    printf("Bright percent = %f\n", img->bright_percent);
+
+    const uint16_t bit_depth = img->bit_depth_in;
+
+    int brightness_offset = 0;
+
+    if (img->bright_value) {
+        brightness_offset = img->bright_value;
+    } else {
+        brightness_offset = (int)(img->bright_percent * 255.0f);
+    }
+
+    // // const uint8_t CT_MAX = img->ct_max_color_count;
+    // const uint16_t CT_MAX = img->colors_used_actual;
+    // printf("Max Colour Count = %d\n", img->colors_used_actual);
+    // printf("CT_MAX: %d\n", CT_MAX);
+
+    int palette_entries = img->colors_used_actual;
+
+    if (palette_entries == 0) {
+        if (bit_depth == 1)
+            palette_entries = 2;
+        else if (bit_depth == 4)
+            palette_entries = 16;
+        else if (bit_depth == 8)
+            palette_entries = 256;
+        else
+            palette_entries = 0; // 24/32-bit images have no palette
+    }
+
+    if (palette_entries > 0) {
+        int total_bytes = palette_entries * 4; // BGRA or RGBA
+
+        for (int i = 0; i < total_bytes; i++) {
+            int v = img->colorTable[i] + brightness_offset;
+
+            if ((i % 4) != 3) {
+                // this is B, G, or R
+                // apply brightness
+                if (v < 0)
+                    v = 0;
+                else if (v > 255)
+                    v = 255;
+                img->colorTable[i] = (uint8_t)v;
+            }
+        }
+    }
+}
+
 void bright3(Image_Data *img) {
     printf("Bright3\n");
 

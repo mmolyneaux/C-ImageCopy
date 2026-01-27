@@ -114,6 +114,7 @@ void gray13(Image_Data *img); // *new*
 void mono1(Image_Data *img);
 void mono3(Image_Data *img);
 void bright1(Image_Data *img);
+void bright13(Image_Data *img);
 void bright3(Image_Data *img);
 
 
