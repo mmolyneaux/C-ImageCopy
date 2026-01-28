@@ -987,6 +987,14 @@ void bright13(Image_Data *img) {
             }
         }
     }
+
+    else {
+        // 24/32 bit
+
+    }
+
+
+
 }
 
 void bright3(Image_Data *img) {
