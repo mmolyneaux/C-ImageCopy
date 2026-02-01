@@ -45,6 +45,7 @@ void init_image(Image_Data *img) {
     img->colorMode = 0;
     img->mono_threshold = 0.0f;
     img->dither = false;
+    img->brightness_mode = false;
     img->bright_value = 0;
     img->bright_percent = 0.0f;
     img->CT_EXISTS = false;
@@ -79,6 +80,10 @@ void process_image(Image_Data *img) {
         printf("\n");
         printf("INDEXED\n");
 
+        if (img->brightness_mode) {
+            bright134(img);
+        }
+
         if (img->mode == COPY) {
             copy13(img);
         } else if (img->mode == GRAY) {
@@ -88,8 +93,6 @@ void process_image(Image_Data *img) {
         } else if (img->mode == DITHER) {
             assert(img->dither == true);
             mono1(img);
-        } else if (img->mode == BRIGHT) {
-            bright134(img);
         } else if (img->mode == HIST) {
             hist1(img);
         } else if (img->mode == HIST_N) {
@@ -114,6 +117,11 @@ void process_image(Image_Data *img) {
 
     } else if (img->colorMode == RGB24) {
         printf("RGB_CHANNEL\n");
+        
+        if (img->brightness_mode) {
+            bright134(img);
+        }
+        
         if (img->mode == COPY) {
             printf("C3\n");
             copy13(img);
@@ -126,9 +134,6 @@ void process_image(Image_Data *img) {
         } else if (img->mode == DITHER) {
             assert(img->dither == true);
             mono3(img);
-        } else if (img->mode == BRIGHT) {
-            printf("B3\n");
-            bright134(img);
         } else if (img->mode == EQUAL) {
             printf("E3\n");
             equal3(img);
@@ -879,62 +884,6 @@ void mono3(Image_Data *img) {
     img->colors_used_actual = 2;
 }
 
-void bright1(Image_Data *img) {
-    assert(!!img->bright_value ^ !!img->bright_percent);
-
-    printf("Bright1\n");
-    printf("Bright value = %d\n", img->bright_value);
-    printf("Bright percent = %f\n", img->bright_percent);
-
-    // const uint8_t CT_MAX = img->ct_max_color_count;
-    const uint16_t CT_MAX = img->colors_used_actual;
-    printf("Max Colour Count = %d\n", img->colors_used_actual);
-    printf("CT_MAX: %d\n", CT_MAX);
-
-    if (img->bright_value) {
-        printf("Bright value loop\n");
-        printf("CT_MAX: %d\n", CT_MAX);
-        for (int i = 0, value = 0; i < CT_MAX * 4; i++) {
-            printf("Bright value loop inside\n");
-            printf("i: %d ", i);
-            // Adds the positive or negative value with black and white
-            // bounds.
-
-            // value = img->pixel_data[i] + img->bright_value;
-            if (i < 64)
-                printf("( %d:", img->colorTable[i]);
-
-            value = img->colorTable[i] + img->bright_value;
-
-            if (value <= 0) {
-                // Black
-                img->colorTable[i] = 0;
-            } else if (value >= 255) {
-                // White
-                img->colorTable[i] = 255;
-            } else {
-                img->colorTable[i] = value;
-            }
-            if (i < 64)
-                printf("%d) ", img->colorTable[i]);
-        }
-    } else { // img->bright_percent
-             // if (img->bright_percent) {
-        for (int i = 0, value = 0; i < img->image_byte_count; i++) {
-            // Adds the positive or negative value with black and white
-            // bounds.
-            value = img->pixel_data[i] + (int)(img->bright_percent * CT_MAX);
-            if (value >= CT_MAX) {
-                img->pixel_data[i] = CT_MAX;
-            } else if (value <= BLACK) {
-                img->pixel_data[i] = BLACK;
-            } else {
-                img->pixel_data[i] = value;
-            }
-        }
-    }
-}
-
 void bright134(Image_Data *img) {
     assert(!!img->bright_value ^ !!img->bright_percent);
 
@@ -1004,56 +953,7 @@ void bright134(Image_Data *img) {
     }
 }
 
-void bright3(Image_Data *img) {
-    printf("Bright3\n");
 
-    // const uint8_t WHITE = (1 << (img->bit_depth / img->type)) - 1;
-    // const uint8_t WHITE = 255;
-    int temp = 0;
-
-    printf("White: %d\n", WHITE);
-    if (img->bright_value) {
-
-        for (uint32_t y = 0; y < img->height; y++) {
-            for (uint32_t x = 0; x < 3 * img->width; x += 3) {
-
-                // Adds the positive or negative value with black and white
-                // bounds.
-                for (uint8_t rgb = 0; rgb < 3; rgb++) {
-                    temp = img->pixelDataRows[y][x + rgb] + img->bright_value;
-                    if (temp >= WHITE) {
-                        img->pixelDataRows[y][x + rgb] = WHITE;
-                    } else if (temp <= BLACK) {
-                        img->pixelDataRows[y][x + rgb] = BLACK;
-                    } else {
-                        img->pixelDataRows[y][x + rgb] = temp;
-                    }
-                }
-            }
-        }
-
-    } else { // img->bright_percent
-        // relative to the percentage * pixel
-        printf("Bright3 - Percent\n");
-
-        for (uint32_t y = 0; y < img->height; y++) {
-            for (uint32_t x = 0; x < 3 * img->width; x += 3) {
-                for (uint8_t rgb = 0; rgb < 3; rgb++) {
-
-                    temp = img->pixelDataRows[y][x + rgb] +
-                           (int)(img->bright_percent * WHITE);
-                    if (temp >= WHITE) {
-                        img->pixelDataRows[y][x + rgb] = WHITE;
-                    } else if (temp <= BLACK) {
-                        img->pixelDataRows[y][x + rgb] = BLACK;
-                    } else {
-                        img->pixelDataRows[y][x + rgb] = temp;
-                    }
-                }
-            }
-        }
-    }
-}
 
 void hist1(Image_Data *img) {
     // img->HIST_RANGE_MAX = (1 << img->bit_depth); // 256 for 8 bit images

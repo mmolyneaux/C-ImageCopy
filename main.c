@@ -580,12 +580,19 @@ int main(int argc, char *argv[]) {
     // printf("Option: %d\n", option);
 
     // set the mode and make sure only one mode is true.
-    if (c_flag + g_flag + b_flag + m_flag + i_flag + hist_flag + histn_flag +
+    // b_flag excluded, can be run anytime
+    if (c_flag + g_flag + m_flag + i_flag + hist_flag + histn_flag +
             e_flag + r_flag + f_flag + l_flag + s_flag + filter_flag >
         1) {
         fprintf(stderr, "%s",
                 "Error: Only one processing mode permitted at a time.\n");
         exit(EXIT_FAILURE);
+    }
+
+    if (b_flag) {
+        bitmap.image_data->brightness_mode = true;
+        img->bright_percent = b_flag_float;
+        img->bright_value = b_flag_int;
     }
 
     if (c_flag) {
@@ -608,10 +615,6 @@ int main(int argc, char *argv[]) {
         } else if (invert_mode == HSV_INVERT) {
             bitmap.image_data->mode = INV_HSV;
         }
-    } else if (b_flag) {
-        bitmap.image_data->mode = BRIGHT;
-        img->bright_percent = b_flag_float;
-        img->bright_value = b_flag_int;
     } else if (hist_flag) {
         bitmap.image_data->mode = HIST;
     } else if (histn_flag) {
